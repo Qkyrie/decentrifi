@@ -37,13 +37,22 @@ The project is organized as a multi-module Maven application:
 
 - **decentrifi-parent**: The root parent module that defines common dependencies and configurations
 - **data-ingestion**: Module responsible for collecting and processing blockchain data
-  - Polls for new blocks and extracts events
-  - Stores raw invocations in PostgreSQL with TimescaleDB
-  - Aggregates metrics on an hourly basis
+  - Polls for new blocks and extracts events using Ktor and Web3j
+  - Stores raw invocations in PostgreSQL with TimescaleDB using Exposed ORM
+  - Decodes ERC-20 function calls and tracks transfer events
+  - Supports custom batch sizes and polling intervals
+  - Maintains state to resume ingestion after restart
 - **analytics-api**: Web application module that provides the dashboard and API
   - Server-side rendered UI with Thymeleaf
   - REST endpoints for accessing metrics
   - Interactive charts using Chart.js
+
+## Technology Stack
+
+- **Backend**: Kotlin, Ktor, Exposed ORM, PostgreSQL, TimescaleDB
+- **Blockchain Integration**: Web3j
+- **Frontend**: Thymeleaf, HTML/CSS/JS, Chart.js
+- **Deployment**: Docker, Docker Compose, Kubernetes (optional)
 
 ## How to Build
 
@@ -71,6 +80,7 @@ The project is organized as a multi-module Maven application:
 
    Using Docker Compose:
    ```bash
+   cd docker
    docker-compose up -d postgres
    ```
 
@@ -81,56 +91,43 @@ The project is organized as a multi-module Maven application:
    CREATE EXTENSION IF NOT EXISTS timescaledb;
    ```
 
-4. **Configure application properties**
+4. **Configure the data ingestion module**
 
-   Create `data-ingestion/src/main/resources/application.properties` with the following:
-   ```properties
-   # Database Configuration
-   spring.datasource.url=jdbc:postgresql://localhost:5432/decentrifi
-   spring.datasource.username=postgres
-   spring.datasource.password=postgres
-   spring.jpa.hibernate.ddl-auto=validate
-   spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-   
-   # Ethereum Configuration
-   ethereum.rpc.url=https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID
-   ethereum.contract.dai=0x6b175474e89094c44da98b954eedeac495271d0f
-   
-   # Application Configuration
-   ingestion.batch-size=100
-   ingestion.poll-interval=15000
+   Edit `data-ingestion/src/main/resources/application.conf`:
+   ```hocon
+   server {
+       port = 8080
+   }
+
+   database {
+       jdbcUrl = "jdbc:postgresql://localhost:5432/decentrifi"
+       username = "postgres"
+       password = "postgres"
+       maxPoolSize = 10
+   }
+
+   ethereum {
+       rpcUrl = "https://mainnet.infura.io/v3/YOUR_INFURA_KEY"
+       contractAddress = "0x6b175474e89094c44da98b954eedeac495271d0f"
+       startBlock = 15000000
+       batchSize = 100
+       pollingInterval = 15000
+   }
    ```
 
-   Create `analytics-api/src/main/resources/application.properties` with the following:
-   ```properties
-   # Server Configuration
-   server.port=8080
-   
-   # Database Configuration
-   spring.datasource.url=jdbc:postgresql://localhost:5432/decentrifi
-   spring.datasource.username=postgres
-   spring.datasource.password=postgres
-   spring.jpa.hibernate.ddl-auto=validate
-   spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-   
-   # Application Configuration
-   metrics.cache-ttl=300
-   ```
+5. **Run the application**
 
-5. **Run database migrations**
+   Using Docker Compose:
    ```bash
-   cd data-ingestion
-   ./create-migration.sh "Initial schema setup"
-   mvn spring-boot:run
+   cd docker
+   docker-compose up -d
    ```
 
-6. **Run the application modules**
+   Or run each module separately:
    ```bash
    # Run the data ingestion module
-   mvn spring-boot:run -pl data-ingestion
-   
-   # Run the analytics API module in a separate terminal
-   mvn spring-boot:run -pl analytics-api
+   cd data-ingestion
+   mvn exec:java -Dexec.mainClass="fi.decentri.dataingest.ApplicationKt"
    ```
 
 ### Building for Production
@@ -138,15 +135,30 @@ The project is organized as a multi-module Maven application:
 1. **Create production Docker images**
    ```bash
    mvn clean package
-   docker build -t decentrifi/ingestion:latest -f data-ingestion/Dockerfile data-ingestion
-   docker build -t decentrifi/analytics-api:latest -f analytics-api/Dockerfile analytics-api
+   docker build -t decentrifi/data-ingestion:latest -f data-ingestion/Dockerfile data-ingestion
    ```
 
-2. **Deploy with Kubernetes**
+2. **Deploy with Docker Compose or Kubernetes**
    ```bash
-   # Apply the Helm chart
-   helm install decentrifi ./helm/decentrifi
+   # Using Docker Compose
+   docker-compose -f docker/docker-compose.yml up -d
    ```
+
+## Configuring Blockchain Data Ingestion
+
+The `data-ingestion` module can be configured to ingest data from different ERC-20 contracts by adjusting the following settings:
+
+- **ETH_RPC_URL**: URL of the Ethereum node (or other EVM chain)
+- **ETH_CONTRACT_ADDRESS**: Smart contract address to monitor
+- **ETH_START_BLOCK**: Starting block number for historical data ingestion
+- **ETH_BATCH_SIZE**: Number of blocks to process in one batch
+- **ETH_POLLING_INTERVAL**: Interval between checks for new blocks (milliseconds)
+
+Example for ingesting data from USDC instead of DAI:
+```
+ETH_CONTRACT_ADDRESS=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+ETH_START_BLOCK=10000000
+```
 
 ## License
 
