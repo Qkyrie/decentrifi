@@ -12,3 +12,4 @@
 application-dev.properties
 target/
 build/
+.idea/
