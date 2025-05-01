@@ -17,8 +17,8 @@
     <artifactId>decentrifi-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Parent >> Fluistr</name>
-    <description>Fluistr parent</description>
+    <name>decentrifi-parent</name>
+    <description>Decentrifi parent project for smart contract analytics</description>
 
     <modules>
         <module>data-ingestion</module>
