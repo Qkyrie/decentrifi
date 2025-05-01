@@ -13,3 +13,4 @@ application-dev.properties
 target/
 build/
 .idea/
+docker_data/
