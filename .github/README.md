@@ -42,6 +42,7 @@ The project is organized as a multi-module Maven application:
   - Decodes ERC-20 function calls and tracks transfer events
   - Supports custom batch sizes and polling intervals
   - Maintains state to resume ingestion after restart
+  - Includes ABI parsing capabilities to extract functions and events
 - **analytics-api**: Web application module that provides the dashboard and API
   - Server-side rendered UI with Thymeleaf
   - REST endpoints for accessing metrics
@@ -159,6 +160,56 @@ Example for ingesting data from USDC instead of DAI:
 ETH_CONTRACT_ADDRESS=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
 ETH_START_BLOCK=10000000
 ```
+
+## ABI Processing
+
+The platform includes functionality to parse smart contract ABI files, which is essential for working with different types of contracts and understanding their interfaces.
+
+### Using the ABI Service
+
+The `AbiService` class provides methods for working with ABIs:
+
+```kotlin
+// Create an instance of the ABI service
+val abiService = AbiService()
+
+// Parse an ABI JSON string
+val (functions, events) = abiService.parseABI(abiJsonString)
+
+// Now you can work with the parsed functions and events
+functions.forEach { function ->
+    println("Function: ${function.name}")
+    println("  Inputs: ${function.inputs.size}")
+    println("  Outputs: ${function.outputs.size}")
+    println("  StateMutability: ${function.stateMutability}")
+}
+
+events.forEach { event ->
+    println("Event: ${event.name}")
+    println("  Inputs: ${event.inputs.size}")
+    println("  Anonymous: ${event.anonymous}")
+}
+```
+
+The `parseABI` method returns a `Pair<List<AbiFunction>, List<AbiEvent>>` with the following structure:
+
+- **AbiFunction** properties:
+  - `name`: Name of the function
+  - `inputs`: List of function input parameters
+  - `outputs`: List of function output parameters
+  - `stateMutability`: The state mutability (view, pure, payable, etc.)
+  - `constant`: Whether the function is constant
+  - `payable`: Whether the function accepts ETH
+
+- **AbiEvent** properties:
+  - `name`: Name of the event
+  - `inputs`: List of event parameters
+  - `anonymous`: Whether the event is anonymous
+
+Both function and event inputs are represented by **AbiFunctionParameter** objects with these properties:
+  - `name`: Name of the parameter
+  - `type`: Solidity type (e.g., "uint256", "address", etc.)
+  - `indexed`: Whether the parameter is indexed (relevant for events)
 
 ## License
 

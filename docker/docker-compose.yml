@@ -5,9 +5,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: analytics
-      POSTGRES_PASSWORD: analytics
-      POSTGRES_DB: analytics
+      POSTGRES_USER: decentrifi
+      POSTGRES_PASSWORD: decentrifi
+      POSTGRES_DB: decentrifi
     volumes:
       - postgres-data:/var/lib/postgresql/data
 

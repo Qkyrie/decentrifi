@@ -37,7 +37,6 @@ class RawInvocationsRepository {
                 it[RawInvocations.txHash] = txHash
                 it[RawInvocations.fromAddress] = fromAddress
                 it[RawInvocations.functionSelector] = functionSelector
-                it[RawInvocations.functionName] = functionName
                 it[RawInvocations.status] = status
                 it[RawInvocations.gasUsed] = gasUsed
             }[RawInvocations.id]
@@ -59,7 +58,6 @@ class RawInvocationsRepository {
                 this[RawInvocations.txHash] = data.txHash
                 this[RawInvocations.fromAddress] = data.fromAddress
                 this[RawInvocations.functionSelector] = data.functionSelector
-                this[RawInvocations.functionName] = data.functionName
                 this[RawInvocations.status] = data.status
                 this[RawInvocations.gasUsed] = data.gasUsed
             }
@@ -78,7 +76,6 @@ data class RawInvocationData(
     val txHash: String,
     val fromAddress: String,
     val functionSelector: String,
-    val functionName: String?,
     val inputArgs: Map<String, Any>,
     val status: Boolean,
     val gasUsed: Long

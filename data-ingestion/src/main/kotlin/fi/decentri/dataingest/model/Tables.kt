@@ -16,7 +16,6 @@ object RawInvocations : Table("raw_invocations") {
     val txHash = varchar("tx_hash", 66)
     val fromAddress = varchar("from_address", 42)
     val functionSelector = varchar("function_selector", 10)
-    val functionName = varchar("function_name", 64).nullable()
     //val inputArgs = jsonb("input_args", Map::class)
     val status = bool("status")
     val gasUsed = long("gas_used")
