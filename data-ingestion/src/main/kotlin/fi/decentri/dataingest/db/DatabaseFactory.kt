@@ -3,6 +3,7 @@ package fi.decentri.dataingest.db
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import fi.decentri.dataingest.config.DatabaseConfig
+import fi.decentri.dataingest.model.Contracts
 import fi.decentri.dataingest.model.IngestionMetadata
 import fi.decentri.dataingest.model.RawInvocations
 import kotlinx.coroutines.Dispatchers
@@ -41,9 +42,10 @@ object DatabaseFactory {
         
         // Initialize the schema and metadata
         transaction {
-            SchemaUtils.create(RawInvocations)
-            SchemaUtils.create(IngestionMetadata)
-            
+            SchemaUtils.createMissingTablesAndColumns(RawInvocations)
+            SchemaUtils.createMissingTablesAndColumns(IngestionMetadata)
+            SchemaUtils.createMissingTablesAndColumns(Contracts)
+
             // Initialize metadata table with last_processed_block if it doesn't exist
             val metadataExists = IngestionMetadata.selectAll()
                 .where { IngestionMetadata.key eq "last_processed_block" }
