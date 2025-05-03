@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decentrifi - Real-Time On-Chain Insights for ERC-20 Tokens</title>
+    <title>Decentrifi - Real-Time On-Chain Insights for EVM Contracts</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -26,6 +26,8 @@
             color: var(--dark-text);
             line-height: 1.5;
             background-color: var(--light-bg);
+            opacity: 0;
+            animation: pageLoadFade 0.8s ease forwards;
         }
 
         /* Grid & Layout */
@@ -80,6 +82,9 @@
             z-index: 100;
             transition: background-color 0.3s ease;
             background-color: transparent;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: headerLoadIn 0.6s ease forwards 0.2s;
         }
 
         .header.scrolled {
@@ -166,7 +171,7 @@
             margin: 0 auto;
             opacity: 0;
             transform: translateY(20px);
-            animation: fadeInUp 0.6s ease forwards 0.2s;
+            animation: fadeInUp 0.6s ease forwards 0.5s;
         }
 
         .subhead {
@@ -191,7 +196,7 @@
             border: none;
             cursor: pointer;
             transform: scale(0.8);
-            animation: popIn 0.4s ease-out forwards 0.6s;
+            animation: popIn 0.4s ease-out forwards 0.9s;
         }
 
         .cta-button:hover {
@@ -203,7 +208,7 @@
             margin-top: 60px;
             opacity: 0;
             transform: translateX(20px);
-            animation: fadeInRight 0.8s ease forwards 0.8s;
+            animation: fadeInRight 0.8s ease forwards 1.1s;
         }
 
         .dashboard-mockup {
@@ -241,16 +246,22 @@
         }
 
         .feature-icon {
-            width: 24px;
-            height: 24px;
+            width: 48px;
+            height: 48px;
             background: var(--gradient);
-            border-radius: 6px;
+            border-radius: 12px;
             margin: 0 auto 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 14px;
+            font-size: 24px;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1);
         }
 
         .feature-title {
@@ -264,6 +275,202 @@
             font-size: 14px;
             line-height: 20px;
             color: rgba(42, 46, 61, 0.8);
+        }
+
+        /* How It Works Section */
+        .how-it-works {
+            padding: 120px 0;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .how-it-works::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 300px;
+            background: radial-gradient(circle at 30% 50%, rgba(52, 109, 241, 0.05) 0%, transparent 70%);
+            z-index: 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-header h2 {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .section-subhead {
+            max-width: 600px;
+            margin: 0 auto;
+            font-size: 18px;
+            color: rgba(42, 46, 61, 0.7);
+        }
+
+        .how-it-works-timeline {
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: var(--border-color);
+            transform: translateX(-50%);
+        }
+
+        .how-it-works-card {
+            padding: 32px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .how-it-works-card:nth-child(odd) {
+            margin-left: 52%;
+            margin-right: auto;
+            animation-delay: 0.2s;
+        }
+
+        .how-it-works-card:nth-child(even) {
+            margin-right: 52%;
+            margin-left: auto;
+            animation-delay: 0.4s;
+        }
+
+        .how-it-works-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        .step-number {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: var(--gradient);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            border: 4px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .how-it-works-card:nth-child(odd) .step-number {
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .how-it-works-card:nth-child(even) .step-number {
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .how-it-works-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            display: inline-block;
+            background: var(--light-bg);
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        .how-it-works-card:hover .how-it-works-icon {
+            transform: scale(1.1);
+        }
+
+        .how-it-works-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--dark-text);
+        }
+
+        .how-it-works-desc {
+            margin-bottom: 24px;
+            color: rgba(42, 46, 61, 0.8);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .how-it-works-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .how-it-works-list li {
+            position: relative;
+            padding-left: 32px;
+            margin-bottom: 12px;
+            color: rgba(42, 46, 61, 0.9);
+            font-size: 15px;
+        }
+
+        .how-it-works-list li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent-teal);
+            font-weight: bold;
+            width: 24px;
+            height: 24px;
+            background: rgba(34, 209, 198, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .how-it-works-card {
+                padding: 24px;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
+            .timeline-line {
+                display: none;
+            }
+
+            .step-number {
+                position: static !important;
+                margin-bottom: 16px;
+            }
+
+            .how-it-works-card:nth-child(odd) .step-number,
+            .how-it-works-card:nth-child(even) .step-number {
+                transform: none;
+            }
         }
 
         /* Waitlist Section */
@@ -399,6 +606,19 @@
         }
 
         /* Animations */
+        @keyframes pageLoadFade {
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes headerLoadIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @keyframes fadeInUp {
             to {
                 opacity: 1;
@@ -486,6 +706,7 @@
                 <nav>
                     <ul class="nav-links" id="nav-links">
                         <li><a href="#product">Product</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
                         <li><a href="#docs">Docs</a></li>
                         <li><a href="#pricing">Pricing</a></li>
                         <li><a href="#login">Login</a></li>
@@ -498,7 +719,7 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1>Real-Time On-Chain Insights for ERC-20 Tokens</h1>
+                <h1>Real-Time On-Chain Insights for EVM Contracts</h1>
                 <p class="subhead">Track transfers, gas metrics, wallet activity—and turn data into action.</p>
                 <a href="#waitlist" class="cta-button">Join the Waitlist</a>
             </div>
@@ -538,6 +759,66 @@
         </div>
     </section>
 
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <h2>How It Works</h2>
+                <p class="section-subhead">Decentrifi provides powerful analytics for your smart contracts, giving you insights that were previously impossible to obtain.</p>
+            </div>
+            <div class="how-it-works-timeline">
+                <div class="timeline-line"></div>
+                
+                <div class="how-it-works-card">
+                    <div class="step-number">1</div>
+                    <div class="how-it-works-icon">🏷️</div>
+                    <h3 class="how-it-works-title">Plugin Your Contract Address</h3>
+                    <p class="how-it-works-desc">Simply enter your smart contract address, and Decentrifi immediately begins capturing and analyzing all transactions interacting with your contract.</p>
+                    <ul class="how-it-works-list">
+                        <li>Instant deployment tracking</li>
+                        <li>Support for any EVM chain</li>
+                        <li>Works with custom ABIs automatically</li>
+                    </ul>
+                </div>
+
+                <div class="how-it-works-card">
+                    <div class="step-number">2</div>
+                    <div class="how-it-works-icon">🔍</div>
+                    <h3 class="how-it-works-title">Deep Transaction Analysis</h3>
+                    <p class="how-it-works-desc">Using trace_filter technology, we capture both direct and internal transactions, providing unprecedented insight into how your contract is being used.</p>
+                    <ul class="how-it-works-list">
+                        <li>Function call tracking</li>
+                        <li>Gas optimization metrics</li>
+                        <li>Error pattern detection</li>
+                    </ul>
+                </div>
+
+                <div class="how-it-works-card">
+                    <div class="step-number">3</div>
+                    <div class="how-it-works-icon">📊</div>
+                    <h3 class="how-it-works-title">Real-Time Insights Dashboard</h3>
+                    <p class="how-it-works-desc">Access beautiful visualizations and analytics that help you understand user behavior, optimize performance, and make data-driven decisions.</p>
+                    <ul class="how-it-works-list">
+                        <li>Active wallet analytics</li>
+                        <li>Transfer volume tracking</li>
+                        <li>Custom time-range reports</li>
+                    </ul>
+                </div>
+
+                <div class="how-it-works-card">
+                    <div class="step-number">4</div>
+                    <div class="how-it-works-icon">⚡</div>
+                    <h3 class="how-it-works-title">Continuous Monitoring</h3>
+                    <p class="how-it-works-desc">Decentrifi runs 24/7, automatically updating your analytics and providing real-time alerts when important events occur on your contract.</p>
+                    <ul class="how-it-works-list">
+                        <li>Instant notification system</li>
+                        <li>Historical data retention</li>
+                        <li>API access for integration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="waitlist" id="waitlist">
         <div class="container">
             <div class="waitlist-content">
@@ -566,7 +847,7 @@
                         <div class="logo-text">decentrifi</div>
                     </div>
                     <p style="color: rgba(42, 46, 61, 0.6); font-size: 14px;">
-                        Real-time on-chain insights<br>for ERC-20 tokens
+                        Real-time on-chain insights<br>for EVM contracts
                     </p>
                 </div>
                 <div class="footer-column">
@@ -611,7 +892,7 @@
         // Mobile menu toggle
         const hamburger = document.getElementById('hamburger');
         const navLinks = document.getElementById('nav-links');
-        
+
         hamburger.addEventListener('click', function() {
             navLinks.classList.toggle('active');
         });
@@ -655,7 +936,7 @@
 
         waitlistForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             // Simple form submission animation
             waitlistForm.style.display = 'none';
             thankYou.style.display = 'block';
