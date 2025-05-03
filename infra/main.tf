@@ -61,6 +61,33 @@ resource "kubernetes_deployment" "data-ingestion-deployment" {
             name  = "KTOR_ENV"
             value = "production"
           }
+          env {
+            name = "DB_JDBC_URL"
+            value_from {
+              secret_key_ref {
+                name = "decentrifi-secrets"
+                key  = "postgres-url"
+              }
+            }
+          }
+          env {
+            name = "DB_USERNAME"
+            value_from {
+              secret_key_ref {
+                name = "decentrifi-secrets"
+                key  = "postgres-username"
+              }
+            }
+          }
+          env {
+            name = "DB_PASSWORD"
+            value_from {
+              secret_key_ref {
+                name = "decentrifi-secrets"
+                key  = "postgres-password"
+              }
+            }
+          }
           resources {
             limits = {
               cpu    = "0.5"
