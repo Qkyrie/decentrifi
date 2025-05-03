@@ -13,50 +13,17 @@ class IngestionMetadataRepository {
     private val logger = LoggerFactory.getLogger(this::class.java)
     
     /**
-     * Get the last processed block number from global metadata
-     */
-    suspend fun getLastProcessedBlock(): Long {
-        return dbQuery {
-            IngestionMetadata.selectAll()
-                .where { (IngestionMetadata.key eq "last_processed_block") and IngestionMetadata.contractId.isNull() }
-                .singleOrNull()
-                ?.get(IngestionMetadata.value)?.toLongOrNull() ?: 0L
-        }
-    }
-    
-    /**
      * Get the last processed block number for a specific contract
      */
-    suspend fun getLastProcessedBlockForContract(contractId: Int): Long {
+    suspend fun getLastProcessedBlockForContract(contractId: Int): Long? {
         return dbQuery {
             IngestionMetadata.selectAll()
                 .where { (IngestionMetadata.key eq "last_processed_block") and (IngestionMetadata.contractId eq contractId) }
                 .singleOrNull()
-                ?.get(IngestionMetadata.value)?.toLongOrNull() ?: 0L
+                ?.get(IngestionMetadata.value)?.toLongOrNull()
         }
     }
-    
-    /**
-     * Update the global last processed block number in metadata
-     */
-    suspend fun updateLastProcessedBlock(blockNumber: Long) {
-        logger.debug("Updating global last processed block to $blockNumber")
-        dbQuery {
-            val count = IngestionMetadata.update({ (IngestionMetadata.key eq "last_processed_block") and IngestionMetadata.contractId.isNull() }) {
-                it[value] = blockNumber.toString()
-            }
-            
-            // If no row was updated, insert new row
-            if (count == 0) {
-                IngestionMetadata.insert {
-                    it[key] = "last_processed_block"
-                    it[value] = blockNumber.toString()
-                    it[contractId] = null
-                }
-            }
-        }
-    }
-    
+
     /**
      * Update the last processed block number for a specific contract
      */

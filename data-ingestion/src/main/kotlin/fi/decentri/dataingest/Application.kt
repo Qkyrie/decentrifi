@@ -48,24 +48,27 @@ fun main() {
         // Start the blockchain data ingestion process in a background coroutine
         launch(Dispatchers.IO) {
             logger.info("Starting blockchain data ingestion service with trace_filter")
-            
+
             // Fetch all contracts from the database
             val contracts = contractsService.getAllContracts()
-            
+
             if (contracts.isEmpty()) {
                 logger.warn("No contracts found in the database. Ingestion will not start.")
             } else {
                 logger.info("Found ${contracts.size} contracts in the database")
-                
+
                 // Start ingestion for each contract address
                 contracts.forEach { contract ->
                     logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
                     launch(Dispatchers.IO) {
                         try {
-                            ingestorService.ingest(contract.address, contract.id)
+                            ingestorService.ingest(contract)
                             logger.info("Ingestion complete for contract ${contract.address} (ID: ${contract.id}): caught up with the latest block")
                         } catch (e: Exception) {
-                            logger.error("Error during ingestion for contract ${contract.address} (ID: ${contract.id}): ${e.message}", e)
+                            logger.error(
+                                "Error during ingestion for contract ${contract.address} (ID: ${contract.id}): ${e.message}",
+                                e
+                            )
                         }
                     }
                 }
@@ -79,7 +82,7 @@ fun Application.configureRouting() {
         get("/health") {
             call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
         }
-        
+
         post("/waitlist") {
             try {
                 val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload

@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package fi.decentri.dataingest.ingest
 
 import com.fasterxml.jackson.databind.JsonNode
 import fi.decentri.dataingest.config.EthereumConfig
+import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
 import fi.decentri.dataingest.repository.RawInvocationData
 import fi.decentri.dataingest.repository.RawInvocationsRepository
@@ -16,6 +19,7 @@ import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.time.Instant
 import java.util.*
+import kotlin.time.ExperimentalTime
 
 /**
  * Service responsible for blockchain data ingestion
@@ -26,24 +30,16 @@ class IngestorService(private val config: EthereumConfig) {
     private val metadataRepository = IngestionMetadataRepository()
     private val rawInvocationsRepository = RawInvocationsRepository()
 
-    suspend fun ingest(contract: String, contractId: Int? = null) {
-        logger.info("Starting trace_filter data ingestion for contract $contract${contractId?.let { " (ID: $it)" } ?: ""}")
-
-        // Determine the starting block
-        val startBlock = if (config.startBlock > 0) {
-            config.startBlock
-        } else if (contractId != null) {
-            metadataRepository.getLastProcessedBlockForContract(contractId)
-        } else {
-            metadataRepository.getLastProcessedBlock()
-        }
-
+    suspend fun ingest(contract: Contract) {
+        logger.info("Starting trace_filter data ingestion for contract $contract")
         // Get the latest block at the start of this run - this is our target end block
         val targetLatestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
 
+        val startBlock =
+            metadataRepository.getLastProcessedBlockForContract(contract.id!!) ?: (targetLatestBlock - config.batchSize)
+
         logger.info("Starting ingestion from block $startBlock to target latest block $targetLatestBlock")
 
-        // Initialize variables for tracking progress
         var lastProcessedBlock = startBlock
         var completed = false
 
@@ -63,22 +59,16 @@ class IngestorService(private val config: EthereumConfig) {
                     processBlockRangeWithTraceFilter(
                         lastProcessedBlock + 1,
                         toBlock,
-                        contract.lowercase(Locale.getDefault())
+                        contract.address.lowercase(Locale.getDefault())
                     )
-
-                    // Update the last processed block
                     lastProcessedBlock = toBlock
-                    if (contractId != null) {
-                        metadataRepository.updateLastProcessedBlockForContract(contractId, lastProcessedBlock)
-                    } else {
-                        metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
-                    }
+
+                    metadataRepository.updateLastProcessedBlockForContract(contract.id, toBlock)
 
                     // Calculate and log progress
                     val progressPercentage =
                         ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
                     logger.info("Progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
-
                 }
             } catch (e: Exception) {
                 logger.error("Error during trace_filter ingestion: ${e.message}", e)
