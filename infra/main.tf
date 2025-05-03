@@ -7,8 +7,7 @@ resource "kubernetes_service" "data-ingestion-service" {
     }
     annotations = {
       "prometheus.io/scrape" : "true"
-      "prometheus.io/port" : "8080",
-      "prometheus.io/path" : "/actuator/prometheus"
+      "prometheus.io/port" : "8080"
     }
   }
 
@@ -26,48 +25,19 @@ resource "kubernetes_service" "data-ingestion-service" {
   }
 }
 
-resource "kubernetes_service" "data-ingestion-service" {
+resource "kubernetes_deployment" "data-ingestion-deployment" {
   metadata {
     namespace = kubernetes_namespace.decentrifi-namespace.metadata.0.name
-    name      = "cipheredge"
+    name      = "data-ingestion"
     labels = {
-      team = "cipheredge"
-    }
-    annotations = {
-      "prometheus.io/scrape" : "true"
-      "prometheus.io/port" : "8080",
-      "prometheus.io/path" : "/actuator/prometheus"
-    }
-  }
-
-  spec {
-    selector = {
-      app = "cipheredge"
-    }
-
-    port {
-      name        = "http-traffic"
-      port        = 8080
-      target_port = 8080
-      protocol    = "TCP"
-    }
-  }
-}
-
-
-resource "kubernetes_deployment" "ingestion-service-deployment" {
-  metadata {
-    namespace = kubernetes_namespace.decentrifi-namespace.metadata.0.name
-    name      = "ingestion-service"
-    labels = {
-      app : "ingestion-service"
+      app : "data-ingestion"
     }
   }
   spec {
     replicas = "1"
     selector {
       match_labels = {
-        app : "ingestion-service"
+        app : "data-ingestion"
       }
     }
     strategy {
@@ -76,28 +46,39 @@ resource "kubernetes_deployment" "ingestion-service-deployment" {
     template {
       metadata {
         labels = {
-          app : "ingestion-service"
+          app : "data-ingestion"
         }
       }
       spec {
-        volume {
-          name = "config-volume"
-          config_map {
-            name = "cipheredge"
-          }
-        }
         container {
-          image             = "ghcr.io/qkyrie/cipheredge:latest"
-          name              = "cipheredge"
+          image             = "ghcr.io/${var.github_repo}/data-ingestion:latest"
+          name              = "data-ingestion"
           image_pull_policy = "Always"
           port {
             container_port = 8080
           }
-        }
-        toleration {
-          key      = "node-role.kubernetes.io/master"
-          effect   = "NoSchedule"
-          operator = "Exists"
+          env {
+            name  = "KTOR_ENV"
+            value = "production"
+          }
+          resources {
+            limits = {
+              cpu    = "0.5"
+              memory = "512Mi"
+            }
+            requests = {
+              cpu    = "0.2"
+              memory = "256Mi"
+            }
+          }
+          liveness_probe {
+            http_get {
+              path = "/health"
+              port = 8080
+            }
+            initial_delay_seconds = 30
+            period_seconds        = 10
+          }
         }
       }
     }
@@ -110,3 +91,8 @@ resource "kubernetes_deployment" "ingestion-service-deployment" {
   }
 }
 
+variable "github_repo" {
+  description = "GitHub repository name (org/repo format)"
+  type        = string
+  default     = "qkyrie/decentrifi"
+}
