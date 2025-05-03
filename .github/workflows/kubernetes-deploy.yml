@@ -86,4 +86,4 @@ jobs:
 
       - name: Restart deployment
         run: |
-          kubectl rollout restart deployment/${{ github.event.inputs.application_to_deploy }} -n fluistr
+          kubectl rollout restart deployment/${{ github.event.inputs.application_to_deploy }} -n decentrifi
