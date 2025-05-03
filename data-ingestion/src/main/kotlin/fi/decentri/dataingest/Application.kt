@@ -46,6 +46,10 @@ fun main() {
 
 fun Application.configureRouting() {
     routing {
+        get("/health") {
+            call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
+        }
+        
         post("/waitlist") {
             try {
                 val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload
@@ -53,7 +57,7 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.OK, mapOf("message" to "Email received")) // Send success response
             } catch (e: Exception) {
                 logger.error("Failed to process waitlist request", e)
-
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request"))
             }
         }
     }
