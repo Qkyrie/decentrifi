@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../logos/logo_full.png" alt="Decentrifi Logo" width="400"/>
+</p>
+
 # decentrifi
 
 **decentrifi** is a lightweight, end-to-end analytics platform for smart contracts on the Ethereum blockchain and other EVM-compatible chains.
