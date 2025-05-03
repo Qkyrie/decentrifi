@@ -30,6 +30,7 @@ decentrifi provides comprehensive analytics and insights for smart contracts, st
 - Designed for extensibility with arbitrary ABIs
 - Modular, scalable architecture
 - Docker-based deployment
+- Contract management system to store and manage ABIs and addresses across different chains
 
 ## Project Structure
 
@@ -38,11 +39,13 @@ The project is organized as a multi-module Maven application:
 - **decentrifi-parent**: The root parent module that defines common dependencies and configurations
 - **data-ingestion**: Module responsible for collecting and processing blockchain data
   - Polls for new blocks and extracts events using Ktor and Web3j
+  - Supports trace_filter to capture all transactions including internal ones that interact with the contract
   - Stores raw invocations in PostgreSQL with TimescaleDB using Exposed ORM
   - Decodes ERC-20 function calls and tracks transfer events
   - Supports custom batch sizes and polling intervals
   - Maintains state to resume ingestion after restart
   - Includes ABI parsing capabilities to extract functions and events
+  - Provides contract management to store and retrieve ABIs and contract addresses
 - **analytics-api**: Web application module that provides the dashboard and API
   - Server-side rendered UI with Thymeleaf
   - REST endpoints for accessing metrics
@@ -155,6 +158,25 @@ The `data-ingestion` module can be configured to ingest data from different ERC-
 - **ETH_BATCH_SIZE**: Number of blocks to process in one batch
 - **ETH_POLLING_INTERVAL**: Interval between checks for new blocks (milliseconds)
 
+### Trace Filter Functionality
+
+The application now utilizes `trace_filter` to capture all transactions (including internal ones) that interact with the target contract. This provides several benefits over the traditional event-based approach:
+
+- Captures all contract interactions, not just those emitting events
+- Includes internal transactions (those not directly initiated by EOAs)
+- More comprehensive data for analytics purposes
+- Ability to analyze failed transactions and their gas usage
+
+Note that to use the `trace_filter` functionality, your Ethereum node must support this API method. It is supported by:
+
+- Erigon (formerly Turbo-Geth)
+- OpenEthereum (formerly Parity)
+- Geth with debug API enabled (--rpcapi "debug")
+- Infura (requires appropriate plan)
+- Alchemy (requires appropriate plan)
+
+By default, the application now uses `trace_filter` for data ingestion. The system maintains separate metadata for trace-based ingestion, allowing you to restart historical ingestion without conflicts.
+
 Example for ingesting data from USDC instead of DAI:
 ```
 ETH_CONTRACT_ADDRESS=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
@@ -210,6 +232,54 @@ Both function and event inputs are represented by **AbiFunctionParameter** objec
   - `name`: Name of the parameter
   - `type`: Solidity type (e.g., "uint256", "address", etc.)
   - `indexed`: Whether the parameter is indexed (relevant for events)
+
+## Contract Management
+
+The platform includes a contract management system to store and retrieve ABIs and contract addresses. This feature allows the application to work with multiple contracts across different chains.
+
+### Contract Model
+
+The `Contract` entity includes the following properties:
+- `id`: Unique identifier for the contract record
+- `address`: The contract address (e.g., '0x6B17…')
+- `abi`: The contract ABI as a JSON string
+- `chain`: The blockchain network (e.g., 'ethereum-mainnet', 'bsc-mainnet')
+- `name`: Optional name for the contract
+- `createdAt`: When the record was created
+- `updatedAt`: When the record was last updated
+
+### Using the Contracts Service
+
+The `ContractsService` provides methods for managing contracts:
+
+```kotlin
+// Create a new contract
+val contractsService = ContractsService(contractsRepository, abiService)
+val contract = contractsService.createContract(
+    address = "0x6b175474e89094c44da98b954eedeac495271d0f",
+    abi = abiJsonString,
+    chain = "ethereum-mainnet",
+    name = "DAI Stablecoin"
+)
+
+// Find a contract by address and chain
+val daiContract = contractsService.findContractByAddressAndChain(
+    address = "0x6b175474e89094c44da98b954eedeac495271d0f", 
+    chain = "ethereum-mainnet"
+)
+
+// Use the ABI with the ABI service
+if (daiContract != null) {
+    val (functions, events) = abiService.parseABI(daiContract.abi)
+    // Work with the parsed functions and events
+}
+
+// Get all contracts on a specific chain
+val ethereumContracts = contractsService.findContractsByChain("ethereum-mainnet")
+
+// Delete a contract
+contractsService.deleteContract(contractId)
+```
 
 ## License
 

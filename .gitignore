@@ -14,5 +14,3 @@ target/
 build/
 .idea/
 docker_data/
-
-data-ingestion/

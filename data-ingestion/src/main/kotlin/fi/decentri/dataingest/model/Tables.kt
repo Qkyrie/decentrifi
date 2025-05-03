@@ -30,3 +30,18 @@ object IngestionMetadata : Table("ingestion_metadata") {
     val key = varchar("key", 64)
     val value = varchar("value", 64)
 }
+
+/**
+ * Table definition for contract data including ABI and address
+ */
+object Contracts : Table("contracts") {
+    val id = integer("id").autoIncrement()
+    val address = varchar("address", 42)
+    val abi = text("abi")
+    val chain = varchar("chain", 64)
+    val name = varchar("name", 128).nullable()
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    
+    override val primaryKey = PrimaryKey(id)
+}

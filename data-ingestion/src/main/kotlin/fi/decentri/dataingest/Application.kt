@@ -32,8 +32,8 @@ fun main() {
         // Start the blockchain data ingestion process in a background coroutine
         val ingestorService = IngestorService(appConfig.ethereum)
         launch(Dispatchers.IO) {
-            logger.info("Starting blockchain data ingestion service")
-            ingestorService.startIngestingData()
+            logger.info("Starting blockchain data ingestion service with trace_filter")
+            ingestorService.startIngestingDataWithTraceFilter()
         }
     }.start(wait = true)
 }

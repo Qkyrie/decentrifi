@@ -1,5 +1,7 @@
 package fi.decentri.dataingest.ingest
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.dataingest.config.EthereumConfig
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
 import fi.decentri.dataingest.repository.RawInvocationData
@@ -9,6 +11,8 @@ import org.slf4j.LoggerFactory
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
+import org.web3j.protocol.core.Request
+import org.web3j.protocol.core.Response
 import org.web3j.protocol.core.methods.request.EthFilter
 import org.web3j.protocol.core.methods.response.EthLog
 import org.web3j.protocol.core.methods.response.Log
@@ -16,6 +20,7 @@ import org.web3j.protocol.http.HttpService
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.time.Instant
+import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
@@ -26,13 +31,18 @@ class IngestorService(private val config: EthereumConfig) {
     private val web3j: Web3j = Web3j.build(HttpService(config.rpcUrl))
     private val metadataRepository = IngestionMetadataRepository()
     private val rawInvocationsRepository = RawInvocationsRepository()
+    private val objectMapper = ObjectMapper()
 
     // Standard ERC20 Transfer event signature
     private val transferEventSignature = "Transfer(address,address,uint256)"
     private val transferEventTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+    private val approvalEventTopic = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925"
+    
+    // Tracking key for trace_filter specific ingestion
+    private val LAST_PROCESSED_BLOCK_KEY = "last_processed_block_trace_filter"
 
     /**
-     * Start the blockchain data ingestion process
+     * Start the blockchain data ingestion process using eth_getLogs for Transfer events
      */
     suspend fun startIngestingData() {
         logger.info("Starting blockchain data ingestion for contract ${config.contractAddress}")
@@ -78,6 +88,52 @@ class IngestorService(private val config: EthereumConfig) {
     }
 
     /**
+     * Start the blockchain data ingestion process using trace_filter for all transactions
+     */
+    suspend fun startIngestingDataWithTraceFilter() {
+        logger.info("Starting trace_filter data ingestion for contract ${config.contractAddress}")
+
+        var lastProcessedBlock = if (config.startBlock > 0) {
+            config.startBlock
+        } else {
+            metadataRepository.getLastProcessedBlock()
+        }
+
+        logger.info("Last processed block with trace_filter: $lastProcessedBlock")
+
+        while (true) {
+            try {
+                // Get the latest block number
+                val latestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
+
+                if (lastProcessedBlock >= latestBlock) {
+                    logger.debug("No new blocks to process. Current: $lastProcessedBlock, Latest: $latestBlock")
+                    delay(config.pollingInterval)
+                    continue
+                }
+
+                // Calculate the range to process
+                val toBlock = minOf(lastProcessedBlock + config.batchSize, latestBlock)
+                logger.info("Processing blocks $lastProcessedBlock to $toBlock with trace_filter")
+
+                // Process the block range using trace_filter
+                processBlockRangeWithTraceFilter(lastProcessedBlock + 1, toBlock)
+
+                // Update the last processed block
+                lastProcessedBlock = toBlock
+                metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
+
+            } catch (e: Exception) {
+                logger.error("Error during trace_filter ingestion: ${e.message}", e)
+                delay(config.pollingInterval)
+            }
+
+            // Wait before the next polling cycle
+            delay(config.pollingInterval)
+        }
+    }
+
+    /**
      * Process a range of blocks to extract and store contract invocations
      */
     private suspend fun processBlockRange(fromBlock: Long, toBlock: Long) {
@@ -86,7 +142,7 @@ class IngestorService(private val config: EthereumConfig) {
             DefaultBlockParameter.valueOf(BigInteger.valueOf(fromBlock)),
             DefaultBlockParameter.valueOf(BigInteger.valueOf(toBlock)),
             config.contractAddress
-        ).addSingleTopic(transferEventTopic)
+        )
 
         // Get all Transfer events in the range
         val transferEvents = web3j.ethGetLogs(filter).send().logs
@@ -148,6 +204,117 @@ class IngestorService(private val config: EthereumConfig) {
         if (invocations.isNotEmpty()) {
             rawInvocationsRepository.batchInsert(invocations)
             logger.info("Saved ${invocations.size} invocations to database")
+        }
+    }
+    
+    /**
+     * Process a range of blocks using trace_filter to capture all transactions including internal ones
+     */
+    private suspend fun processBlockRangeWithTraceFilter(fromBlock: Long, toBlock: Long) {
+        logger.info("Filtering traces from block $fromBlock to $toBlock for contract ${config.contractAddress}")
+
+        // Create trace_filter request parameters
+        val traceFilterParams = mapOf(
+            "fromBlock" to "0x${fromBlock.toString(16)}",
+            "toBlock" to "0x${toBlock.toString(16)}",
+            "toAddress" to listOf(config.contractAddress.lowercase(Locale.getDefault()))
+        )
+
+        try {
+            // Execute trace_filter RPC call
+            val traceFilterResponse = executeTraceFilter(traceFilterParams)
+            val traces = traceFilterResponse.result
+
+            if (traces.isEmpty()) {
+                logger.debug("No traces found for the contract in blocks $fromBlock to $toBlock")
+                return
+            }
+
+            logger.info("Found ${traces.size} traces for the contract in blocks $fromBlock to $toBlock")
+
+            // Process each trace to extract invocation data
+            val invocations = traces.mapNotNull { trace ->
+                try {
+                    // Extract transaction data from the trace
+                    val txHash = trace.get("transactionHash")?.asText() ?: return@mapNotNull null
+                    val blockNumber = trace.get("blockNumber")?.asText()?.let { 
+                        Numeric.decodeQuantity(it).longValueExact() 
+                    } ?: return@mapNotNull null
+                    
+                    // Get the input data (function call data)
+                    val input = trace.get("action")?.get("input")?.asText() ?: "0x"
+                    
+                    // Extract function selector (first 4 bytes of input)
+                    val functionSelector = if (input.length >= 10) {
+                        input.substring(0, 10)
+                    } else {
+                        "0x"
+                    }
+                    
+                    // Get the sender address
+                    val from = trace.get("action")?.get("from")?.asText() ?: return@mapNotNull null
+                    
+                    // Get the block to extract timestamp
+                    val block = web3j.ethGetBlockByNumber(
+                        DefaultBlockParameter.valueOf(BigInteger(trace.get("blockNumber").asText())),
+                        false
+                    ).send().block
+                    
+                    // Get transaction receipt for status and gas used
+                    val receipt = web3j.ethGetTransactionReceipt(txHash).send().transactionReceipt.orElse(null)
+                    
+                    // Create invocation data
+                    RawInvocationData(
+                        network = "ethereum",
+                        contractAddress = config.contractAddress,
+                        blockNumber = blockNumber,
+                        blockTimestamp = Instant.ofEpochSecond(block.timestamp.longValueExact()),
+                        txHash = txHash,
+                        fromAddress = from,
+                        functionSelector = functionSelector,
+                        inputArgs = mapOf("rawInput" to input),
+                        status = receipt?.isStatusOK ?: false,
+                        gasUsed = receipt?.gasUsed?.longValueExact() ?: 0
+                    )
+                } catch (e: Exception) {
+                    logger.error("Error processing trace: ${e.message}", e)
+                    null
+                }
+            }.distinctBy { it.txHash } // Deduplicate by transaction hash
+            
+            // Store invocations in the database
+            if (invocations.isNotEmpty()) {
+                rawInvocationsRepository.batchInsert(invocations)
+                logger.info("Saved ${invocations.size} invocations to database from trace_filter")
+            }
+            
+        } catch (e: Exception) {
+            logger.error("Error executing trace_filter: ${e.message}", e)
+            throw e
+        }
+    }
+    
+    /**
+     * Execute trace_filter RPC call
+     * The trace_filter method is an Ethereum JSON-RPC API endpoint that returns transaction traces
+     */
+    private fun executeTraceFilter(params: Map<String, Any>): TraceFilterResponse {
+        val request = Request<Any, TraceFilterResponse>(
+            "trace_filter",
+            listOf(params),
+            HttpService(config.rpcUrl),
+            TraceFilterResponse::class.java
+        )
+
+        return request.send()
+    }
+    
+    /**
+     * Response class for trace_filter method
+     */
+    class TraceFilterResponse : Response<List<JsonNode>>() {
+        override fun setResult(result: List<JsonNode>) {
+            super.setResult(result)
         }
     }
 }

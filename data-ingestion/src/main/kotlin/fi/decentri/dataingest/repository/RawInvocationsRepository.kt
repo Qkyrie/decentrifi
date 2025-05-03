@@ -55,6 +55,7 @@ class RawInvocationsRepository {
                 this[RawInvocations.network] = data.network
                 this[RawInvocations.contractAddress] = data.contractAddress
                 this[RawInvocations.blockNumber] = data.blockNumber
+                this[RawInvocations.blockTimestamp] = data.blockTimestamp
                 this[RawInvocations.txHash] = data.txHash
                 this[RawInvocations.fromAddress] = data.fromAddress
                 this[RawInvocations.functionSelector] = data.functionSelector
