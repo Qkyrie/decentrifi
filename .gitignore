@@ -14,3 +14,8 @@ target/
 build/
 .idea/
 docker_data/
+
+terraform.tfvars
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
