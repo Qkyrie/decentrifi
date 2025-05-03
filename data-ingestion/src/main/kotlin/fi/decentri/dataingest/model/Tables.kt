@@ -27,8 +27,12 @@ object RawInvocations : Table("raw_invocations") {
  * Table definition for ingestion metadata tracking
  */
 object IngestionMetadata : Table("ingestion_metadata") {
+    val id = integer("id").autoIncrement()
     val key = varchar("key", 64)
     val value = varchar("value", 64)
+    val contractId = integer("contract_id").references(Contracts.id).nullable()
+    
+    override val primaryKey = PrimaryKey(id)
 }
 
 /**

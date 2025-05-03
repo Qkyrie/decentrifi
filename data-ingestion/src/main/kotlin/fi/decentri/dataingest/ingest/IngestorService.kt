@@ -26,12 +26,14 @@ class IngestorService(private val config: EthereumConfig) {
     private val metadataRepository = IngestionMetadataRepository()
     private val rawInvocationsRepository = RawInvocationsRepository()
 
-    suspend fun ingest(contract: String) {
-        logger.info("Starting trace_filter data ingestion for contract $contract")
+    suspend fun ingest(contract: String, contractId: Int? = null) {
+        logger.info("Starting trace_filter data ingestion for contract $contract${contractId?.let { " (ID: $it)" } ?: ""}")
 
         // Determine the starting block
         val startBlock = if (config.startBlock > 0) {
             config.startBlock
+        } else if (contractId != null) {
+            metadataRepository.getLastProcessedBlockForContract(contractId)
         } else {
             metadataRepository.getLastProcessedBlock()
         }
@@ -66,7 +68,11 @@ class IngestorService(private val config: EthereumConfig) {
 
                     // Update the last processed block
                     lastProcessedBlock = toBlock
-                    metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
+                    if (contractId != null) {
+                        metadataRepository.updateLastProcessedBlockForContract(contractId, lastProcessedBlock)
+                    } else {
+                        metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
+                    }
 
                     // Calculate and log progress
                     val progressPercentage =

@@ -62,10 +62,10 @@ fun main() {
                     logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
                     launch(Dispatchers.IO) {
                         try {
-                            ingestorService.ingest(contract.address)
-                            logger.info("Ingestion complete for contract ${contract.address}: caught up with the latest block")
+                            ingestorService.ingest(contract.address, contract.id)
+                            logger.info("Ingestion complete for contract ${contract.address} (ID: ${contract.id}): caught up with the latest block")
                         } catch (e: Exception) {
-                            logger.error("Error during ingestion for contract ${contract.address}: ${e.message}", e)
+                            logger.error("Error during ingestion for contract ${contract.address} (ID: ${contract.id}): ${e.message}", e)
                         }
                     }
                 }
