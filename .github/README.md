@@ -325,6 +325,23 @@ For production, the landing page can be deployed to any static hosting service l
 - Vercel
 - CloudFront/S3
 
+### Kubernetes Deployment
+
+The project includes Terraform configuration to deploy the landing page to Kubernetes using nginx as the web server. The configuration can be found in `infra/static-nginx.tf`.
+
+The deployment includes:
+- A `Deployment` with nginx:alpine containers
+- A `Service` to expose the landing page
+
+To deploy the landing page in Kubernetes:
+```bash
+cd infra
+terraform init
+terraform apply
+```
+
+The landing page will be accessible through the Service created at the port specified in the configuration. You can then expose it externally using an Ingress controller or LoadBalancer service.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
