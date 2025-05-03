@@ -1,9 +1,12 @@
 package fi.decentri.dataingest
 
 import com.fasterxml.jackson.databind.SerializationFeature
+import fi.decentri.abi.AbiService
 import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.dataingest.db.DatabaseFactory
 import fi.decentri.dataingest.ingest.IngestorService
+import fi.decentri.dataingest.repository.ContractsRepository
+import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.waitlist.EmailRequest
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
@@ -17,9 +20,11 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
+import kotlin.time.ExperimentalTime
 
 val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
 
+@ExperimentalTime
 fun main() {
     logger.info("Starting data ingestion application")
 
@@ -34,12 +39,37 @@ fun main() {
         configureRouting()
         configureSerialization()
 
-        // Start the blockchain data ingestion process in a background coroutine
+        // Create necessary services
+        val contractsRepository = ContractsRepository()
+        val abiService = AbiService()
+        val contractsService = ContractsService(contractsRepository, abiService)
         val ingestorService = IngestorService(appConfig.ethereum)
+
+        // Start the blockchain data ingestion process in a background coroutine
         launch(Dispatchers.IO) {
             logger.info("Starting blockchain data ingestion service with trace_filter")
-           // ingestorService.ingest()
-            logger.info("caught up with the latest block")
+            
+            // Fetch all contracts from the database
+            val contracts = contractsService.getAllContracts()
+            
+            if (contracts.isEmpty()) {
+                logger.warn("No contracts found in the database. Ingestion will not start.")
+            } else {
+                logger.info("Found ${contracts.size} contracts in the database")
+                
+                // Start ingestion for each contract address
+                contracts.forEach { contract ->
+                    logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
+                    launch(Dispatchers.IO) {
+                        try {
+                            ingestorService.ingest(contract.address)
+                            logger.info("Ingestion complete for contract ${contract.address}: caught up with the latest block")
+                        } catch (e: Exception) {
+                            logger.error("Error during ingestion for contract ${contract.address}: ${e.message}", e)
+                        }
+                    }
+                }
+            }
         }
     }.start(wait = true)
 }
