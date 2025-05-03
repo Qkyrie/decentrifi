@@ -301,6 +301,8 @@
             margin-bottom: 64px;
             position: relative;
             z-index: 1;
+            opacity: 0;
+            transform: translateY(20px);
         }
 
         .section-header h2 {
@@ -314,6 +316,10 @@
             font-size: 18px;
             color: rgba(42, 46, 61, 0.7);
         }
+        
+        .section-header.animated {
+            animation: fadeInUp 0.6s ease forwards;
+        }
 
         .how-it-works-timeline {
             position: relative;
@@ -325,10 +331,15 @@
             position: absolute;
             left: 50%;
             top: 0;
-            height: 100%;
+            height: 0;
             width: 2px;
             background: var(--border-color);
             transform: translateX(-50%);
+            transition: height 1.5s ease-out;
+        }
+        
+        .timeline-line.animated {
+            height: 100%;
         }
 
         .how-it-works-card {
@@ -342,19 +353,16 @@
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             opacity: 0;
             transform: translateY(30px);
-            animation: fadeInUp 0.8s ease forwards;
         }
 
         .how-it-works-card:nth-child(odd) {
             margin-left: 52%;
             margin-right: auto;
-            animation-delay: 0.2s;
         }
 
         .how-it-works-card:nth-child(even) {
             margin-right: 52%;
             margin-left: auto;
-            animation-delay: 0.4s;
         }
 
         .how-it-works-card:hover {
@@ -376,18 +384,35 @@
             font-size: 16px;
             border: 4px solid white;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                        opacity 0.4s ease;
+        }
+        
+        .how-it-works-card.in-view .step-number {
+            opacity: 1;
+            transform: scale(1);
         }
 
         .how-it-works-card:nth-child(odd) .step-number {
             left: -20px;
             top: 50%;
-            transform: translateY(-50%);
+            transform: translateY(-50%) scale(0.5);
         }
 
         .how-it-works-card:nth-child(even) .step-number {
             right: -20px;
             top: 50%;
-            transform: translateY(-50%);
+            transform: translateY(-50%) scale(0.5);
+        }
+        
+        .how-it-works-card.in-view:nth-child(odd) .step-number {
+            transform: translateY(-50%) scale(1);
+        }
+        
+        .how-it-works-card.in-view:nth-child(even) .step-number {
+            transform: translateY(-50%) scale(1);
         }
 
         .how-it-works-icon {
@@ -768,7 +793,7 @@
             <div class="how-it-works-timeline">
                 <div class="timeline-line"></div>
                 
-                <div class="how-it-works-card">
+                <div class="how-it-works-card" data-delay="0.1s">
                     <div class="step-number">1</div>
                     <div class="how-it-works-icon">🏷️</div>
                     <h3 class="how-it-works-title">Plugin Your Contract Address</h3>
@@ -780,7 +805,7 @@
                     </ul>
                 </div>
 
-                <div class="how-it-works-card">
+                <div class="how-it-works-card" data-delay="0.3s">
                     <div class="step-number">2</div>
                     <div class="how-it-works-icon">🔍</div>
                     <h3 class="how-it-works-title">Deep Transaction Analysis</h3>
@@ -792,7 +817,7 @@
                     </ul>
                 </div>
 
-                <div class="how-it-works-card">
+                <div class="how-it-works-card" data-delay="0.5s">
                     <div class="step-number">3</div>
                     <div class="how-it-works-icon">📊</div>
                     <h3 class="how-it-works-title">Real-Time Insights Dashboard</h3>
@@ -804,7 +829,7 @@
                     </ul>
                 </div>
 
-                <div class="how-it-works-card">
+                <div class="how-it-works-card" data-delay="0.7s">
                     <div class="step-number">4</div>
                     <div class="how-it-works-icon">⚡</div>
                     <h3 class="how-it-works-title">Continuous Monitoring</h3>
@@ -911,7 +936,7 @@
             });
         });
 
-        // Scroll animations for feature cards
+        // Scroll animations for feature cards and how-it-works section
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
@@ -929,6 +954,58 @@
         document.querySelectorAll('.feature-card').forEach(card => {
             observer.observe(card);
         });
+        
+        // How It Works section animations
+        const howItWorksObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const card = entry.target;
+                    const delay = card.dataset.delay || '0s';
+                    card.style.animation = `fadeInUp 0.8s ease forwards ${delay}`;
+                    card.style.opacity = 1;
+                    
+                    // Add in-view class for step number animation
+                    setTimeout(() => {
+                        card.classList.add('in-view');
+                    }, parseFloat(delay) * 1000 + 300);
+                    
+                    howItWorksObserver.unobserve(card);
+                }
+            });
+        }, {
+            threshold: 0.15,
+            rootMargin: '0px 0px -100px 0px'
+        });
+
+        // Observe all the how-it-works cards
+        document.querySelectorAll('.how-it-works-card').forEach(card => {
+            howItWorksObserver.observe(card);
+        });
+        
+        // How It Works section header and timeline animations
+        const howItWorksSectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    // Animate section header
+                    const sectionHeader = document.querySelector('.how-it-works .section-header');
+                    sectionHeader.classList.add('animated');
+                    
+                    // Animate timeline line after a small delay
+                    setTimeout(() => {
+                        const timelineLine = document.querySelector('.timeline-line');
+                        timelineLine.classList.add('animated');
+                    }, 400);
+                    
+                    howItWorksSectionObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+        
+        // Observe the How It Works section
+        const howItWorksSection = document.querySelector('.how-it-works');
+        howItWorksSectionObserver.observe(howItWorksSection);
 
         // Form submission
         const waitlistForm = document.getElementById('waitlist-form');
