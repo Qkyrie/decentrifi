@@ -218,12 +218,37 @@
             padding: 24px;
             max-width: 600px;
             margin: 0 auto;
+            position: relative;
+            overflow: hidden;
         }
 
-        .chart-placeholder {
-            background: var(--light-bg);
-            height: 200px;
-            border-radius: 4px;
+        .coming-soon-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+        }
+
+        .coming-soon-text {
+            font-size: 36px;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transform: rotate(-15deg);
+            text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .fancy-chart {
+            height: 300px;
+            position: relative;
         }
 
         /* Value Proposition */
@@ -750,7 +775,92 @@
             </div>
             <div class="hero-visual">
                 <div class="dashboard-mockup">
-                    <div class="chart-placeholder"></div>
+                    <div class="fancy-chart">
+                        <svg width="100%" height="100%" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#346DF1;stop-opacity:0.3" />
+                                    <stop offset="100%" style="stop-color:#22D1C6;stop-opacity:0.3" />
+                                </linearGradient>
+                                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#346DF1" />
+                                    <stop offset="100%" style="stop-color:#22D1C6" />
+                                </linearGradient>
+                                <filter id="glow">
+                                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur"/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
+                            </defs>
+                            
+                            <!-- Grid background -->
+                            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E1E4E8" stroke-width="1" opacity="0.3"/>
+                            </pattern>
+                            <rect width="100%" height="100%" fill="url(#grid)" />
+                            
+                            <!-- Axis -->
+                            <path d="M 60 250 L 560 250" stroke="#2A2E3D" stroke-width="2" opacity="0.2"/>
+                            <path d="M 60 50 L 60 250" stroke="#2A2E3D" stroke-width="2" opacity="0.2"/>
+                            
+                            <!-- Axis labels -->
+                            <text x="35" y="250" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">0</text>
+                            <text x="35" y="180" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">5k</text>
+                            <text x="35" y="110" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">10k</text>
+                            <text x="35" y="40" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">15k</text>
+                            
+                            <text x="100" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Jan</text>
+                            <text x="200" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Mar</text>
+                            <text x="300" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">May</text>
+                            <text x="400" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Jul</text>
+                            <text x="500" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Sep</text>
+                            
+                            <!-- Main line chart -->
+                            <path d="M 60 220 C 100 210, 150 180, 200 160 C 250 140, 300 120, 350 100 C 400 80, 450 70, 500 60 C 520 55, 540 55, 560 60" 
+                                  fill="none" stroke="url(#lineGradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+                                <animate attributeName="stroke-dasharray" 
+                                         values="0,1000; 1000,1000" 
+                                         dur="2s" 
+                                         repeatCount="indefinite"/>
+                            </path>
+                            
+                            <!-- Area under curve -->
+                            <path d="M 60 220 C 100 210, 150 180, 200 160 C 250 140, 300 120, 350 100 C 400 80, 450 70, 500 60 C 520 55, 540 55, 560 60 L 560 250 L 60 250 Z" 
+                                  fill="url(#chartGradient)" opacity="0.6"/>
+                            
+                            <!-- Data points -->
+                            <circle cx="60" cy="220" r="4" fill="#346DF1" />
+                            <circle cx="200" cy="160" r="4" fill="#346DF1" />
+                            <circle cx="350" cy="100" r="4" fill="#22D1C6" />
+                            <circle cx="500" cy="60" r="4" fill="#22D1C6" />
+                            <circle cx="560" cy="60" r="4" fill="#22D1C6" />
+                            
+                            <!-- Secondary bar chart -->
+                            <rect x="80" y="200" width="20" height="50" fill="#346DF1" opacity="0.5" rx="2" />
+                            <rect x="120" y="180" width="20" height="70" fill="#346DF1" opacity="0.5" rx="2" />
+                            <rect x="160" y="190" width="20" height="60" fill="#346DF1" opacity="0.5" rx="2" />
+                            <rect x="200" y="170" width="20" height="80" fill="#346DF1" opacity="0.5" rx="2" />
+                            <rect x="240" y="160" width="20" height="90" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <rect x="280" y="150" width="20" height="100" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <rect x="320" y="140" width="20" height="110" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <rect x="360" y="130" width="20" height="120" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <rect x="400" y="120" width="20" height="130" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <rect x="440" y="110" width="20" height="140" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <rect x="480" y="100" width="20" height="150" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <rect x="520" y="100" width="20" height="150" fill="#22D1C6" opacity="0.5" rx="2" />
+                            
+                            <!-- Hover effect circles (animated) -->
+                            <circle cx="350" cy="100" r="8" fill="none" stroke="#22D1C6" stroke-width="2" opacity="0">
+                                <animate attributeName="r" values="4;12;4" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="opacity" values="0;0.7;0" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                        </svg>
+                    </div>
+                    <div class="coming-soon-overlay">
+                        <div class="coming-soon-text">Coming Soon</div>
+                    </div>
                 </div>
             </div>
         </div>
