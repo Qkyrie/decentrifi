@@ -1,0 +1,70 @@
+name: Deploy JVM Image
+
+env:
+  REGISTRY: ghcr.io
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+on:
+  workflow_dispatch:
+    inputs:
+      application_to_deploy:
+        type: choice
+        options: ['data-ingestion']
+        description: 'What to restart'
+        required: true
+        default: 'data-ingestion'
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'maven'
+
+      - name: Maven Build and Cache
+        uses: actions/cache@v3
+        id: maven-cache
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-${{ hashFiles('**/src/**/*.kt') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}-
+            ${{ runner.os }}-maven-
+
+      - name: Build with Maven
+        run: mvn -B package -DskipTests=true --no-transfer-progress
+
+      - name: Log into registry ghcr
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Build and publish the Docker image
+        run: |
+          sh ci/deploy/${{ github.event.inputs.application_to_deploy }}.sh
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Kubernetes context
+        uses: Azure/k8s-set-context@v1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.K8S_CONFIG }}
+
+      - name: Restart deployment
+        run: |
+          kubectl rollout restart deployment/${{ github.event.inputs.application_to_deploy }} -n fluistr
