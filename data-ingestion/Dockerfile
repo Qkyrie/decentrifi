@@ -21,7 +21,7 @@ FROM amazoncorretto:21-alpine
 WORKDIR /app
 
 # Copy the built application
-COPY --from=build /app/data-ingestion/target/data-ingestion-*.jar /app/app.jar
+COPY --from=build /app/data-ingestion/target/app.jar /app/app.jar
 COPY data-ingestion/src/main/resources/application.conf /app/application.conf
 
 # Run the application
