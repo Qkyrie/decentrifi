@@ -1,0 +1,38 @@
+- name: Create Keys
+  hosts: localhost
+
+  tasks:
+    - name: Create private key (RSA, 4096 bits)
+      community.crypto.openssl_privatekey:
+        path: target/certificate.key
+
+    - name: Create certificate signing request (CSR) for self-signed certificate
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: target/certificate.key
+        common_name: decentri.fi
+        organization_name: QDS Consult Comm V
+        subject_alt_name:
+          - "DNS:decentri.fi"
+          - "DNS:*.decentri.fi"
+      register: csr
+
+    - name: Create self-signed certificate from CSR
+      community.crypto.x509_certificate:
+        path: target/decentrifi.crt
+        csr_content: "{{ csr.csr }}"
+        privatekey_path: target/certificate.key
+        provider: selfsigned
+
+    - name: CREATE Decentrifi
+      kubernetes.core.k8s:
+        kubeconfig: "kubeconfig.yaml"
+        definition:
+          kind: Secret
+          apiVersion: v1
+          metadata:
+            namespace: "decentrifi"
+            name: "decentrifi.tls"
+          type: kubernetes.io/tls
+          data:
+            tls.crt: "{{ lookup('file', './target/decentrifi.crt') | b64encode }}"
+            tls.key: "{{ lookup('file', './target/certificate.key') | b64encode }}"
