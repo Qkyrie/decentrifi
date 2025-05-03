@@ -4,18 +4,23 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.dataingest.db.DatabaseFactory
 import fi.decentri.dataingest.ingest.IngestorService
+import fi.decentri.waitlist.EmailRequest
+import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 
+val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
+
 fun main() {
-    val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
     logger.info("Starting data ingestion application")
 
     // Load configuration
@@ -41,7 +46,16 @@ fun main() {
 
 fun Application.configureRouting() {
     routing {
-        // API routes can be added here if needed
+        post("/waitlist") {
+            try {
+                val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload
+                logger.info("Received email for waitlist: ${emailRequest.email}") // Log the email
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Email received")) // Send success response
+            } catch (e: Exception) {
+                logger.error("Failed to process waitlist request", e)
+
+            }
+        }
     }
 }
 
