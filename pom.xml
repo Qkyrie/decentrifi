@@ -37,13 +37,15 @@
         <kotlin.version>2.1.20</kotlin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <gson.version>2.10.1</gson.version>
-        <jsoup.version>1.17.1</jsoup.version>
-        <commonmark.version>0.21.0</commonmark.version>
         <cache4k.version>0.13.0</cache4k.version>
         <logback-logtail.version>0.3.4</logback-logtail.version>
         <arrow.version>1.2.4</arrow.version>
-        <okta.version>3.0.7</okta.version>
+        <exposed.version>0.48.0</exposed.version>
+        <hikaricp.version>5.1.0</hikaricp.version>
+        <logback.version>1.4.14</logback.version>
+        <ktor.version>2.3.13</ktor.version>
+        <web3j.version>4.10.3</web3j.version>
+
     </properties>
 
     <dependencies>
@@ -170,13 +172,6 @@
                 <groupId>io.ktor</groupId>
                 <artifactId>ktor-client-okhttp-jvm</artifactId>
                 <version>${ktor.version}</version>
-            </dependency>
-
-            <!-- Authentication -->
-            <dependency>
-                <groupId>com.okta.spring</groupId>
-                <artifactId>okta-spring-boot-starter</artifactId>
-                <version>${okta.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

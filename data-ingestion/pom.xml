@@ -15,21 +15,7 @@
 
     <artifactId>data-ingestion</artifactId>
 
-    <properties>
-        <java.version>21</java.version>
-        <kotlin.version>2.1.20</kotlin.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <gson.version>2.10.1</gson.version>
-        <ktor.version>2.3.13</ktor.version>
-        <exposed.version>0.48.0</exposed.version>
-        <web3j.version>4.10.3</web3j.version>
-        <hikaricp.version>5.1.0</hikaricp.version>
-        <logback.version>1.4.14</logback.version>
-    </properties>
-
     <dependencies>
-        <!-- Ktor -->
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-core-jvm</artifactId>
