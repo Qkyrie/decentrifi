@@ -23,6 +23,7 @@
     <modules>
         <module>data-ingestion</module>
         <module>data-api</module>
+        <module>db</module>
     </modules>
 
 

@@ -3,7 +3,7 @@ package fi.decentri.dataingest
 import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.abi.AbiService
 import fi.decentri.dataingest.config.AppConfig
-import fi.decentri.dataingest.db.DatabaseFactory
+import fi.decentri.db.DatabaseFactory
 import fi.decentri.dataingest.ingest.IngestorService
 import fi.decentri.dataingest.repository.ContractsRepository
 import fi.decentri.dataingest.service.BlockchainIngestor
@@ -33,6 +33,13 @@ fun main() {
 
     // Initialize database
     DatabaseFactory.init(appConfig.database)
+    
+    // Initialize database tables
+    DatabaseFactory.initTables(
+        fi.decentri.dataingest.model.RawInvocations,
+        fi.decentri.dataingest.model.IngestionMetadata,
+        fi.decentri.dataingest.model.Contracts
+    )
 
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {

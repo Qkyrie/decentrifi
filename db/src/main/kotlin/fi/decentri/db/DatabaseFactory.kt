@@ -1,13 +1,12 @@
-package fi.decentri.dataingest.db
+package fi.decentri.db
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import fi.decentri.dataingest.config.DatabaseConfig
-import fi.decentri.dataingest.model.Contracts
-import fi.decentri.dataingest.model.IngestionMetadata
-import fi.decentri.dataingest.model.RawInvocations
+import fi.decentri.db.config.DatabaseConfig
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.slf4j.LoggerFactory
@@ -18,10 +17,14 @@ import org.slf4j.LoggerFactory
 object DatabaseFactory {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
+    /**
+     * Initialize the database connection
+     * 
+     * @param config Database configuration
+     */
     fun init(config: DatabaseConfig) {
         logger.info("Initializing database connection: ${config.jdbcUrl}")
 
-        // Configure HikariCP connection pool
         val hikariConfig = HikariConfig().apply {
             driverClassName = "org.postgresql.Driver"
             jdbcUrl = config.jdbcUrl
@@ -36,12 +39,18 @@ object DatabaseFactory {
         // Create the datasource and initialize the database
         val dataSource = HikariDataSource(hikariConfig)
         Database.connect(dataSource)
-
-        // Initialize the schema and metadata
+        
+        logger.info("Database initialized successfully")
+    }
+    
+    /**
+     * Initialize database tables
+     * 
+     * @param tables Tables to create if they don't exist
+     */
+    fun initTables(vararg tables: Table) {
         transaction {
-            SchemaUtils.createMissingTablesAndColumns(RawInvocations)
-            SchemaUtils.createMissingTablesAndColumns(IngestionMetadata)
-            SchemaUtils.createMissingTablesAndColumns(Contracts)
+            SchemaUtils.createMissingTablesAndColumns(*tables)
         }
     }
 

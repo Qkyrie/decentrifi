@@ -1,9 +1,8 @@
 package fi.decentri.dataingest.repository
 
-import fi.decentri.dataingest.db.DatabaseFactory.dbQuery
 import fi.decentri.dataingest.model.IngestionMetadata
+import fi.decentri.db.DatabaseFactory.dbQuery
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.slf4j.LoggerFactory
 
 /**
@@ -39,70 +38,6 @@ class IngestionMetadataRepository {
                 IngestionMetadata.insert {
                     it[key] = "last_processed_block"
                     it[value] = blockNumber.toString()
-                    it[this.contractId] = contractId
-                }
-            }
-        }
-    }
-    
-    /**
-     * Get a metadata value by key
-     */
-    suspend fun getMetadataValue(key: String): String? {
-        return dbQuery {
-            IngestionMetadata.selectAll()
-                .where { (IngestionMetadata.key eq key) and IngestionMetadata.contractId.isNull() }
-                .singleOrNull()
-                ?.get(IngestionMetadata.value)
-        }
-    }
-    
-    /**
-     * Get a metadata value for a specific contract
-     */
-    suspend fun getMetadataValueForContract(contractId: Int, key: String): String? {
-        return dbQuery {
-            IngestionMetadata.selectAll()
-                .where { (IngestionMetadata.key eq key) and (IngestionMetadata.contractId eq contractId) }
-                .singleOrNull()
-                ?.get(IngestionMetadata.value)
-        }
-    }
-    
-    /**
-     * Set a metadata value
-     */
-    suspend fun setMetadataValue(key: String, value: String) {
-        dbQuery {
-            val count = IngestionMetadata.update({ (IngestionMetadata.key eq key) and IngestionMetadata.contractId.isNull() }) {
-                it[this.value] = value
-            }
-            
-            // If no row was updated, insert new row
-            if (count == 0) {
-                IngestionMetadata.insert {
-                    it[this.key] = key
-                    it[this.value] = value
-                    it[contractId] = null
-                }
-            }
-        }
-    }
-    
-    /**
-     * Set a metadata value for a specific contract
-     */
-    suspend fun setMetadataValueForContract(contractId: Int, key: String, value: String) {
-        dbQuery {
-            val count = IngestionMetadata.update({ (IngestionMetadata.key eq key) and (IngestionMetadata.contractId eq contractId) }) {
-                it[this.value] = value
-            }
-            
-            // If no row was updated, insert new row
-            if (count == 0) {
-                IngestionMetadata.insert {
-                    it[this.key] = key
-                    it[this.value] = value
                     it[this.contractId] = contractId
                 }
             }

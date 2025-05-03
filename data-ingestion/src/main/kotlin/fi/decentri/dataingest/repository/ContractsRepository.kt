@@ -1,8 +1,8 @@
 package fi.decentri.dataingest.repository
 
-import fi.decentri.dataingest.db.DatabaseFactory.dbQuery
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.Contracts
+import fi.decentri.db.DatabaseFactory.dbQuery
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.slf4j.LoggerFactory

@@ -2,6 +2,7 @@ package fi.decentri.dataapi.config
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+import fi.decentri.db.config.DatabaseConfig
 import java.io.File
 
 /**
@@ -9,7 +10,7 @@ import java.io.File
  */
 class AppConfig private constructor(config: Config) {
     val server = ServerConfig(config.getConfig("server"))
-    val database = DatabaseConfig(config.getConfig("database"))
+    val database = DatabaseConfigImpl(config.getConfig("database"))
     
     companion object {
         fun load(): AppConfig {
@@ -42,9 +43,9 @@ class ServerConfig(config: Config) {
     val port: Int = config.getInt("port")
 }
 
-class DatabaseConfig(config: Config) {
-    val jdbcUrl: String = config.getString("jdbcUrl")
-    val username: String = config.getString("username")
-    val password: String = config.getString("password")
-    val maxPoolSize: Int = config.getInt("maxPoolSize")
+class DatabaseConfigImpl(config: Config) : DatabaseConfig {
+    override val jdbcUrl: String = config.getString("jdbcUrl")
+    override val username: String = config.getString("username")
+    override val password: String = config.getString("password")
+    override val maxPoolSize: Int = config.getInt("maxPoolSize")
 }

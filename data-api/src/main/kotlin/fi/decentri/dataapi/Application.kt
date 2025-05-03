@@ -2,7 +2,7 @@ package fi.decentri.dataapi
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.dataapi.config.AppConfig
-import fi.decentri.dataapi.db.DatabaseFactory
+import fi.decentri.db.DatabaseFactory
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
