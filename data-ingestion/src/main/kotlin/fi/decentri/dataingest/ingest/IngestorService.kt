@@ -42,31 +42,39 @@ class IngestorService(private val config: EthereumConfig) {
 
         logger.info("Last processed block with trace_filter: $lastProcessedBlock")
 
-        try {
-            // Get the latest block number
-            val latestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
+        while (true) {
+            try {
+                // Get the latest block number
+                val latestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
 
-            if (lastProcessedBlock >= latestBlock) {
-                logger.debug("No new blocks to process. Current: $lastProcessedBlock, Latest: $latestBlock")
-             }
+                if (lastProcessedBlock >= latestBlock) {
+                    logger.debug("No new blocks to process. Current: $lastProcessedBlock, Latest: $latestBlock")
+                    delay(config.pollingInterval)
+                    continue
+                }
 
-            // Calculate the range to process
-            val toBlock = minOf(lastProcessedBlock + config.batchSize, latestBlock)
-            logger.info("Processing blocks $lastProcessedBlock to $toBlock with trace_filter")
+                // Calculate the range to process
+                val toBlock = minOf(lastProcessedBlock + config.batchSize, latestBlock)
+                logger.info("Processing blocks $lastProcessedBlock to $toBlock with trace_filter")
 
-            // Process the block range using trace_filter
-            processBlockRangeWithTraceFilter(
-                lastProcessedBlock + 1,
-                toBlock,
-                config.contractAddress.lowercase(Locale.getDefault())
-            )
+                // Process the block range using trace_filter
+                processBlockRangeWithTraceFilter(
+                    lastProcessedBlock + 1,
+                    toBlock,
+                    config.contractAddress.lowercase(Locale.getDefault())
+                )
 
-            // Update the last processed block
-            lastProcessedBlock = toBlock
-            metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
+                // Update the last processed block
+                lastProcessedBlock = toBlock
+                metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
 
-        } catch (e: Exception) {
-            logger.error("Error during trace_filter ingestion: ${e.message}", e)
+            } catch (e: Exception) {
+                logger.error("Error during trace_filter ingestion: ${e.message}", e)
+                delay(config.pollingInterval)
+            }
+
+            // Wait before the next polling cycle
+            delay(config.pollingInterval)
         }
     }
 

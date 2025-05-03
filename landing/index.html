@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentrifi - Real-Time On-Chain Insights for ERC-20 Tokens</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #346DF1;
+            --accent-teal: #22D1C6;
+            --gradient: linear-gradient(45deg, #346DF1, #7D4CFF);
+            --light-bg: #F5F8FA;
+            --dark-text: #2A2E3D;
+            --border-color: #E1E4E8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--dark-text);
+            line-height: 1.5;
+            background-color: var(--light-bg);
+        }
+
+        /* Grid & Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -16px;
+        }
+
+        .col-12 { width: 100%; }
+        .col-4 { width: 33.33%; }
+        .col-6 { width: 50%; }
+
+        @media (max-width: 768px) {
+            .col-4, .col-6 { width: 100%; }
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 48px;
+            line-height: 56px;
+            color: var(--primary-blue);
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            font-size: 32px;
+            line-height: 40px;
+            color: var(--dark-text);
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 24px;
+            color: rgba(42, 46, 61, 0.8);
+        }
+
+        /* Header & Navigation */
+        .header {
+            padding: 16px 0;
+            position: fixed;
+            width: 100%;
+            z-index: 100;
+            transition: background-color 0.3s ease;
+            background-color: transparent;
+        }
+
+        .header.scrolled {
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-lockup {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gradient);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--dark-text);
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark-text);
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-teal);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            height: 2px;
+            width: 0;
+            background-color: var(--accent-teal);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 0 80px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(245, 248, 250, 0.3) 100%);
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards 0.2s;
+        }
+
+        .subhead {
+            font-size: 20px;
+            line-height: 30px;
+            margin-bottom: 32px;
+            color: rgba(42, 46, 61, 0.9);
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: var(--gradient);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            cursor: pointer;
+            transform: scale(0.8);
+            animation: popIn 0.4s ease-out forwards 0.6s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(52, 109, 241, 0.3);
+        }
+
+        .hero-visual {
+            margin-top: 60px;
+            opacity: 0;
+            transform: translateX(20px);
+            animation: fadeInRight 0.8s ease forwards 0.8s;
+        }
+
+        .dashboard-mockup {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .chart-placeholder {
+            background: var(--light-bg);
+            height: 200px;
+            border-radius: 4px;
+        }
+
+        /* Value Proposition */
+        .value-prop {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .feature-card {
+            padding: 24px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--gradient);
+            border-radius: 6px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-text);
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            line-height: 20px;
+            color: rgba(42, 46, 61, 0.8);
+        }
+
+        /* Waitlist Section */
+        .waitlist {
+            padding: 80px 0;
+            background: var(--light-bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .waitlist::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(45deg, white, var(--light-bg));
+            transform: translateY(-50%);
+        }
+
+        .waitlist-content {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .waitlist-form {
+            display: flex;
+            gap: 16px;
+            margin-top: 32px;
+        }
+
+        .email-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--dark-text);
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-width 0.3s ease, border-color 0.3s ease;
+        }
+
+        .email-input:focus {
+            outline: none;
+            border-width: 2px;
+            border-color: var(--accent-teal);
+        }
+
+        .submit-button {
+            background: var(--primary-blue);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .submit-button:hover {
+            opacity: 0.9;
+        }
+
+        .form-note {
+            margin-top: 16px;
+            font-size: 12px;
+            color: rgba(42, 46, 61, 0.8);
+        }
+
+        .thank-you {
+            display: none;
+            padding: 20px;
+            background: white;
+            border-radius: 6px;
+            margin-top: 32px;
+        }
+
+        .checkmark {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: var(--accent-teal);
+            border-radius: 50%;
+            margin-right: 8px;
+            text-align: center;
+            line-height: 24px;
+            color: white;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: 60px 0 30px;
+        }
+
+        .footer-content {
+            display: flex;
+            gap: 60px;
+        }
+
+        .footer-column {
+            flex: 1;
+        }
+
+        .footer-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 16px;
+        }
+
+        .footer-link {
+            display: block;
+            color: rgba(42, 46, 61, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--accent-teal);
+        }
+
+        .footer-bottom {
+            margin-top: 40px;
+            text-align: center;
+            color: rgba(42, 46, 61, 0.6);
+            font-size: 14px;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes popIn {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fadeInRight {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Hamburger Menu (Mobile) */
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .hamburger-line {
+            width: 24px;
+            height: 2px;
+            background: var(--dark-text);
+            margin: 4px 0;
+            transition: 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                flex-direction: column;
+                padding: 20px 0;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .hamburger {
+                display: block;
+            }
+
+            h1 {
+                font-size: 32px;
+                line-height: 40px;
+            }
+
+            .waitlist-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header" id="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-lockup">
+                    <div class="logo-icon">
+                        <img src="images/logo.png" alt="logo" />
+                    </div>
+                    <div class="logo-text">decentrifi</div>
+                </div>
+                <button class="hamburger" id="hamburger">
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                </button>
+                <nav>
+                    <ul class="nav-links" id="nav-links">
+                        <li><a href="#product">Product</a></li>
+                        <li><a href="#docs">Docs</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#login">Login</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1>Real-Time On-Chain Insights for ERC-20 Tokens</h1>
+                <p class="subhead">Track transfers, gas metrics, wallet activity—and turn data into action.</p>
+                <a href="#waitlist" class="cta-button">Join the Waitlist</a>
+            </div>
+            <div class="hero-visual">
+                <div class="dashboard-mockup">
+                    <div class="chart-placeholder"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="value-prop">
+        <div class="container">
+            <div class="row">
+                <div class="col-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">📡</div>
+                        <h3 class="feature-title">Instant Transfer Feeds</h3>
+                        <p class="feature-desc">See every move as it happens</p>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">⛽</div>
+                        <h3 class="feature-title">Gas & Error Analytics</h3>
+                        <p class="feature-desc">Optimize for cost and reliability</p>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">👥</div>
+                        <h3 class="feature-title">Active Wallet Tracking</h3>
+                        <p class="feature-desc">Uncover your top users</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="waitlist" id="waitlist">
+        <div class="container">
+            <div class="waitlist-content">
+                <h2>Be First to Experience Decentrifi</h2>
+                <form class="waitlist-form" id="waitlist-form">
+                    <input type="email" class="email-input" placeholder="you@domain.com" required>
+                    <button type="submit" class="submit-button">Get Early Access</button>
+                </form>
+                <p class="form-note">We'll only send release updates—no spam.</p>
+                <div class="thank-you" id="thank-you">
+                    <span class="checkmark">✓</span>
+                    Thanks! Stay tuned.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <div class="logo-lockup" style="margin-bottom: 16px;">
+                        <div class="logo-icon">d</div>
+                        <div class="logo-text">decentrifi</div>
+                    </div>
+                    <p style="color: rgba(42, 46, 61, 0.6); font-size: 14px;">
+                        Real-time on-chain insights<br>for ERC-20 tokens
+                    </p>
+                </div>
+                <div class="footer-column">
+                    <h4 class="footer-title">Product</h4>
+                    <a href="#" class="footer-link">Features</a>
+                    <a href="#" class="footer-link">API Documentation</a>
+                    <a href="#" class="footer-link">Roadmap</a>
+                    <a href="#" class="footer-link">Status</a>
+                </div>
+                <div class="footer-column">
+                    <h4 class="footer-title">Resources</h4>
+                    <a href="#" class="footer-link">Documentation</a>
+                    <a href="#" class="footer-link">Blog</a>
+                    <a href="#" class="footer-link">Community</a>
+                    <a href="#" class="footer-link">Support</a>
+                </div>
+                <div class="footer-column">
+                    <h4 class="footer-title">Social</h4>
+                    <a href="#" class="footer-link">Twitter</a>
+                    <a href="#" class="footer-link">Discord</a>
+                    <a href="#" class="footer-link">GitHub</a>
+                    <a href="#" class="footer-link">LinkedIn</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 Decentrifi. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Mobile menu toggle
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('nav-links');
+        
+        hamburger.addEventListener('click', function() {
+            navLinks.classList.toggle('active');
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Scroll animations for feature cards
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = `fadeInUp 0.6s ease forwards ${index * 0.2}s`;
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card').forEach(card => {
+            observer.observe(card);
+        });
+
+        // Form submission
+        const waitlistForm = document.getElementById('waitlist-form');
+        const thankYou = document.getElementById('thank-you');
+
+        waitlistForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Simple form submission animation
+            waitlistForm.style.display = 'none';
+            thankYou.style.display = 'block';
+            thankYou.style.animation = 'fadeInUp 0.3s ease forwards';
+        });
+    </script>
+</body>
+</html>

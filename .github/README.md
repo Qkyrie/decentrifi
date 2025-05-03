@@ -281,6 +281,46 @@ val ethereumContracts = contractsService.findContractsByChain("ethereum-mainnet"
 contractsService.deleteContract(contractId)
 ```
 
+## Landing Page
+
+The project includes a static landing page (`index.html`) that serves as the marketing site for Decentrifi. This page is:
+
+- **Fully responsive** and mobile-friendly
+- **Static HTML/CSS/JavaScript** (no server-side dependencies)
+- Designed to match the house style specifications including:
+  - Color palette: Primary Blue (#346DF1), Accent Teal (#22D1C6), and gradient treatments
+  - Typography: Inter font family with specific sizing and weight specifications
+  - Responsive 12-column grid layout with 8px baseline
+  - Micro-interactions including scroll animations, hover effects, and form transitions
+  - Waitlist form to capture early access signups
+
+The landing page can be served alongside the main application or deployed to a separate static hosting service. It includes:
+- Hero section with value proposition
+- Three-column feature overview
+- Email waitlist form
+- Responsive navigation and mobile-friendly hamburger menu
+- SEO-optimized meta tags
+
+### Serving the Landing Page
+
+For development, you can serve the landing page using any static file server:
+```bash
+# Using Python's built-in server
+python3 -m http.server 8000
+
+# Using Node.js serve
+npx serve
+
+# Using PHP's built-in server
+php -S localhost:8000
+```
+
+For production, the landing page can be deployed to any static hosting service like:
+- GitHub Pages
+- Netlify
+- Vercel
+- CloudFront/S3
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

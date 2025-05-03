@@ -34,6 +34,7 @@ fun main() {
         launch(Dispatchers.IO) {
             logger.info("Starting blockchain data ingestion service with trace_filter")
             ingestorService.ingest()
+            logger.info("caught up with the latest block")
         }
     }.start(wait = true)
 }
