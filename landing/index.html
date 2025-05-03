@@ -53,11 +53,14 @@
 
         /* Typography */
         h1 {
-            font-size: 48px;
-            line-height: 56px;
-            color: var(--primary-blue);
-            font-weight: 700;
+            font-size: 52px;
+            line-height: 1.2;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
             margin-bottom: 24px;
+            letter-spacing: -0.5px;
         }
 
         h2 {
@@ -162,8 +165,34 @@
         /* Hero Section */
         .hero {
             padding: 160px 0 80px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(245, 248, 250, 0.3) 100%);
+            background: linear-gradient(120deg, #ffffff 0%, rgba(245, 248, 250, 0.8) 100%);
+            position: relative;
+            overflow: hidden;
             text-align: center;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -300px;
+            right: -300px;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(52, 109, 241, 0.05) 0%, rgba(125, 76, 255, 0.05) 50%, transparent 70%);
+            z-index: 0;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -200px;
+            left: -200px;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 209, 198, 0.05) 0%, rgba(125, 76, 255, 0.05) 50%, transparent 70%);
+            z-index: 0;
         }
 
         .hero-content {
@@ -172,6 +201,20 @@
             opacity: 0;
             transform: translateY(20px);
             animation: fadeInUp 0.6s ease forwards 0.5s;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: linear-gradient(90deg, rgba(52, 109, 241, 0.1) 0%, rgba(34, 209, 198, 0.1) 100%);
+            color: var(--primary-blue);
+            font-weight: 600;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 10px rgba(52, 109, 241, 0.1);
         }
 
         .subhead {
@@ -179,6 +222,16 @@
             line-height: 30px;
             margin-bottom: 32px;
             color: rgba(42, 46, 61, 0.9);
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 60px;
         }
 
         .cta-button {
@@ -186,40 +239,139 @@
             background: var(--gradient);
             color: white;
             padding: 16px 32px;
-            border-radius: 6px;
+            border-radius: 10px;
             text-decoration: none;
-            font-size: 14px;
+            font-size: 15px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.3s ease;
             border: none;
             cursor: pointer;
             transform: scale(0.8);
             animation: popIn 0.4s ease-out forwards 0.9s;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(52, 109, 241, 0.3);
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
         }
 
         .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(52, 109, 241, 0.3);
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 15px 35px -5px rgba(52, 109, 241, 0.4);
+        }
+        
+        .cta-button:hover::before {
+            left: 100%;
+        }
+
+        .secondary-button {
+            display: inline-block;
+            background: white;
+            color: var(--primary-blue);
+            padding: 15px 32px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(52, 109, 241, 0.1);
+            cursor: pointer;
+            transform: scale(0.8);
+            animation: popIn 0.4s ease-out forwards 1.1s;
+            box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .secondary-button:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-blue);
         }
 
         .hero-visual {
-            margin-top: 60px;
+            margin-top: 20px;
             opacity: 0;
-            transform: translateX(20px);
-            animation: fadeInRight 0.8s ease forwards 1.1s;
+            transform: translateY(40px);
+            animation: fadeInUp 1s ease forwards 1.1s;
+            position: relative;
+            z-index: 1;
         }
 
         .dashboard-mockup {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1), 0 10px 20px rgba(52, 109, 241, 0.05);
             padding: 24px;
-            max-width: 600px;
+            max-width: 900px;
             margin: 0 auto;
             position: relative;
             overflow: hidden;
+            border: 1px solid rgba(225, 228, 232, 0.7);
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(225, 228, 232, 0.5);
+            padding-bottom: 15px;
+        }
+        
+        .dashboard-title {
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--dark-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .dashboard-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .dashboard-button {
+            background: rgba(52, 109, 241, 0.1);
+            color: var(--primary-blue);
+            border: none;
+            border-radius: 5px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .time-selector {
+            display: flex;
+            border-radius: 6px;
+            background: var(--light-bg);
+            overflow: hidden;
+        }
+        
+        .time-option {
+            padding: 6px 12px;
+            font-size: 13px;
+            color: rgba(42, 46, 61, 0.7);
+            cursor: pointer;
+        }
+        
+        .time-option.active {
+            background: white;
+            color: var(--primary-blue);
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .coming-soon-overlay {
@@ -228,78 +380,295 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(4px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.9) 100%);
+            backdrop-filter: blur(5px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 5;
+            opacity: 0;
+            animation: fadeIn 0.8s ease forwards 3s;
         }
 
         .coming-soon-text {
-            font-size: 36px;
-            font-weight: 700;
+            font-size: 42px;
+            font-weight: 800;
             background: var(--gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            transform: rotate(-15deg);
-            text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.8);
+            transform: rotate(-10deg);
+            letter-spacing: -0.5px;
+            padding: 20px;
+            border: 4px dashed rgba(52, 109, 241, 0.2);
+            border-radius: 16px;
+            animation: pulse 3s ease infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: rotate(-10deg) scale(1);
+                box-shadow: 0 0 0 0 rgba(52, 109, 241, 0.2);
+            }
+            50% {
+                transform: rotate(-10deg) scale(1.05);
+                box-shadow: 0 0 25px 10px rgba(52, 109, 241, 0);
+            }
+            100% {
+                transform: rotate(-10deg) scale(1);
+                box-shadow: 0 0 0 0 rgba(52, 109, 241, 0.2);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
 
         .fancy-chart {
-            height: 300px;
+            height: 380px;
             position: relative;
+        }
+        
+        .data-summary {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .data-card {
+            flex: 1;
+            background: var(--light-bg);
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid rgba(225, 228, 232, 0.5);
+        }
+        
+        .data-card-title {
+            font-size: 13px;
+            color: rgba(42, 46, 61, 0.6);
+            margin-bottom: 10px;
+        }
+        
+        .data-card-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+        
+        .data-card-change {
+            font-size: 13px;
+            margin-top: 5px;
+        }
+        
+        .change-up {
+            color: #4CAF50;
+        }
+        
+        .change-down {
+            color: #F44336;
         }
 
         /* Value Proposition */
         .value-prop {
-            padding: 80px 0;
-            background: white;
+            padding: 100px 0 80px;
+            background: linear-gradient(180deg, #ffffff 0%, var(--light-bg) 100%);
+            position: relative;
+            z-index: 1;
+        }
+        
+        .value-prop::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #ffffff 100%);
+            z-index: -1;
+        }
+        
+        .value-prop-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 60px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+        
+        .value-prop-header.animated {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .value-prop-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+            position: relative;
+        }
+        
+        .value-prop-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: var(--gradient);
+            transition: width 0.6s ease 0.3s;
+        }
+        
+        .value-prop-header.animated .value-prop-title::after {
+            width: 80px;
+        }
+        
+        .value-prop-subtitle {
+            font-size: 18px;
+            line-height: 1.6;
+            color: rgba(42, 46, 61, 0.8);
+            max-width: 600px;
+            margin: 20px auto 0;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            padding: 0 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
         }
 
         .feature-card {
-            padding: 24px;
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
             text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
             opacity: 0;
             transform: translateY(20px);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(225, 228, 232, 0.5);
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--gradient);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
         }
 
         .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-color: rgba(52, 109, 241, 0.3);
+        }
+        
+        .feature-card:hover::after {
+            transform: scaleX(1);
         }
 
         .feature-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--gradient);
-            border-radius: 12px;
-            margin: 0 auto 16px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, rgba(52, 109, 241, 0.1) 0%, rgba(34, 209, 198, 0.1) 100%);
+            border-radius: 20px;
+            margin: 0 auto 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 24px;
-            transform: scale(0.8);
-            transition: transform 0.3s ease;
+            font-size: 32px;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(52, 109, 241, 0.1);
+            position: relative;
+        }
+        
+        .feature-icon::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 18px;
+            padding: 2px;
+            background: var(--gradient);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
         }
 
         .feature-card:hover .feature-icon {
-            transform: scale(1);
+            transform: scale(1.1) rotate(5deg);
         }
 
         .feature-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 16px;
             color: var(--dark-text);
         }
 
         .feature-desc {
-            font-size: 14px;
-            line-height: 20px;
+            font-size: 16px;
+            line-height: 1.6;
             color: rgba(42, 46, 61, 0.8);
+            margin-bottom: 24px;
+        }
+        
+        .feature-points {
+            text-align: left;
+            width: 100%;
+            padding-left: 0;
+            list-style: none;
+            margin-top: auto;
+        }
+        
+        .feature-points li {
+            position: relative;
+            padding-left: 26px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: rgba(42, 46, 61, 0.7);
+        }
+        
+        .feature-points li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2322D1C6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
         }
 
         /* How It Works Section */
@@ -728,10 +1097,39 @@
             }
 
             h1 {
-                font-size: 32px;
-                line-height: 40px;
+                font-size: 36px;
+                line-height: 1.2;
             }
-
+            
+            .hero-buttons {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .data-summary {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .data-card {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            
+            .data-card-title {
+                margin-bottom: 0;
+            }
+            
             .waitlist-form {
                 flex-direction: column;
             }
@@ -769,25 +1167,56 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
+                <div class="hero-badge">
+                    <span>✨ Early Access Available</span>
+                </div>
                 <h1>Real-Time On-Chain Insights for EVM Contracts</h1>
-                <p class="subhead">Track transfers, gas metrics, wallet activity—and turn data into action.</p>
-                <a href="#waitlist" class="cta-button">Join the Waitlist</a>
+                <p class="subhead">Track transfers, gas metrics, wallet activity, and user behavior—all in one intuitive dashboard to help you make data-driven decisions.</p>
+                <div class="hero-buttons">
+                    <a href="#waitlist" class="cta-button">Join the Waitlist</a>
+                    <a href="#how-it-works" class="secondary-button">How It Works</a>
+                </div>
             </div>
             <div class="hero-visual">
                 <div class="dashboard-mockup">
+                    <div class="dashboard-header">
+                        <div class="dashboard-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21 8V20.9932C21 21.5501 20.5552 22 20.0066 22H3.9934C3.44495 22 3 21.556 3 21.0082V2.9918C3 2.45531 3.4487 2 4.00221 2H14.9968L21 8Z" stroke="#346DF1" stroke-width="2"/>
+                                <path d="M14 2V8H21" stroke="#346DF1" stroke-width="2"/>
+                            </svg>
+                            Contract Analytics Dashboard
+                        </div>
+                        <div class="dashboard-controls">
+                            <button class="dashboard-button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Export
+                            </button>
+                            <div class="time-selector">
+                                <div class="time-option">Day</div>
+                                <div class="time-option">Week</div>
+                                <div class="time-option active">Month</div>
+                                <div class="time-option">Year</div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="fancy-chart">
-                        <svg width="100%" height="100%" viewBox="0 0 600 300" xmlns="http://www.w3.org/2000/svg">
+                        <svg width="100%" height="100%" viewBox="0 0 800 380" xmlns="http://www.w3.org/2000/svg">
                             <defs>
-                                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#346DF1;stop-opacity:0.3" />
-                                    <stop offset="100%" style="stop-color:#22D1C6;stop-opacity:0.3" />
+                                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#346DF1;stop-opacity:0.2" />
+                                    <stop offset="100%" style="stop-color:#22D1C6;stop-opacity:0.0" />
                                 </linearGradient>
                                 <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                                     <stop offset="0%" style="stop-color:#346DF1" />
                                     <stop offset="100%" style="stop-color:#22D1C6" />
                                 </linearGradient>
                                 <filter id="glow">
-                                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                                     <feMerge>
                                         <feMergeNode in="coloredBlur"/>
                                         <feMergeNode in="SourceGraphic"/>
@@ -796,67 +1225,175 @@
                             </defs>
                             
                             <!-- Grid background -->
-                            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E1E4E8" stroke-width="1" opacity="0.3"/>
+                            <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#E1E4E8" stroke-width="0.5" opacity="0.3"/>
                             </pattern>
                             <rect width="100%" height="100%" fill="url(#grid)" />
                             
+                            <!-- Horizontal grid lines -->
+                            <line x1="60" y1="50" x2="740" y2="50" stroke="#E1E4E8" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+                            <line x1="60" y1="100" x2="740" y2="100" stroke="#E1E4E8" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+                            <line x1="60" y1="150" x2="740" y2="150" stroke="#E1E4E8" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+                            <line x1="60" y1="200" x2="740" y2="200" stroke="#E1E4E8" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+                            <line x1="60" y1="250" x2="740" y2="250" stroke="#E1E4E8" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+                            <line x1="60" y1="300" x2="740" y2="300" stroke="#E1E4E8" stroke-width="1" stroke-dasharray="5,5" opacity="0.5"/>
+                            
                             <!-- Axis -->
-                            <path d="M 60 250 L 560 250" stroke="#2A2E3D" stroke-width="2" opacity="0.2"/>
-                            <path d="M 60 50 L 60 250" stroke="#2A2E3D" stroke-width="2" opacity="0.2"/>
+                            <path d="M 60 320 L 740 320" stroke="#2A2E3D" stroke-width="1.5" opacity="0.3"/>
+                            <path d="M 60 50 L 60 320" stroke="#2A2E3D" stroke-width="1.5" opacity="0.3"/>
                             
                             <!-- Axis labels -->
-                            <text x="35" y="250" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">0</text>
-                            <text x="35" y="180" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">5k</text>
-                            <text x="35" y="110" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">10k</text>
-                            <text x="35" y="40" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="end">15k</text>
+                            <text x="45" y="320" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="end">0</text>
+                            <text x="45" y="270" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="end">2.5k</text>
+                            <text x="45" y="220" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="end">5k</text>
+                            <text x="45" y="170" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="end">7.5k</text>
+                            <text x="45" y="120" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="end">10k</text>
+                            <text x="45" y="70" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="end">12.5k</text>
                             
-                            <text x="100" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Jan</text>
-                            <text x="200" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Mar</text>
-                            <text x="300" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">May</text>
-                            <text x="400" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Jul</text>
-                            <text x="500" y="265" font-family="Inter" font-size="12" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Sep</text>
+                            <text x="100" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Jan</text>
+                            <text x="180" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Feb</text>
+                            <text x="260" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Mar</text>
+                            <text x="340" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Apr</text>
+                            <text x="420" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">May</text>
+                            <text x="500" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Jun</text>
+                            <text x="580" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Jul</text>
+                            <text x="660" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Aug</text>
+                            <text x="740" y="335" font-family="Inter" font-size="11" fill="#2A2E3D" opacity="0.6" text-anchor="middle">Sep</text>
                             
-                            <!-- Main line chart -->
-                            <path d="M 60 220 C 100 210, 150 180, 200 160 C 250 140, 300 120, 350 100 C 400 80, 450 70, 500 60 C 520 55, 540 55, 560 60" 
-                                  fill="none" stroke="url(#lineGradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+                            <!-- Transaction volume line chart -->
+                            <path d="M 60 300 
+                                  L 100 290 
+                                  L 140 280 
+                                  L 180 270 
+                                  L 220 260 
+                                  L 260 230 
+                                  L 300 220 
+                                  L 340 190 
+                                  L 380 170 
+                                  L 420 150 
+                                  L 460 130 
+                                  L 500 120 
+                                  L 540 100 
+                                  L 580 90 
+                                  L 620 80 
+                                  L 660 70 
+                                  L 700 65 
+                                  L 740 60" 
+                                  fill="none" 
+                                  stroke="url(#lineGradient)" 
+                                  stroke-width="3" 
+                                  stroke-linecap="round" 
+                                  stroke-linejoin="round"
+                                  filter="url(#glow)">
                                 <animate attributeName="stroke-dasharray" 
-                                         values="0,1000; 1000,1000" 
+                                         values="0,1500; 1500,0" 
                                          dur="2s" 
-                                         repeatCount="indefinite"/>
+                                         begin="0.5s"
+                                         fill="freeze"/>
                             </path>
                             
-                            <!-- Area under curve -->
-                            <path d="M 60 220 C 100 210, 150 180, 200 160 C 250 140, 300 120, 350 100 C 400 80, 450 70, 500 60 C 520 55, 540 55, 560 60 L 560 250 L 60 250 Z" 
-                                  fill="url(#chartGradient)" opacity="0.6"/>
+                            <!-- Area under main line -->
+                            <path d="M 60 300 
+                                  L 100 290 
+                                  L 140 280 
+                                  L 180 270 
+                                  L 220 260 
+                                  L 260 230 
+                                  L 300 220 
+                                  L 340 190 
+                                  L 380 170 
+                                  L 420 150 
+                                  L 460 130 
+                                  L 500 120 
+                                  L 540 100 
+                                  L 580 90 
+                                  L 620 80 
+                                  L 660 70 
+                                  L 700 65 
+                                  L 740 60
+                                  L 740 320 
+                                  L 60 320 Z" 
+                                  fill="url(#chartGradient)">
+                                <animate attributeName="opacity" 
+                                         values="0;0.7" 
+                                         dur="1.5s" 
+                                         begin="0.7s"
+                                         fill="freeze"/>
+                            </path>
                             
-                            <!-- Data points -->
-                            <circle cx="60" cy="220" r="4" fill="#346DF1" />
-                            <circle cx="200" cy="160" r="4" fill="#346DF1" />
-                            <circle cx="350" cy="100" r="4" fill="#22D1C6" />
-                            <circle cx="500" cy="60" r="4" fill="#22D1C6" />
-                            <circle cx="560" cy="60" r="4" fill="#22D1C6" />
+                            <!-- Secondary line (Daily Active Wallets) -->
+                            <path d="M 60 290 
+                                  L 100 285 
+                                  L 140 280 
+                                  L 180 275 
+                                  L 220 270 
+                                  L 260 250 
+                                  L 300 245 
+                                  L 340 230 
+                                  L 380 210 
+                                  L 420 200 
+                                  L 460 190 
+                                  L 500 180 
+                                  L 540 160 
+                                  L 580 155 
+                                  L 620 150 
+                                  L 660 140 
+                                  L 700 130 
+                                  L 740 120" 
+                                  fill="none" 
+                                  stroke="#22D1C6" 
+                                  stroke-width="2" 
+                                  stroke-linecap="round" 
+                                  stroke-linejoin="round"
+                                  stroke-dasharray="5,3"
+                                  opacity="0.7">
+                                <animate attributeName="stroke-dasharray" 
+                                         values="0,1500; 5,3" 
+                                         dur="2s" 
+                                         begin="1s"
+                                         fill="freeze"/>
+                            </path>
                             
-                            <!-- Secondary bar chart -->
-                            <rect x="80" y="200" width="20" height="50" fill="#346DF1" opacity="0.5" rx="2" />
-                            <rect x="120" y="180" width="20" height="70" fill="#346DF1" opacity="0.5" rx="2" />
-                            <rect x="160" y="190" width="20" height="60" fill="#346DF1" opacity="0.5" rx="2" />
-                            <rect x="200" y="170" width="20" height="80" fill="#346DF1" opacity="0.5" rx="2" />
-                            <rect x="240" y="160" width="20" height="90" fill="#22D1C6" opacity="0.5" rx="2" />
-                            <rect x="280" y="150" width="20" height="100" fill="#22D1C6" opacity="0.5" rx="2" />
-                            <rect x="320" y="140" width="20" height="110" fill="#22D1C6" opacity="0.5" rx="2" />
-                            <rect x="360" y="130" width="20" height="120" fill="#22D1C6" opacity="0.5" rx="2" />
-                            <rect x="400" y="120" width="20" height="130" fill="#22D1C6" opacity="0.5" rx="2" />
-                            <rect x="440" y="110" width="20" height="140" fill="#22D1C6" opacity="0.5" rx="2" />
-                            <rect x="480" y="100" width="20" height="150" fill="#22D1C6" opacity="0.5" rx="2" />
-                            <rect x="520" y="100" width="20" height="150" fill="#22D1C6" opacity="0.5" rx="2" />
+                            <!-- Key data points with tooltips -->
+                            <g>
+                                <circle cx="420" cy="150" r="6" fill="white" stroke="url(#lineGradient)" stroke-width="2" opacity="0">
+                                    <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2s" fill="freeze"/>
+                                </circle>
+                                <circle cx="580" cy="90" r="6" fill="white" stroke="url(#lineGradient)" stroke-width="2" opacity="0">
+                                    <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2.2s" fill="freeze"/>
+                                </circle>
+                                <circle cx="700" cy="65" r="8" fill="white" stroke="url(#lineGradient)" stroke-width="2.5" opacity="0">
+                                    <animate attributeName="opacity" values="0;1" dur="0.3s" begin="2.4s" fill="freeze"/>
+                                    <animate attributeName="r" values="4;8;6" dur="2s" begin="2.4s" repeatCount="indefinite"/>
+                                </circle>
+                            </g>
                             
-                            <!-- Hover effect circles (animated) -->
-                            <circle cx="350" cy="100" r="8" fill="none" stroke="#22D1C6" stroke-width="2" opacity="0">
-                                <animate attributeName="r" values="4;12;4" dur="2s" repeatCount="indefinite" />
-                                <animate attributeName="opacity" values="0;0.7;0" dur="2s" repeatCount="indefinite" />
-                            </circle>
+                            <!-- Annotations -->
+                            <g opacity="0">
+                                <animate attributeName="opacity" values="0;1" dur="0.5s" begin="2.6s" fill="freeze"/>
+                                <rect x="600" y="100" width="120" height="60" rx="5" fill="white" stroke="#E1E4E8" stroke-width="1"/>
+                                <text x="660" y="125" font-family="Inter" font-size="12" fill="#2A2E3D" text-anchor="middle" font-weight="600">11,842 Txs</text>
+                                <text x="660" y="145" font-family="Inter" font-size="11" fill="#4CAF50" text-anchor="middle">+32.4% from last month</text>
+                                <line x1="700" y1="65" x2="660" y2="100" stroke="#346DF1" stroke-width="1" stroke-dasharray="3,2"/>
+                            </g>
                         </svg>
+                    </div>
+                    <div class="data-summary">
+                        <div class="data-card">
+                            <div class="data-card-title">Total Transactions</div>
+                            <div class="data-card-value">25,641</div>
+                            <div class="data-card-change change-up">↑ 18.3%</div>
+                        </div>
+                        <div class="data-card">
+                            <div class="data-card-title">Active Wallets</div>
+                            <div class="data-card-value">3,825</div>
+                            <div class="data-card-change change-up">↑ 24.5%</div>
+                        </div>
+                        <div class="data-card">
+                            <div class="data-card-title">Avg Gas (gwei)</div>
+                            <div class="data-card-value">28.6</div>
+                            <div class="data-card-change change-down">↓ 3.2%</div>
+                        </div>
                     </div>
                     <div class="coming-soon-overlay">
                         <div class="coming-soon-text">Coming Soon</div>
@@ -866,29 +1403,42 @@
         </div>
     </section>
 
-    <section class="value-prop">
+    <section class="value-prop" id="product">
         <div class="container">
-            <div class="row">
-                <div class="col-4">
-                    <div class="feature-card">
-                        <div class="feature-icon">📡</div>
-                        <h3 class="feature-title">Instant Transfer Feeds</h3>
-                        <p class="feature-desc">See every move as it happens</p>
-                    </div>
+            <div class="value-prop-header">
+                <h2 class="value-prop-title">Key Features</h2>
+                <p class="value-prop-subtitle">Powerful tools to help you understand and optimize your on-chain presence</p>
+            </div>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📡</div>
+                    <h3 class="feature-title">Instant Transfer Feeds</h3>
+                    <p class="feature-desc">Monitor token transfers, NFT movements, and contract interactions in real-time with our live feed system.</p>
+                    <ul class="feature-points">
+                        <li>Real-time transaction monitoring</li>
+                        <li>Custom alerting thresholds</li>
+                        <li>Historical transfer analysis</li>
+                    </ul>
                 </div>
-                <div class="col-4">
-                    <div class="feature-card">
-                        <div class="feature-icon">⛽</div>
-                        <h3 class="feature-title">Gas & Error Analytics</h3>
-                        <p class="feature-desc">Optimize for cost and reliability</p>
-                    </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⛽</div>
+                    <h3 class="feature-title">Gas & Error Analytics</h3>
+                    <p class="feature-desc">Identify cost optimization opportunities and reliability issues through detailed gas and error analysis.</p>
+                    <ul class="feature-points">
+                        <li>Gas usage optimization</li>
+                        <li>Error pattern detection</li>
+                        <li>Cost forecasting tools</li>
+                    </ul>
                 </div>
-                <div class="col-4">
-                    <div class="feature-card">
-                        <div class="feature-icon">👥</div>
-                        <h3 class="feature-title">Active Wallet Tracking</h3>
-                        <p class="feature-desc">Uncover your top users</p>
-                    </div>
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3 class="feature-title">Active Wallet Tracking</h3>
+                    <p class="feature-desc">Understand who's interacting with your contracts and identify your most valuable users and patterns.</p>
+                    <ul class="feature-points">
+                        <li>User behavior analytics</li>
+                        <li>Whale activity monitoring</li>
+                        <li>Retention metrics & insights</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -1046,7 +1596,7 @@
             });
         });
 
-        // Scroll animations for feature cards and how-it-works section
+        // Scroll animations for cards and sections
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
@@ -1092,14 +1642,28 @@
             howItWorksObserver.observe(card);
         });
         
+        // Section headers animation
+        const sectionHeaderObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const header = entry.target;
+                    header.classList.add('animated');
+                    sectionHeaderObserver.unobserve(header);
+                }
+            });
+        }, {
+            threshold: 0.2
+        });
+        
+        // Observe all section headers for animation
+        document.querySelectorAll('.value-prop-header, .section-header').forEach(header => {
+            sectionHeaderObserver.observe(header);
+        });
+        
         // How It Works section header and timeline animations
         const howItWorksSectionObserver = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (entry.isIntersecting) {
-                    // Animate section header
-                    const sectionHeader = document.querySelector('.how-it-works .section-header');
-                    sectionHeader.classList.add('animated');
-                    
                     // Animate timeline line after a small delay
                     setTimeout(() => {
                         const timelineLine = document.querySelector('.timeline-line');
