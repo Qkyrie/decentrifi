@@ -22,3 +22,5 @@ terraform.tfstate.backup
 .terraform.lock.hcl
 logs/
 kubeconfig.yaml
+
+infra/secrets.env
