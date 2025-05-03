@@ -17,23 +17,23 @@ import org.slf4j.LoggerFactory
 fun main() {
     val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
     logger.info("Starting data ingestion application")
-    
+
     // Load configuration
     val appConfig = AppConfig.load()
-    
+
     // Initialize database
     DatabaseFactory.init(appConfig.database)
-    
+
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
         configureRouting()
         configureSerialization()
-        
+
         // Start the blockchain data ingestion process in a background coroutine
         val ingestorService = IngestorService(appConfig.ethereum)
         launch(Dispatchers.IO) {
             logger.info("Starting blockchain data ingestion service with trace_filter")
-            ingestorService.startIngestingDataWithTraceFilter()
+            ingestorService.ingest()
         }
     }.start(wait = true)
 }

@@ -1,7 +1,6 @@
 package fi.decentri.dataingest.ingest
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.dataingest.config.EthereumConfig
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
 import fi.decentri.dataingest.repository.RawInvocationData
@@ -10,18 +9,15 @@ import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameter
-import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
 import org.web3j.protocol.core.methods.request.EthFilter
 import org.web3j.protocol.core.methods.response.EthLog
-import org.web3j.protocol.core.methods.response.Log
 import org.web3j.protocol.http.HttpService
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.time.Instant
 import java.util.*
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Service responsible for blockchain data ingestion
@@ -31,66 +27,11 @@ class IngestorService(private val config: EthereumConfig) {
     private val web3j: Web3j = Web3j.build(HttpService(config.rpcUrl))
     private val metadataRepository = IngestionMetadataRepository()
     private val rawInvocationsRepository = RawInvocationsRepository()
-    private val objectMapper = ObjectMapper()
-
-    // Standard ERC20 Transfer event signature
-    private val transferEventSignature = "Transfer(address,address,uint256)"
-    private val transferEventTopic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-    private val approvalEventTopic = "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925"
-
-    // Tracking key for trace_filter specific ingestion
-    private val LAST_PROCESSED_BLOCK_KEY = "last_processed_block_trace_filter"
-
-    /**
-     * Start the blockchain data ingestion process using eth_getLogs for Transfer events
-     */
-    suspend fun startIngestingData() {
-        logger.info("Starting blockchain data ingestion for contract ${config.contractAddress}")
-
-        var lastProcessedBlock = if (config.startBlock > 0) {
-            config.startBlock
-        } else {
-            metadataRepository.getLastProcessedBlock()
-        }
-
-        logger.info("Last processed block: $lastProcessedBlock")
-
-        while (true) {
-            try {
-                // Get the latest block number
-                val latestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
-
-                if (lastProcessedBlock >= latestBlock) {
-                    logger.debug("No new blocks to process. Current: $lastProcessedBlock, Latest: $latestBlock")
-                    delay(config.pollingInterval)
-                    continue
-                }
-
-                // Calculate the range to process
-                val toBlock = minOf(lastProcessedBlock + config.batchSize, latestBlock)
-                logger.info("Processing blocks $lastProcessedBlock to $toBlock")
-
-                // Collect and process data
-                processBlockRange(lastProcessedBlock + 1, toBlock)
-
-                // Update the last processed block
-                lastProcessedBlock = toBlock
-                metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
-
-            } catch (e: Exception) {
-                logger.error("Error during ingestion: ${e.message}", e)
-                delay(config.pollingInterval)
-            }
-
-            // Wait before the next polling cycle
-            delay(config.pollingInterval)
-        }
-    }
 
     /**
      * Start the blockchain data ingestion process using trace_filter for all transactions
      */
-    suspend fun startIngestingDataWithTraceFilter() {
+    suspend fun ingest() {
         logger.info("Starting trace_filter data ingestion for contract ${config.contractAddress}")
 
         var lastProcessedBlock = if (config.startBlock > 0) {
@@ -101,39 +42,31 @@ class IngestorService(private val config: EthereumConfig) {
 
         logger.info("Last processed block with trace_filter: $lastProcessedBlock")
 
-        while (true) {
-            try {
-                // Get the latest block number
-                val latestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
+        try {
+            // Get the latest block number
+            val latestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
 
-                if (lastProcessedBlock >= latestBlock) {
-                    logger.debug("No new blocks to process. Current: $lastProcessedBlock, Latest: $latestBlock")
-                    delay(config.pollingInterval)
-                    continue
-                }
+            if (lastProcessedBlock >= latestBlock) {
+                logger.debug("No new blocks to process. Current: $lastProcessedBlock, Latest: $latestBlock")
+             }
 
-                // Calculate the range to process
-                val toBlock = minOf(lastProcessedBlock + config.batchSize, latestBlock)
-                logger.info("Processing blocks $lastProcessedBlock to $toBlock with trace_filter")
+            // Calculate the range to process
+            val toBlock = minOf(lastProcessedBlock + config.batchSize, latestBlock)
+            logger.info("Processing blocks $lastProcessedBlock to $toBlock with trace_filter")
 
-                // Process the block range using trace_filter
-                processBlockRangeWithTraceFilter(
-                    lastProcessedBlock + 1,
-                    toBlock,
-                    config.contractAddress.lowercase(Locale.getDefault())
-                )
+            // Process the block range using trace_filter
+            processBlockRangeWithTraceFilter(
+                lastProcessedBlock + 1,
+                toBlock,
+                config.contractAddress.lowercase(Locale.getDefault())
+            )
 
-                // Update the last processed block
-                lastProcessedBlock = toBlock
-                metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
+            // Update the last processed block
+            lastProcessedBlock = toBlock
+            metadataRepository.updateLastProcessedBlock(lastProcessedBlock)
 
-            } catch (e: Exception) {
-                logger.error("Error during trace_filter ingestion: ${e.message}", e)
-                delay(config.pollingInterval)
-            }
-
-            // Wait before the next polling cycle
-            delay(config.pollingInterval)
+        } catch (e: Exception) {
+            logger.error("Error during trace_filter ingestion: ${e.message}", e)
         }
     }
 
