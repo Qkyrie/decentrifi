@@ -6,6 +6,7 @@ import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.dataingest.db.DatabaseFactory
 import fi.decentri.dataingest.ingest.IngestorService
 import fi.decentri.dataingest.repository.ContractsRepository
+import fi.decentri.dataingest.service.BlockchainIngestor
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.waitlist.EmailRequest
 import io.ktor.http.*
@@ -17,8 +18,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.CoroutineScope
 import org.slf4j.LoggerFactory
 import kotlin.time.ExperimentalTime
 
@@ -44,36 +44,16 @@ fun main() {
         val abiService = AbiService()
         val contractsService = ContractsService(contractsRepository, abiService)
         val ingestorService = IngestorService(appConfig.ethereum)
-
-        // Start the blockchain data ingestion process in a background coroutine
-        launch(Dispatchers.IO) {
-            logger.info("Starting blockchain data ingestion service with trace_filter")
-
-            // Fetch all contracts from the database
-            val contracts = contractsService.getAllContracts()
-
-            if (contracts.isEmpty()) {
-                logger.warn("No contracts found in the database. Ingestion will not start.")
-            } else {
-                logger.info("Found ${contracts.size} contracts in the database")
-
-                // Start ingestion for each contract address
-                contracts.forEach { contract ->
-                    logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
-                    launch(Dispatchers.IO) {
-                        try {
-                            ingestorService.ingest(contract)
-                            logger.info("Ingestion complete for contract ${contract.address} (ID: ${contract.id}): caught up with the latest block")
-                        } catch (e: Exception) {
-                            logger.error(
-                                "Error during ingestion for contract ${contract.address} (ID: ${contract.id}): ${e.message}",
-                                e
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        
+        // Create and start the blockchain ingestion service
+        val blockchainIngestor = BlockchainIngestor(
+            contractsService, 
+            ingestorService,
+            CoroutineScope(coroutineContext)
+        )
+        
+        // Start the blockchain data ingestion service
+        blockchainIngestor.startIngestion()
     }.start(wait = true)
 }
 
