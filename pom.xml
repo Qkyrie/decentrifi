@@ -91,29 +91,6 @@
                 <artifactId>gson</artifactId>
                 <version>${gson.version}</version>
             </dependency>
-
-            <!-- HTML and Markdown processing -->
-            <dependency>
-                <groupId>org.jsoup</groupId>
-                <artifactId>jsoup</artifactId>
-                <version>${jsoup.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.commonmark</groupId>
-                <artifactId>commonmark</artifactId>
-                <version>${commonmark.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.commonmark</groupId>
-                <artifactId>commonmark-ext-gfm-tables</artifactId>
-                <version>${commonmark.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.commonmark</groupId>
-                <artifactId>commonmark-ext-autolink</artifactId>
-                <version>${commonmark.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>io.arrow-kt</groupId>
                 <artifactId>arrow-core</artifactId>
