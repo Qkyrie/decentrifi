@@ -70,3 +70,38 @@ resource "kubernetes_ingress_v1" "decentrifi-www-redirect" {
     }
   }
 }
+
+resource "kubernetes_ingress_v1" "decentrifi-data-ingestion" {
+  metadata {
+    name = "data-ingestion-ingress"
+    annotations = {
+      "nginx.ingress.kubernetes.io/enable-cors"     = "true"
+      "nginx.ingress.kubernetes.io/proxy-body-size" = "20m"
+    }
+    namespace = kubernetes_namespace.decentrifi-namespace.metadata.0.name
+  }
+  spec {
+    ingress_class_name = "nginx"
+    tls {
+      hosts = ["data.decentri.fi"]
+      secret_name = "decentrifi.tls"
+    }
+    rule {
+      host = "data.decentri.fi"
+      http {
+        path {
+          path = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "data-ingestion"
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

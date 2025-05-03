@@ -29,3 +29,12 @@ resource "cloudflare_record" "app_www" {
   ttl = 1
   proxied = true
 }
+
+resource "cloudflare_record" "app_data" {
+  zone_id = data.cloudflare_zone.main.id
+  name = "data"
+  type = "CNAME"
+  content = "@"
+  ttl = 1
+  proxied = true
+}
