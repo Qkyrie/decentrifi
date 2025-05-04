@@ -387,14 +387,7 @@
             font-size: 13px;
             display: flex;
             align-items: center;
-        }
-
-        .change-up {
-            color: #4CAF50;
-        }
-
-        .change-down {
-            color: #F44336;
+            color: rgba(42, 46, 61, 0.6);
         }
 
         /* Footer */
@@ -579,7 +572,7 @@
                                 <path d="M3 6H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 <path d="M3 12H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            Gas Usage Over Time
+                            Daily Gas Usage (Last 24 Hours)
                         </div>
                         <div class="chart-controls">
                             <button class="chart-button">
@@ -591,10 +584,7 @@
                                 Export
                             </button>
                             <div class="time-selector">
-                                <div class="time-option active">Day</div>
-                                <div class="time-option">Week</div>
-                                <div class="time-option">Month</div>
-                                <div class="time-option">Year</div>
+                                <div class="time-option active">Daily Gas Usage</div>
                             </div>
                         </div>
                     </div>
@@ -606,23 +596,23 @@
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-title">Average Gas Used</div>
-                        <div class="metric-value">142,385</div>
-                        <div class="metric-change change-down">↓ 12.5% from previous period</div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-change">Per transaction in the last 24 hours</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-title">Max Gas Used</div>
-                        <div class="metric-value">245,762</div>
-                        <div class="metric-change change-up">↑ 3.2% from previous period</div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-change">Highest gas consumption in 24 hours</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-title">Gas Cost (ETH)</div>
-                        <div class="metric-value">8.24</div>
-                        <div class="metric-change change-down">↓ 5.7% from previous period</div>
+                        <div class="metric-title">Total Gas (millions)</div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-change">Total gas used in the last 24 hours</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-title">Total Transactions</div>
-                        <div class="metric-value">3,847</div>
-                        <div class="metric-change change-up">↑ 14.3% from previous period</div>
+                        <div class="metric-title">Transaction Count</div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-change">Number of transactions in 24 hours</div>
                     </div>
                 </div>
             </div>
@@ -690,65 +680,11 @@
             navLinks.classList.toggle('active');
         });
 
-        // Time selector functionality
-        const timeOptions = document.querySelectorAll('.time-option');
-        timeOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                timeOptions.forEach(opt => opt.classList.remove('active'));
-                this.classList.add('active');
-                updateChartData(this.innerText.toLowerCase());
-            });
-            
-            // Set "Day" as active by default to show real data
-            if (option.innerText === 'Day') {
-                option.classList.add('active');
-            } else if (option.innerText === 'Month') {
-                option.classList.remove('active');
-            }
-        });
+        // No time selector functionality needed anymore as we only have one view
 
         // Initialize the gas chart
         const ctx = document.getElementById('gasChart').getContext('2d');
         
-        // Generate some fake data for the chart
-        function generateFakeData(dataPoints, volatility) {
-            const data = [];
-            let value = 150000; // Starting value
-
-            for (let i = 0; i < dataPoints; i++) {
-                // Add some randomness to the value
-                const change = (Math.random() - 0.5) * volatility;
-                value = value * (1 + change);
-                
-                // Ensure we have some obvious trends
-                if (i % 7 === 0) {
-                    value = value * (1 + Math.random() * 0.1); // Occasional spikes
-                }
-                
-                // Keep the value within reasonable range
-                value = Math.max(value, 50000);
-                value = Math.min(value, 250000);
-                
-                data.push(Math.round(value));
-            }
-            
-            return data;
-        }
-
-        // Create labels for the past 30 days
-        function createDateLabels(days) {
-            const labels = [];
-            const today = new Date();
-            
-            for (let i = days; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(today.getDate() - i);
-                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-            }
-            
-            return labels;
-        }
-
         // Function to fetch real gas usage data from the API
         async function fetchDailyGasUsageData(network, contract) {
             try {
@@ -791,23 +727,12 @@
                     datasets: [
                         {
                             label: 'Gas Used',
-                            data: generateFakeData(24, 0.2),
+                            data: Array(24).fill(0), // Empty data if API fails
                             borderColor: '#346DF1',
                             backgroundColor: 'rgba(52, 109, 241, 0.1)',
                             borderWidth: 2,
                             tension: 0.4,
                             fill: true
-                        },
-                        {
-                            label: 'Gas Price (Gwei)',
-                            data: generateFakeData(24, 0.25),
-                            borderColor: '#22D1C6',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            tension: 0.4,
-                            fill: false,
-                            yAxisID: 'y1'
                         }
                     ]
                 };
@@ -825,9 +750,6 @@
             // Extract gas used values
             const gasUsedValues = dataPoints.map(point => point.gasUsed);
             
-            // Generate mock gas price data for the second dataset
-            const gasPriceValues = generateFakeData(dataPoints.length, 0.25);
-            
             return {
                 labels: labels,
                 datasets: [
@@ -839,124 +761,23 @@
                         borderWidth: 2,
                         tension: 0.4,
                         fill: true
-                    },
-                    {
-                        label: 'Gas Price (Gwei)',
-                        data: gasPriceValues,
-                        borderColor: '#22D1C6',
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        tension: 0.4,
-                        fill: false,
-                        yAxisID: 'y1'
                     }
                 ]
             };
         }
 
-        // Prepare chart data with mock data initially
-        const monthlyData = {
-            labels: createDateLabels(30),
-            datasets: [
-                {
-                    label: 'Gas Used',
-                    data: generateFakeData(31, 0.05),
-                    borderColor: '#346DF1',
-                    backgroundColor: 'rgba(52, 109, 241, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Gas Price (Gwei)',
-                    data: generateFakeData(31, 0.08),
-                    borderColor: '#22D1C6',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    yAxisID: 'y1'
-                }
-            ]
-        };
-
-        const weeklyData = {
-            labels: createDateLabels(7),
-            datasets: [
-                {
-                    label: 'Gas Used',
-                    data: generateFakeData(8, 0.1),
-                    borderColor: '#346DF1',
-                    backgroundColor: 'rgba(52, 109, 241, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Gas Price (Gwei)',
-                    data: generateFakeData(8, 0.15),
-                    borderColor: '#22D1C6',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    yAxisID: 'y1'
-                }
-            ]
-        };
-
-        // Initialize with mock data for daily view (will be replaced with real data)
-        let dailyData = {
+        // Initialize with empty data for daily view (will be replaced with real data)
+        let chartData = {
             labels: Array.from({length: 24}, (_, i) => `${i}:00`),
             datasets: [
                 {
                     label: 'Gas Used',
-                    data: generateFakeData(24, 0.2),
+                    data: Array(24).fill(0), // Start with zeros
                     borderColor: '#346DF1',
                     backgroundColor: 'rgba(52, 109, 241, 0.1)',
                     borderWidth: 2,
                     tension: 0.4,
                     fill: true
-                },
-                {
-                    label: 'Gas Price (Gwei)',
-                    data: generateFakeData(24, 0.25),
-                    borderColor: '#22D1C6',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    yAxisID: 'y1'
-                }
-            ]
-        };
-
-        const yearlyData = {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            datasets: [
-                {
-                    label: 'Gas Used',
-                    data: generateFakeData(12, 0.03),
-                    borderColor: '#346DF1',
-                    backgroundColor: 'rgba(52, 109, 241, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Gas Price (Gwei)',
-                    data: generateFakeData(12, 0.06),
-                    borderColor: '#22D1C6',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    tension: 0.4,
-                    fill: false,
-                    yAxisID: 'y1'
                 }
             ]
         };
@@ -985,17 +806,6 @@
                         color: 'rgba(225, 228, 232, 0.3)',
                     }
                 },
-                y1: {
-                    position: 'right',
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'Gas Price (Gwei)'
-                    },
-                    grid: {
-                        display: false
-                    }
-                },
                 x: {
                     grid: {
                         color: 'rgba(225, 228, 232, 0.3)',
@@ -1018,7 +828,7 @@
         // Create the chart with initial data
         let gasChart = new Chart(ctx, {
             type: 'line',
-            data: monthlyData,
+            data: chartData,
             options: chartOptions
         });
 
@@ -1033,41 +843,15 @@
             // Fetch real data for daily view
             const realData = await fetchDailyGasUsageData(network, contract);
             if (realData) {
-                dailyData = processDailyGasData(realData);
+                // Process and update chart data
+                const processedData = processDailyGasData(realData);
+                gasChart.data.labels = processedData.labels;
+                gasChart.data.datasets = processedData.datasets;
+                gasChart.update();
                 
-                // If the current view is 'day', update the chart
-                const activeTimeOption = document.querySelector('.time-option.active');
-                if (activeTimeOption && activeTimeOption.innerText.toLowerCase() === 'day') {
-                    updateChartData('day');
-                }
-                
-                // Update metrics cards with real data if available
+                // Update metrics cards with real data
                 updateMetricsCards(realData);
             }
-        }
-
-        // Update chart data based on time selection
-        function updateChartData(timeFrame) {
-            let newData;
-            
-            switch(timeFrame) {
-                case 'day':
-                    newData = dailyData;
-                    break;
-                case 'week':
-                    newData = weeklyData;
-                    break;
-                case 'year':
-                    newData = yearlyData;
-                    break;
-                default:
-                    newData = monthlyData;
-            }
-            
-            gasChart.data.labels = newData.labels;
-            gasChart.data.datasets[0].data = newData.datasets[0].data;
-            gasChart.data.datasets[1].data = newData.datasets[1].data;
-            gasChart.update();
         }
         
         // Update metrics cards with real data
@@ -1081,9 +865,17 @@
             // Find max gas used
             const maxGasUsed = Math.max(...data.dataPoints.map(point => point.gasUsed));
             
+            // Calculate total gas used
+            const totalGas = data.dataPoints.reduce((sum, point) => sum + point.gasUsed, 0);
+            
+            // Count transactions
+            const txCount = data.dataPoints.length;
+            
             // Update the metric cards
             const avgGasUsedElement = document.querySelector('.metric-card:nth-child(1) .metric-value');
             const maxGasUsedElement = document.querySelector('.metric-card:nth-child(2) .metric-value');
+            const gasElement = document.querySelector('.metric-card:nth-child(3) .metric-value');
+            const txElement = document.querySelector('.metric-card:nth-child(4) .metric-value');
             
             if (avgGasUsedElement) {
                 avgGasUsedElement.textContent = avgGasUsed.toLocaleString();
@@ -1091,6 +883,14 @@
             
             if (maxGasUsedElement) {
                 maxGasUsedElement.textContent = maxGasUsed.toLocaleString();
+            }
+            
+            if (gasElement) {
+                gasElement.textContent = (totalGas / 1000000).toFixed(2).toLocaleString();
+            }
+            
+            if (txElement) {
+                txElement.textContent = txCount.toLocaleString();
             }
         }
         
