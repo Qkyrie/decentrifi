@@ -13,18 +13,20 @@ class GasUsageService(private val rawInvocationsRepository: RawInvocationsReposi
     
     /**
      * Gets daily gas usage for a specific contract on a given network
+     * This version fetches raw gas usage data and groups it by hour in code
      */
     suspend fun getDailyGasUsage(network: String, contract: String): DailyGasUsageDTO {
-        // Get the raw data points from the repository
-        val dataPoints = rawInvocationsRepository.getGasUsageByHourLast24Hours(network, contract)
+        // Get all raw data points from the repository
+        val rawDataPoints = rawInvocationsRepository.getRawGasUsageOlderThan24Hours(network, contract)
         
-        // Convert to the DTO format
-        val gasUsagePoints = dataPoints.map { (timestamp, gasUsed) ->
-            GasUsagePoint(timestamp, gasUsed)
-        }
+        // Group by hour and calculate sum for each hour
+        val gasUsageByHour = rawDataPoints
+            .groupBy { it.first.toLocalDate().atTime(it.first.hour, 0) }
+            .mapValues { entry -> entry.value.sumOf { it.second } }
+            .map { (timestamp, gasUsed) -> GasUsagePoint(timestamp, gasUsed) }
         
         // Fill in missing hours with zero values to ensure a complete 24-hour dataset
-        val filledDataPoints = fillMissingHours(gasUsagePoints)
+        val filledDataPoints = fillMissingHours(gasUsageByHour)
         
         return DailyGasUsageDTO(
             network = network,

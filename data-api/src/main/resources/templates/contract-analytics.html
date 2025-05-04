@@ -591,9 +591,9 @@
                                 Export
                             </button>
                             <div class="time-selector">
-                                <div class="time-option">Day</div>
+                                <div class="time-option active">Day</div>
                                 <div class="time-option">Week</div>
-                                <div class="time-option active">Month</div>
+                                <div class="time-option">Month</div>
                                 <div class="time-option">Year</div>
                             </div>
                         </div>
@@ -698,6 +698,13 @@
                 this.classList.add('active');
                 updateChartData(this.innerText.toLowerCase());
             });
+            
+            // Set "Day" as active by default to show real data
+            if (option.innerText === 'Day') {
+                option.classList.add('active');
+            } else if (option.innerText === 'Month') {
+                option.classList.remove('active');
+            }
         });
 
         // Initialize the gas chart
@@ -742,7 +749,113 @@
             return labels;
         }
 
-        // Prepare chart data
+        // Function to fetch real gas usage data from the API
+        async function fetchDailyGasUsageData(network, contract) {
+            try {
+                const response = await fetch(`/data/${network}/${contract}/gas-used/daily`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error fetching gas usage data:", error);
+                return null;
+            }
+        }
+
+        // Function to extract network and contract address from URL
+        function getNetworkAndContract() {
+            const path = window.location.pathname;
+            const pathParts = path.split('/').filter(part => part.length > 0);
+            
+            if (pathParts.length >= 2) {
+                return {
+                    network: pathParts[0],
+                    contract: pathParts[1]
+                };
+            }
+            
+            // Default values if not found in URL
+            return {
+                network: 'ethereum',
+                contract: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
+            };
+        }
+
+        // Process real data for daily chart
+        function processDailyGasData(apiData) {
+            if (!apiData || !apiData.dataPoints) {
+                return {
+                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    datasets: [
+                        {
+                            label: 'Gas Used',
+                            data: generateFakeData(24, 0.2),
+                            borderColor: '#346DF1',
+                            backgroundColor: 'rgba(52, 109, 241, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Gas Price (Gwei)',
+                            data: generateFakeData(24, 0.25),
+                            borderColor: '#22D1C6',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                };
+            }
+
+            // Extract data points from API response
+            const dataPoints = apiData.dataPoints;
+            
+            // Format timestamps to hour labels
+            const labels = dataPoints.map(point => {
+                const date = new Date(point.timestamp);
+                return `${date.getHours()}:00`;
+            });
+            
+            // Extract gas used values
+            const gasUsedValues = dataPoints.map(point => point.gasUsed);
+            
+            // Generate mock gas price data for the second dataset
+            const gasPriceValues = generateFakeData(dataPoints.length, 0.25);
+            
+            return {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Gas Used',
+                        data: gasUsedValues,
+                        borderColor: '#346DF1',
+                        backgroundColor: 'rgba(52, 109, 241, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Gas Price (Gwei)',
+                        data: gasPriceValues,
+                        borderColor: '#22D1C6',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false,
+                        yAxisID: 'y1'
+                    }
+                ]
+            };
+        }
+
+        // Prepare chart data with mock data initially
         const monthlyData = {
             labels: createDateLabels(30),
             datasets: [
@@ -795,7 +908,8 @@
             ]
         };
 
-        const dailyData = {
+        // Initialize with mock data for daily view (will be replaced with real data)
+        let dailyData = {
             labels: Array.from({length: 24}, (_, i) => `${i}:00`),
             datasets: [
                 {
@@ -847,63 +961,90 @@
             ]
         };
 
-        // Create the chart
+        // Initialize chart options
+        const chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Gas Used'
+                    },
+                    grid: {
+                        color: 'rgba(225, 228, 232, 0.3)',
+                    }
+                },
+                y1: {
+                    position: 'right',
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: 'Gas Price (Gwei)'
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(225, 228, 232, 0.3)',
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            animations: {
+                tension: {
+                    duration: 1000,
+                    easing: 'linear'
+                }
+            }
+        };
+
+        // Create the chart with initial data
         let gasChart = new Chart(ctx, {
             type: 'line',
             data: monthlyData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        title: {
-                            display: true,
-                            text: 'Gas Used'
-                        },
-                        grid: {
-                            color: 'rgba(225, 228, 232, 0.3)',
-                        }
-                    },
-                    y1: {
-                        position: 'right',
-                        beginAtZero: false,
-                        title: {
-                            display: true,
-                            text: 'Gas Price (Gwei)'
-                        },
-                        grid: {
-                            display: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(225, 228, 232, 0.3)',
-                        }
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    axis: 'x',
-                    intersect: false
-                },
-                animations: {
-                    tension: {
-                        duration: 1000,
-                        easing: 'linear'
-                    }
-                }
-            }
+            options: chartOptions
         });
+
+        // Fetch and update real data for daily view on page load
+        async function initializeRealData() {
+            const { network, contract } = getNetworkAndContract();
+            
+            // Update contract details in the UI
+            document.querySelector('.detail-card:nth-child(1) .detail-value').textContent = contract;
+            document.querySelector('.detail-card:nth-child(2) .detail-value').textContent = network;
+            
+            // Fetch real data for daily view
+            const realData = await fetchDailyGasUsageData(network, contract);
+            if (realData) {
+                dailyData = processDailyGasData(realData);
+                
+                // If the current view is 'day', update the chart
+                const activeTimeOption = document.querySelector('.time-option.active');
+                if (activeTimeOption && activeTimeOption.innerText.toLowerCase() === 'day') {
+                    updateChartData('day');
+                }
+                
+                // Update metrics cards with real data if available
+                updateMetricsCards(realData);
+            }
+        }
 
         // Update chart data based on time selection
         function updateChartData(timeFrame) {
@@ -928,6 +1069,33 @@
             gasChart.data.datasets[1].data = newData.datasets[1].data;
             gasChart.update();
         }
+        
+        // Update metrics cards with real data
+        function updateMetricsCards(data) {
+            if (!data || !data.dataPoints || data.dataPoints.length === 0) return;
+            
+            // Calculate average gas used
+            const totalGasUsed = data.dataPoints.reduce((sum, point) => sum + point.gasUsed, 0);
+            const avgGasUsed = Math.round(totalGasUsed / data.dataPoints.length);
+            
+            // Find max gas used
+            const maxGasUsed = Math.max(...data.dataPoints.map(point => point.gasUsed));
+            
+            // Update the metric cards
+            const avgGasUsedElement = document.querySelector('.metric-card:nth-child(1) .metric-value');
+            const maxGasUsedElement = document.querySelector('.metric-card:nth-child(2) .metric-value');
+            
+            if (avgGasUsedElement) {
+                avgGasUsedElement.textContent = avgGasUsed.toLocaleString();
+            }
+            
+            if (maxGasUsedElement) {
+                maxGasUsedElement.textContent = maxGasUsed.toLocaleString();
+            }
+        }
+        
+        // Initialize real data on page load
+        initializeRealData();
     </script>
 </body>
 </html>

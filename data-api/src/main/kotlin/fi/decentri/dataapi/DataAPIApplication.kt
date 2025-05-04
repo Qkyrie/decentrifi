@@ -95,6 +95,8 @@ fun Application.configureTemplating() {
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
         jackson {
+            // Register JavaTimeModule to handle Java 8 date/time types
+            findAndRegisterModules()
             enable(SerializationFeature.INDENT_OUTPUT)
             disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         }
