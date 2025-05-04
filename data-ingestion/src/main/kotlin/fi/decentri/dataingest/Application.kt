@@ -70,6 +70,7 @@ fun Application.configureRouting() {
             call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
         }
 
+
         post("/waitlist") {
             try {
                 val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload

@@ -112,6 +112,17 @@
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-apache-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-thymeleaf-jvm</artifactId>
+            <version>${ktor.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -156,7 +167,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>fi.decentri.dataapi.ApplicationKt</mainClass>
+                                    <mainClass>fi.decentri.dataapi.DataAPIApplicationKt</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

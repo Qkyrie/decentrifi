@@ -7,11 +7,15 @@ import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.thymeleaf.*
 import org.slf4j.LoggerFactory
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
+import java.io.File
 
 val logger = LoggerFactory.getLogger("fi.decentri.dataapi.Application")
 
@@ -28,22 +32,32 @@ fun main() {
     embeddedServer(Netty, port = appConfig.server.port) {
         configureRouting()
         configureSerialization()
+        configureTemplating()
     }.start(wait = true)
 }
 
 fun Application.configureRouting() {
     routing {
+
+        staticFiles("/images", File("/static/images"))
+
         get("/health") {
             call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
         }
-        
-        get("/api/v1/contracts") {
-            call.respond(HttpStatusCode.OK, mapOf("message" to "Contracts endpoint - To be implemented"))
+
+        get("/") {
+            call.respond(ThymeleafContent("contract-analytics.html", mapOf("title" to "Data Ingestion Service")))
         }
-        
-        get("/api/v1/transactions") {
-            call.respond(HttpStatusCode.OK, mapOf("message" to "Transactions endpoint - To be implemented"))
-        }
+    }
+}
+
+fun Application.configureTemplating() {
+    install(Thymeleaf) {
+        setTemplateResolver(ClassLoaderTemplateResolver().apply {
+            prefix = "templates/"
+            suffix = ".html"
+            characterEncoding = "utf-8"
+        })
     }
 }
 
