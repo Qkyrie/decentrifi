@@ -46,6 +46,12 @@ fun Application.configureRouting() {
         }
 
         get("/") {
+            call.respond(ThymeleafContent("analytics-landing.html", mapOf("title" to "Data Ingestion Service")))
+        }
+
+        get("/{network}/{contract}") {
+            val network = call.parameters["network"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing network parameter")
+            val contract = call.parameters["contract"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing contract parameter")
             call.respond(ThymeleafContent("contract-analytics.html", mapOf("title" to "Data Ingestion Service")))
         }
     }

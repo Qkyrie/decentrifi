@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SJ1471PPQX"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentrifi - Smart Contract Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #346DF1;
+            --accent-teal: #22D1C6;
+            --gradient: linear-gradient(45deg, #346DF1, #7D4CFF);
+            --light-bg: #F5F8FA;
+            --dark-text: #2A2E3D;
+            --border-color: #E1E4E8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--dark-text);
+            line-height: 1.5;
+            background-color: var(--light-bg);
+            opacity: 0;
+            animation: pageLoadFade 0.8s ease forwards;
+        }
+
+        /* Grid & Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -16px;
+        }
+
+        .col-12 { width: 100%; }
+        .col-4 { width: 33.33%; }
+        .col-6 { width: 50%; }
+
+        @media (max-width: 768px) {
+            .col-4, .col-6 { width: 100%; }
+        }
+
+        /* Typography */
+        h1 {
+            font-size: 48px;
+            line-height: 1.2;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        h2 {
+            font-size: 32px;
+            line-height: 40px;
+            color: var(--dark-text);
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 24px;
+            color: rgba(42, 46, 61, 0.8);
+        }
+
+        /* Header & Navigation */
+        .header {
+            padding: 16px 0;
+            position: fixed;
+            width: 100%;
+            z-index: 100;
+            transition: background-color 0.3s ease;
+            background-color: transparent;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: headerLoadIn 0.6s ease forwards 0.2s;
+        }
+
+        .header.scrolled {
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-lockup {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--dark-text);
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark-text);
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-teal);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            height: 2px;
+            width: 0;
+            background-color: var(--accent-teal);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Analytics Wizard Section */
+        .analytics-wizard {
+            padding: 120px 0 60px;
+            background: linear-gradient(120deg, #ffffff 0%, rgba(245, 248, 250, 0.8) 100%);
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        .analytics-wizard::before {
+            content: '';
+            position: absolute;
+            top: -300px;
+            right: -300px;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(52, 109, 241, 0.05) 0%, rgba(125, 76, 255, 0.05) 50%, transparent 70%);
+            z-index: 0;
+        }
+
+        .analytics-wizard::after {
+            content: '';
+            position: absolute;
+            bottom: -200px;
+            left: -200px;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34, 209, 198, 0.05) 0%, rgba(125, 76, 255, 0.05) 50%, transparent 70%);
+            z-index: 0;
+        }
+
+        .wizard-content {
+            position: relative;
+            z-index: 1;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s ease forwards 0.5s;
+        }
+
+        .wizard-header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .wizard-subtitle {
+            font-size: 18px;
+            line-height: 1.6;
+            max-width: 700px;
+            margin: 0 auto;
+            color: rgba(42, 46, 61, 0.7);
+        }
+
+        /* Wizard Card */
+        .wizard-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            padding: 32px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            animation: fadeInUp 0.6s ease forwards 0.7s;
+            opacity: 0;
+            transform: translateY(20px);
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .wizard-steps::before {
+            content: '';
+            position: absolute;
+            top: 16px;
+            left: 50px;
+            right: 50px;
+            height: 2px;
+            background-color: var(--border-color);
+            z-index: 0;
+        }
+
+        .wizard-step {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 33.33%;
+        }
+
+        .step-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: white;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .step-number.active {
+            background: var(--gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        .step-number.completed {
+            background-color: var(--accent-teal);
+            color: white;
+            border-color: transparent;
+        }
+
+        .step-label {
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .wizard-form-step {
+            display: none;
+        }
+
+        .wizard-form-step.active {
+            display: block;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--dark-text);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: #FAFBFC;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(52, 109, 241, 0.2);
+        }
+
+        .form-hint {
+            font-size: 13px;
+            color: rgba(42, 46, 61, 0.6);
+            margin-top: 6px;
+        }
+
+        textarea.form-control {
+            min-height: 180px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 32px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--dark-text);
+        }
+
+        .btn-outline:hover {
+            background-color: #F5F8FA;
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(52, 109, 241, 0.2);
+        }
+
+        .chain-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .chain-option {
+            flex: 1;
+            min-width: 120px;
+            padding: 16px;
+            background-color: #FAFBFC;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .chain-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .chain-option.selected {
+            border-color: var(--primary-blue);
+            background-color: rgba(52, 109, 241, 0.05);
+        }
+
+        .chain-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+        }
+
+        .chain-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .wizard-success {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background-color: rgba(34, 209, 198, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-title {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: var(--dark-text);
+            font-weight: 600;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: 60px 0 30px;
+        }
+
+        .footer-content {
+            display: flex;
+            gap: 60px;
+        }
+
+        .footer-column {
+            flex: 1;
+        }
+
+        .footer-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark-text);
+            margin-bottom: 16px;
+        }
+
+        .footer-link {
+            display: block;
+            color: rgba(42, 46, 61, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--accent-teal);
+        }
+
+        .footer-bottom {
+            margin-top: 40px;
+            text-align: center;
+            color: rgba(42, 46, 61, 0.6);
+            font-size: 14px;
+        }
+
+        /* Animations */
+        @keyframes pageLoadFade {
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes headerLoadIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Hamburger Menu (Mobile) */
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .hamburger-line {
+            width: 24px;
+            height: 2px;
+            background: var(--dark-text);
+            margin: 4px 0;
+            transition: 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                flex-direction: column;
+                padding: 20px 0;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .hamburger {
+                display: block;
+            }
+
+            .wizard-steps {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+            }
+
+            .wizard-steps::before {
+                display: none;
+            }
+
+            .wizard-step {
+                width: 100%;
+                flex-direction: row;
+                gap: 12px;
+            }
+
+            .chain-selector {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header" id="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-lockup">
+                    <div class="logo-icon">
+                        <img src="/images/logo.png" alt="logo" />
+                    </div>
+                    <div class="logo-text">decentrifi</div>
+                </div>
+                <button class="hamburger" id="hamburger">
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                </button>
+                <nav>
+                    <ul class="nav-links" id="nav-links">
+                        <li><a href="../../../../../landing/index.html">Home</a></li>
+                        <li><a href="#analytics">Analytics</a></li>
+                        <li><a href="#docs">Docs</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#login">Login</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <section class="analytics-wizard" id="analytics">
+        <div class="container">
+            <div class="wizard-content">
+                <div class="wizard-header">
+                    <h1>Smart Contract Analytics</h1>
+                    <p class="wizard-subtitle">
+                        Get detailed insights into your smart contract's performance, gas usage, and interactions on-chain.
+                    </p>
+                </div>
+
+                <div class="wizard-card">
+                    <div class="wizard-steps">
+                        <div class="wizard-step">
+                            <div class="step-number active" id="step1-number">1</div>
+                            <div class="step-label">Contract Address</div>
+                        </div>
+                        <div class="wizard-step">
+                            <div class="step-number" id="step2-number">2</div>
+                            <div class="step-label">Select Chain</div>
+                        </div>
+                        <div class="wizard-step">
+                            <div class="step-number" id="step3-number">3</div>
+                            <div class="step-label">Enter ABI</div>
+                        </div>
+                    </div>
+                    
+                    <div class="wizard-form">
+                        <!-- Step 1: Contract Address -->
+                        <div class="wizard-form-step active" id="step1">
+                            <div class="form-group">
+                                <label class="form-label" for="contract-address">Contract Address</label>
+                                <input type="text" class="form-control" id="contract-address" placeholder="0x..." required>
+                                <div class="form-hint">Enter the Ethereum contract address you want to analyze.</div>
+                            </div>
+                            <div class="button-row">
+                                <div></div> <!-- Empty div for spacing -->
+                                <button type="button" class="btn btn-primary" id="btn-step1-next">Next</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2: Select Chain -->
+                        <div class="wizard-form-step" id="step2">
+                            <div class="form-group">
+                                <label class="form-label">Select Blockchain</label>
+                                <div class="chain-selector">
+                                    <div class="chain-option selected" data-chain="ethereum">
+                                        <svg class="chain-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="12 2 4 10 12 18 20 10 12 2" fill="#627EEA" fill-opacity="0.1" stroke="#627EEA" stroke-width="1.5"></polygon>
+                                            <polygon points="12 11 4 10 12 18 20 10 12 11" fill="#627EEA" fill-opacity="0.1" stroke="#627EEA" stroke-width="1.5"></polygon>
+                                            <polygon points="12 2 12 11 20 10 12 2" fill="#627EEA" fill-opacity="0.3" stroke="#627EEA" stroke-width="1.5"></polygon>
+                                            <polygon points="12 2 4 10 12 11 12 2" fill="#627EEA" fill-opacity="0.5" stroke="#627EEA" stroke-width="1.5"></polygon>
+                                        </svg>
+                                        <div class="chain-name">Ethereum</div>
+                                    </div>
+                                    <div class="chain-option disabled" style="opacity: 0.5; cursor: not-allowed;">
+                                        <svg class="chain-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="2" y="2" width="20" height="20" rx="5" fill="#8247E5" fill-opacity="0.1" stroke="#8247E5" stroke-width="1.5"></rect>
+                                            <path d="M6 12L12 16L18 12" stroke="#8247E5" stroke-width="1.5"></path>
+                                            <path d="M6 8L12 12L18 8" stroke="#8247E5" stroke-width="1.5"></path>
+                                        </svg>
+                                        <div class="chain-name">Polygon</div>
+                                        <div style="font-size: 11px; margin-top: 4px; color: #6B7280">Coming soon</div>
+                                    </div>
+                                    <div class="chain-option disabled" style="opacity: 0.5; cursor: not-allowed;">
+                                        <svg class="chain-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10" fill="#F2A52F" fill-opacity="0.1" stroke="#F2A52F" stroke-width="1.5"></circle>
+                                            <path d="M12 6L12 18" stroke="#F2A52F" stroke-width="1.5"></path>
+                                            <path d="M7 9L17 15" stroke="#F2A52F" stroke-width="1.5"></path>
+                                            <path d="M17 9L7 15" stroke="#F2A52F" stroke-width="1.5"></path>
+                                        </svg>
+                                        <div class="chain-name">Binance Smart Chain</div>
+                                        <div style="font-size: 11px; margin-top: 4px; color: #6B7280">Coming soon</div>
+                                    </div>
+                                </div>
+                                <div class="form-hint" style="margin-top: 16px;">Currently only Ethereum Mainnet is supported. More networks coming soon.</div>
+                            </div>
+                            <div class="button-row">
+                                <button type="button" class="btn btn-outline" id="btn-step2-prev">Previous</button>
+                                <button type="button" class="btn btn-primary" id="btn-step2-next">Next</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Enter ABI -->
+                        <div class="wizard-form-step" id="step3">
+                            <div class="form-group">
+                                <label class="form-label" for="contract-abi">Contract ABI</label>
+                                <textarea class="form-control" id="contract-abi" placeholder='[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"}...]' required></textarea>
+                                <div class="form-hint">Paste your contract ABI in JSON format. You can usually find this in your contract's verification details on Etherscan.</div>
+                            </div>
+                            <div class="button-row">
+                                <button type="button" class="btn btn-outline" id="btn-step3-prev">Previous</button>
+                                <button type="button" class="btn btn-primary" id="btn-analyze">Analyze Contract</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Success State (hidden by default) -->
+                        <div class="wizard-form-step" id="success-step">
+                            <div class="wizard-success">
+                                <div class="success-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22D1C6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                    </svg>
+                                </div>
+                                <h3 class="success-title">Analysis Started!</h3>
+                                <p>We're analyzing your contract on Ethereum. This may take a few moments.</p>
+                                <div class="button-row" style="justify-content: center; margin-top: 40px;">
+                                    <a href="/ethereum/0x0" class="btn btn-primary" id="btn-view-results">View Results</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <div class="logo-lockup" style="margin-bottom: 16px;">
+                        <div class="logo-icon">
+                            <img src="/images/logo.png" alt="logo" />
+                        </div>
+                        <div class="logo-text">decentrifi</div>
+                    </div>
+                    <p style="color: rgba(42, 46, 61, 0.6); font-size: 14px;">
+                        Real-time on-chain insights<br>for EVM contracts
+                    </p>
+                </div>
+                <div class="footer-column">
+                    <h4 class="footer-title">Product</h4>
+                    <a href="#" class="footer-link">Features</a>
+                    <a href="#" class="footer-link">API Documentation</a>
+                    <a href="#" class="footer-link">Roadmap</a>
+                    <a href="#" class="footer-link">Status</a>
+                </div>
+                <div class="footer-column">
+                    <h4 class="footer-title">Resources</h4>
+                    <a href="#" class="footer-link">Documentation</a>
+                    <a href="#" class="footer-link">Blog</a>
+                    <a href="#" class="footer-link">Community</a>
+                    <a href="#" class="footer-link">Support</a>
+                </div>
+                <div class="footer-column">
+                    <h4 class="footer-title">Social</h4>
+                    <a href="#" class="footer-link">Twitter</a>
+                    <a href="#" class="footer-link">Discord</a>
+                    <a href="#" class="footer-link">GitHub</a>
+                    <a href="#" class="footer-link">LinkedIn</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 Decentrifi. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Mobile menu toggle
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('nav-links');
+
+        hamburger.addEventListener('click', function() {
+            navLinks.classList.toggle('active');
+        });
+
+        // Wizard Functionality
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const successStep = document.getElementById('success-step');
+
+        const step1Number = document.getElementById('step1-number');
+        const step2Number = document.getElementById('step2-number');
+        const step3Number = document.getElementById('step3-number');
+
+        const btnStep1Next = document.getElementById('btn-step1-next');
+        const btnStep2Prev = document.getElementById('btn-step2-prev');
+        const btnStep2Next = document.getElementById('btn-step2-next');
+        const btnStep3Prev = document.getElementById('btn-step3-prev');
+        const btnAnalyze = document.getElementById('btn-analyze');
+        const btnViewResults = document.getElementById('btn-view-results');
+
+        // Contract Address Input
+        const contractAddressInput = document.getElementById('contract-address');
+        const contractAbiInput = document.getElementById('contract-abi');
+
+        btnStep1Next.addEventListener('click', function() {
+            if (contractAddressInput.value.trim() === '') {
+                contractAddressInput.style.borderColor = '#F44336';
+                return;
+            }
+            
+            step1.classList.remove('active');
+            step2.classList.add('active');
+            
+            step1Number.classList.remove('active');
+            step1Number.classList.add('completed');
+            step1Number.innerHTML = '✓';
+            
+            step2Number.classList.add('active');
+        });
+
+        btnStep2Prev.addEventListener('click', function() {
+            step2.classList.remove('active');
+            step1.classList.add('active');
+            
+            step2Number.classList.remove('active');
+            
+            step1Number.classList.remove('completed');
+            step1Number.classList.add('active');
+            step1Number.innerHTML = '1';
+        });
+
+        btnStep2Next.addEventListener('click', function() {
+            step2.classList.remove('active');
+            step3.classList.add('active');
+            
+            step2Number.classList.remove('active');
+            step2Number.classList.add('completed');
+            step2Number.innerHTML = '✓';
+            
+            step3Number.classList.add('active');
+        });
+
+        btnStep3Prev.addEventListener('click', function() {
+            step3.classList.remove('active');
+            step2.classList.add('active');
+            
+            step3Number.classList.remove('active');
+            
+            step2Number.classList.remove('completed');
+            step2Number.classList.add('active');
+            step2Number.innerHTML = '2';
+        });
+
+        btnAnalyze.addEventListener('click', function() {
+            if (contractAbiInput.value.trim() === '') {
+                contractAbiInput.style.borderColor = '#F44336';
+                return;
+            }
+            
+            step3.classList.remove('active');
+            successStep.classList.add('active');
+            
+            step3Number.classList.remove('active');
+            step3Number.classList.add('completed');
+            step3Number.innerHTML = '✓';
+        });
+
+        // Chain selector
+        const chainOptions = document.querySelectorAll('.chain-option:not(.disabled)');
+        chainOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                chainOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+
+        // Input Validation
+        contractAddressInput.addEventListener('input', function() {
+            this.style.borderColor = '';
+        });
+
+        contractAbiInput.addEventListener('input', function() {
+            this.style.borderColor = '';
+        });
+
+        // View results button (just for demo)
+        btnViewResults.addEventListener('click', function() {
+            // In the future, this would redirect to the actual analytics page
+            console.log('View results clicked');
+        });
+    </script>
+</body>
+</html>
