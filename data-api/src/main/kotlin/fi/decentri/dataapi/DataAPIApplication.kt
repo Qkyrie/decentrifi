@@ -39,7 +39,7 @@ fun main() {
 fun Application.configureRouting() {
     routing {
 
-        staticFiles("/images", File("/static/images"))
+        staticResources("/images", "static/images")
 
         get("/health") {
             call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
