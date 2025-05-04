@@ -2,6 +2,8 @@ package fi.decentri.dataapi
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.dataapi.config.AppConfig
+import fi.decentri.dataapi.repository.RawInvocationsRepository
+import fi.decentri.dataapi.service.GasUsageService
 import fi.decentri.db.DatabaseFactory
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
@@ -28,15 +30,21 @@ fun main() {
     // Initialize database
     DatabaseFactory.init(appConfig.database)
 
+    // Initialize repositories
+    val rawInvocationsRepository = RawInvocationsRepository()
+    
+    // Initialize services
+    val gasUsageService = GasUsageService(rawInvocationsRepository)
+
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
-        configureRouting()
+        configureRouting(gasUsageService)
         configureSerialization()
         configureTemplating()
     }.start(wait = true)
 }
 
-fun Application.configureRouting() {
+fun Application.configureRouting(gasUsageService: GasUsageService) {
     routing {
 
         staticResources("/images", "static/images")
@@ -53,6 +61,23 @@ fun Application.configureRouting() {
             val network = call.parameters["network"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing network parameter")
             val contract = call.parameters["contract"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing contract parameter")
             call.respond(ThymeleafContent("contract-analytics.html", mapOf("title" to "Data Ingestion Service")))
+        }
+        
+        // API endpoints
+        route("/data") {
+            get("/{network}/{contract}/gas-used/daily") {
+                try {
+                    val network = call.parameters["network"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing network parameter")
+                    val contract = call.parameters["contract"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing contract parameter")
+                    
+                    logger.info("Fetching daily gas usage for network=$network, contract=$contract")
+                    val gasUsageData = gasUsageService.getDailyGasUsage(network, contract)
+                    call.respond(gasUsageData)
+                } catch (e: Exception) {
+                    logger.error("Error fetching gas usage data", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+                }
+            }
         }
     }
 }

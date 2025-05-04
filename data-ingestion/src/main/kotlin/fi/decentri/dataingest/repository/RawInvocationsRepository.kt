@@ -5,6 +5,7 @@ import fi.decentri.db.DatabaseFactory.dbQuery
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.insert
 import org.slf4j.LoggerFactory
+import java.math.BigInteger
 import java.time.Instant
 
 /**
