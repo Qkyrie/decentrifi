@@ -10,6 +10,7 @@ import fi.decentri.dataingest.service.BlockchainIngestor
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.db.rawinvocation.RawInvocations
 import fi.decentri.waitlist.EmailRequest
+import fi.decentri.waitlist.WaitlistRepository
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
@@ -41,7 +42,8 @@ fun main() {
     DatabaseFactory.initTables(
         RawInvocations,
         fi.decentri.dataingest.model.IngestionMetadata,
-        fi.decentri.dataingest.model.Contracts
+        fi.decentri.dataingest.model.Contracts,
+        fi.decentri.waitlist.WaitlistEntries
     )
 
     // Start the server
@@ -70,6 +72,9 @@ fun main() {
 }
 
 fun Application.configureRouting() {
+    // Create a waitlist repository
+    val waitlistRepository = WaitlistRepository()
+    
     routing {
         get("/health") {
             call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
@@ -79,7 +84,12 @@ fun Application.configureRouting() {
         post("/waitlist") {
             try {
                 val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload
-                logger.info("Received email for waitlist: ${emailRequest.email}") // Log the email
+                logger.info("Received email for waitlist: ${emailRequest.email}") 
+                
+                // Save email to database
+                val id = waitlistRepository.insert(emailRequest.email)
+                logger.info("Saved email to waitlist with ID: $id")
+                
                 call.respond(HttpStatusCode.OK, mapOf("message" to "Email received")) // Send success response
             } catch (e: Exception) {
                 logger.error("Failed to process waitlist request", e)
