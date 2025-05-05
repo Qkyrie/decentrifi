@@ -1,6 +1,8 @@
 apiVersion: v2
 name: decentrifi
-description: A Helm chart for deploying Decentrifi
+description: A Helm chart for deploying Decentrifi microservices
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
+maintainers:
+  - name: Decentrifi Team
