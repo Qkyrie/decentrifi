@@ -3,7 +3,6 @@ package fi.decentri.dataingest.repository
 import fi.decentri.dataingest.model.IngestionMetadata
 import fi.decentri.db.DatabaseFactory.dbQuery
 import org.jetbrains.exposed.sql.*
-import org.slf4j.LoggerFactory
 
 /**
  * Repository for managing ingestion metadata

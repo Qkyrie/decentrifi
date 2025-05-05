@@ -5,6 +5,7 @@ package fi.decentri.dataingest.ingest
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.abi.AbiEvent
 import fi.decentri.abi.AbiService
+import fi.decentri.abi.DecodedLog
 import fi.decentri.abi.LogDecoder
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.EthereumConfig
@@ -221,7 +222,9 @@ class EventIngestorService(
         var decoded: Map<String, Any>? = null
 
         if (topic0 != null) {
-            decoded = decodeEventData(log, abi)
+            val decodedLog = decodeEventData(log, abi)
+            decoded = decodedLog?.parameters?.takeIf { it.values != null } as Map<String, Any>?
+            eventName = decodedLog?.eventName
         }
 
         return EventLogData(
@@ -245,24 +248,20 @@ class EventIngestorService(
     private fun decodeEventData(
         log: Log,
         abi: String,
-    ): Map<String, Any> {
+    ): DecodedLog? {
         try {
-
             // Use LogDecoder to decode the event data
             val decoded = LogDecoder.decodeLog(log, abi)
 
-            if (decoded.isNotEmpty()) {
-                @Suppress("UNCHECKED_CAST")
-                return decoded as Map<String, Any>
+            return decoded ?: run {
+                logger.debug("LogDecoder returned empty map for event, falling back to simple decoding")
+                null
             }
 
-            // Fallback to simpler decoding if LogDecoder fails
-            logger.debug("LogDecoder returned empty map for event, falling back to simple decoding")
-            return emptyMap()
         } catch (e: Exception) {
             logger.error("Error decoding event data with LogDecoder: ${e.message}", e)
             // Fallback to simpler decoding if LogDecoder throws an exception
-            return emptyMap()
+            return null
         }
     }
 

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.event.EventDefinitions
 import fi.decentri.db.event.RawLogs
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
 import org.postgresql.util.PGobject
 import org.slf4j.LoggerFactory
@@ -36,14 +37,9 @@ class EventRepository {
                 this[RawLogs.topics] = data.topics.toTypedArray().toList()
                 this[RawLogs.data] = data.data
                 this[RawLogs.eventName] = data.eventName
-                
-                // Convert decoded data to JSONB for storage
-                this[RawLogs.decoded] = data.decoded?.let {
-                    PGobject().apply {
-                        type = "jsonb"
-                        value = objectMapper.writeValueAsString(it)
-                    }
-                }
+                this[RawLogs.decoded] = Json.parseToJsonElement(
+                    ObjectMapper().writeValueAsString(data.decoded)
+                )
             }
         }
     }
@@ -57,8 +53,8 @@ class EventRepository {
             // Check if this event definition already exists
             val existing = EventDefinitions.selectAll().where {
                 (EventDefinitions.contractAddress eq definition.contractAddress) and
-                (EventDefinitions.signature eq definition.signature) and
-                (EventDefinitions.network eq definition.network)
+                        (EventDefinitions.signature eq definition.signature) and
+                        (EventDefinitions.network eq definition.network)
             }.firstOrNull()
 
             if (existing == null) {
@@ -89,8 +85,8 @@ class EventRepository {
                 // Check if this event definition already exists
                 val existing = EventDefinitions.select {
                     (EventDefinitions.contractAddress eq definition.contractAddress) and
-                    (EventDefinitions.signature eq definition.signature) and
-                    (EventDefinitions.network eq definition.network)
+                            (EventDefinitions.signature eq definition.signature) and
+                            (EventDefinitions.network eq definition.network)
                 }.firstOrNull()
 
                 if (existing == null) {

@@ -2,7 +2,10 @@ package fi.decentri.db.event
 
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.sql.json.jsonb
 import org.postgresql.util.PGobject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Table definition for raw_logs (blockchain events)
@@ -19,40 +22,7 @@ object RawLogs : Table("raw_logs") {
     val topics = array<String>("topics") // All topics in event
     val data = text("data").nullable() // Raw event data
     val eventName = varchar("event_name", 100).nullable() // Decoded event name from ABI
-    val decoded = customField("decoded", "jsonb") // Parsed event parameters
+    val decoded = jsonb<JsonElement>("decoded", Json) // Parsed event parameters
 
     override val primaryKey = PrimaryKey(id)
-    
-    /**
-     * Helper method to create a JSONB field for Postgres
-     */
-    private fun customField(name: String, type: String) = 
-        registerColumn<PGobject?>(name, PGObjectColumnType(type))
-}
-
-/**
- * Custom column type for PostgreSQL JSONB type
- */
-class PGObjectColumnType(private val type: String) : org.jetbrains.exposed.sql.ColumnType() {
-    override fun sqlType(): String = type
-    
-    override fun valueFromDB(value: Any): PGobject = when (value) {
-        is PGobject -> value
-        else -> {
-            PGobject().apply {
-                this.type = this@PGObjectColumnType.type
-                this.value = value.toString()
-            }
-        }
-    }
-    
-    override fun notNullValueToDB(value: Any): Any = when (value) {
-        is PGobject -> value
-        else -> {
-            PGobject().apply {
-                this.type = this@PGObjectColumnType.type
-                this.value = value.toString()
-            }
-        }
-    }
 }

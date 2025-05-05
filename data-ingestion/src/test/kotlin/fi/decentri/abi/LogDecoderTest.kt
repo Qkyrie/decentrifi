@@ -1,7 +1,9 @@
 package fi.decentri.abi
 
 import fi.decentri.abi.LogDecoder.decodeLog
+import fi.decentri.abi.LogDecoder.decodeLogToMap
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
@@ -13,17 +15,33 @@ import java.util.stream.Stream
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DecodeLogTest {
 
-
-    @DisplayName("decodeLog should correctly map log topics/data to parameter map")
+    @DisplayName("decodeLog should correctly return event name and parameter map")
     @ParameterizedTest(name = "#{index} – {0}")
     @MethodSource("arguments")
     fun testDecodeLog(
         caseName: String,
         abi: String,
         log: Log,
-        expected: Map<String, Any?>
+        expectedParams: Map<String, Any?>,
+        expectedEventName: String
     ) {
         val actual = decodeLog(log, abi)
+        assertNotNull(actual, "Decoded log should not be null for $caseName")
+        assertEquals(expectedEventName, actual!!.eventName, "Event name mismatch for $caseName")
+        assertEquals(expectedParams, actual.parameters, "Parameters mismatch for $caseName")
+    }
+    
+    @DisplayName("decodeLogToMap should correctly map log topics/data to parameter map")
+    @ParameterizedTest(name = "#{index} – {0}")
+    @MethodSource("arguments")
+    fun testDecodeLogToMap(
+        caseName: String,
+        abi: String,
+        log: Log,
+        expected: Map<String, Any?>,
+        expectedEventName: String
+    ) {
+        val actual = decodeLogToMap(log, abi)
         assertEquals(expected, actual, "Mismatch for $caseName")
     }
 
@@ -60,7 +78,8 @@ class DecodeLogTest {
                 "from" to "0x1111111111111111111111111111111111111111",
                 "to" to "0x2222222222222222222222222222222222222222",
                 "value" to BigInteger("1000000")
-            )
+            ),
+            "Transfer"
         ),
 
         /* BoolChanged(bool) ------------------------------------------------- */
@@ -83,7 +102,8 @@ class DecodeLogTest {
                 "owner" to "0xf836a5f756fe4d64f235713628e3808d86456e29",
                 "token" to "0xc56c7a0eaa804f854b536a5f3d5f49d2ec4b12b8",
                 "spender" to "0x66a9893cc07d91d95644aedd05d03f95e1dba8af"
-            )
+            ),
+            "Lockdown"
         )
     )
 }

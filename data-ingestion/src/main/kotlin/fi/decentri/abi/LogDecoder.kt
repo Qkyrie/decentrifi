@@ -7,16 +7,23 @@ import org.web3j.abi.datatypes.*
 import org.web3j.protocol.core.methods.response.Log
 import org.web3j.tx.Contract
 
-object LogDecoder {
+/**
+ * Data class to hold decoded log information including the event name.
+ */
+data class DecodedLog(
+    val eventName: String,
+    val parameters: Map<String, Any?>
+)
 
+object LogDecoder {
 
     /**
      * Decode a single log using the contract ABI (supplied as JSON string).
      *
-     * @return map of <parameter name, decoded value> or emptyMap() if the log
-     *         does not match any event in the ABI.
+     * @return DecodedLog object containing the event name and decoded parameters,
+     *         or null if the log does not match any event in the ABI.
      */
-    fun decodeLog(log: Log, abiJson: String): Map<String, Any?> {
+    fun decodeLog(log: Log, abiJson: String): DecodedLog? {
         val mapper = ObjectMapper()
         val abiNodes = mapper.readTree(abiJson)
 
@@ -57,10 +64,11 @@ object LogDecoder {
                 val value = if (isIndexed) values.indexedValues[idxIdx++] else values.nonIndexedValues[nonIdx++]
                 result[name] = value.value  // unwrap the abi Type<T>
             }
-            return result
+            return DecodedLog(eventName, result)
         }
-        return emptyMap()
+        return null
     }
+    
 
     /**
      * Map a Solidity type string (e.g. "uint256", "address") to the correct
