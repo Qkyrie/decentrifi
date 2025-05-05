@@ -1,11 +1,16 @@
 package fi.decentri.block
 
+import io.github.reactivecircus.cache4k.Cache
 import org.web3j.protocol.Web3j
+import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
+import org.web3j.protocol.core.methods.response.EthBlock
+import java.math.BigInteger
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import kotlin.time.Duration.Companion.minutes
 
 class BlockService(private val web3j: Web3j) {
 
@@ -22,7 +27,7 @@ class BlockService(private val web3j: Web3j) {
      * @param network The blockchain network (defaults to "ethereum")
      * @return The estimated block number closest to the target time
      */
-    suspend fun getBlockClosestTo(targetTime: LocalDateTime, network: String = "ethereum"): Long {
+    fun getBlockClosestTo(targetTime: LocalDateTime, network: String = "ethereum"): Long {
         // Get the current block (latest)
         val latestBlock = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false)
             .send().block
@@ -49,5 +54,21 @@ class BlockService(private val web3j: Web3j) {
 
         // Ensure we don't return a negative block number
         return minOf(currentBlockNumber, targetBlockNumber)
+    }
+
+    fun getLatestBlock(): Long {
+        return web3j.ethBlockNumber().send().blockNumber.longValueExact()
+    }
+
+    val blockCache = Cache.Builder<BigInteger, EthBlock.Block>()
+        .expireAfterWrite(5.minutes)
+        .build()
+
+    suspend fun getBlockByNumber(number: BigInteger): EthBlock.Block {
+        return blockCache.get(number) {
+            web3j.ethGetBlockByNumber(
+                DefaultBlockParameter.valueOf(number), false
+            ).send().block
+        }
     }
 }

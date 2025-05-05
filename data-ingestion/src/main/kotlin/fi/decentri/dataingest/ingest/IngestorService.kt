@@ -38,7 +38,7 @@ class IngestorService(
     suspend fun ingest(contract: Contract) {
         logger.info("Starting trace_filter data ingestion for contract $contract")
         // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
+        val targetLatestBlock = blockService.getLatestBlock()
 
         val startBlock =
             metadataRepository.getLastProcessedBlockForContract(contract.id!!) ?: blockService.getBlockClosestTo(
@@ -95,7 +95,6 @@ class IngestorService(
     ) {
         logger.info("Filtering traces from block $fromBlock to $toBlock for contract $toAddress")
 
-        // Create trace_filter request parameters
         val traceFilterParams = mapOf(
             "fromBlock" to "0x${fromBlock.toString(16)}",
             "toBlock" to "0x${toBlock.toString(16)}",
@@ -137,9 +136,7 @@ class IngestorService(
                     val from = trace.get("action")?.get("from")?.asText() ?: return@mapNotNull null
 
                     // Get the block to extract timestamp
-                    val block = web3j.ethGetBlockByNumber(
-                        DefaultBlockParameter.valueOf(BigInteger(trace.get("blockNumber").asText())), false
-                    ).send().block
+                    val block = blockService.getBlockByNumber(BigInteger(trace.get("blockNumber").asText()))
 
                     // Get transaction receipt for status and gas used
                     val receipt = web3j.ethGetTransactionReceipt(txHash).send().transactionReceipt.orElse(null)
