@@ -11,30 +11,28 @@
 decentrifi provides comprehensive analytics and insights for smart contracts, starting with ERC-20 tokens. The platform consists of:
 
 ### Data Pipeline
-- **Ingestion Engine**: Captures and processes Transfer events from ERC-20 contracts (initially DAI on Ethereum mainnet)
+- **Ingestion Engine**: Captures and processes blockchain data including function calls and transaction details
 - **Storage Layer**: Utilizes PostgreSQL with TimescaleDB for efficient time-series data storage
-- **Aggregation System**: Automatically computes hourly metrics including:
+- **Aggregation System**: Computes metrics including:
     - Function call counts by selector
-    - Transaction error/revert rates
     - Gas usage distribution
     - Active wallet counts
 
 ### Web Application
-- Server-side rendered dashboard built with Kotlin and Thymeleaf
-- Interactive visualizations using Chart.js, featuring:
-    - Calls per function over time
-    - Error/revert rate trends
-    - Gas usage histograms
+- REST API serving analytics data
+- Interactive visualizations featuring:
+    - Gas usage metrics
     - Daily active wallet metrics
 - RESTful API endpoints for all metrics
 - Responsive design with date range filtering
 
 ### Key Features
-- Support for all EVM-compatible chains
+- Support for EVM-compatible chains
 - Designed for extensibility with arbitrary ABIs
 - Modular, scalable architecture
-- Docker-based deployment
+- Kubernetes-based deployment
 - Contract management system to store and manage ABIs and addresses across different chains
+- Waitlist functionality for early access users
 
 ## Project Structure
 
@@ -45,22 +43,26 @@ The project is organized as a multi-module Maven application:
   - Polls for new blocks and extracts events using Ktor and Web3j
   - Supports trace_filter to capture all transactions including internal ones that interact with the contract
   - Stores raw invocations in PostgreSQL with TimescaleDB using Exposed ORM
-  - Decodes ERC-20 function calls and tracks transfer events
+  - Decodes function calls
   - Supports custom batch sizes and polling intervals
   - Maintains state to resume ingestion after restart
   - Includes ABI parsing capabilities to extract functions and events
   - Provides contract management to store and retrieve ABIs and contract addresses
-- **analytics-api**: Web application module that provides the dashboard and API
-  - Server-side rendered UI with Thymeleaf
+- **data-api**: Web application module that provides the dashboard and API
   - REST endpoints for accessing metrics
-  - Interactive charts using Chart.js
+  - Interactive charts
+  - Analytics dashboard for contract metrics
+- **db**: Shared database module containing connection logic and models
 
 ## Technology Stack
 
 - **Backend**: Kotlin, Ktor, Exposed ORM, PostgreSQL, TimescaleDB
 - **Blockchain Integration**: Web3j
-- **Frontend**: Thymeleaf, HTML/CSS/JS, Chart.js
-- **Deployment**: Docker, Docker Compose, Kubernetes (optional)
+- **Frontend**: Thymeleaf, HTML/CSS/JS
+- **Deployment**: Docker, Kubernetes
+- **Functional Programming**: Arrow
+- **Dependency Injection**: Koin
+- **Connection Pooling**: HikariCP
 
 ## How to Build
 
@@ -101,27 +103,7 @@ The project is organized as a multi-module Maven application:
 
 4. **Configure the data ingestion module**
 
-   Edit `data-ingestion/src/main/resources/application.conf`:
-   ```hocon
-   server {
-       port = 8080
-   }
-
-   database {
-       jdbcUrl = "jdbc:postgresql://localhost:5432/decentrifi"
-       username = "postgres"
-       password = "postgres"
-       maxPoolSize = 10
-   }
-
-   ethereum {
-       rpcUrl = "https://mainnet.infura.io/v3/YOUR_INFURA_KEY"
-       contractAddress = "0x6b175474e89094c44da98b954eedeac495271d0f"
-       startBlock = 15000000
-       batchSize = 100
-       pollingInterval = 15000
-   }
-   ```
+   Edit `data-ingestion/src/main/resources/application.conf` with appropriate database and blockchain connection settings.
 
 5. **Run the application**
 
@@ -144,27 +126,25 @@ The project is organized as a multi-module Maven application:
    ```bash
    mvn clean package
    docker build -t decentrifi/data-ingestion:latest -f data-ingestion/Dockerfile data-ingestion
+   docker build -t decentrifi/data-api:latest -f data-api/Dockerfile data-api
    ```
 
-2. **Deploy with Docker Compose or Kubernetes**
+2. **Deploy with Kubernetes**
+
+   The project includes Terraform configurations for Kubernetes deployment:
    ```bash
-   # Using Docker Compose
-   docker-compose -f docker/docker-compose.yml up -d
+   cd infra
+   terraform init
+   terraform apply
    ```
 
 ## Configuring Blockchain Data Ingestion
 
-The `data-ingestion` module can be configured to ingest data from different ERC-20 contracts by adjusting the following settings:
-
-- **ETH_RPC_URL**: URL of the Ethereum node (or other EVM chain)
-- **ETH_CONTRACT_ADDRESS**: Smart contract address to monitor
-- **ETH_START_BLOCK**: Starting block number for historical data ingestion
-- **ETH_BATCH_SIZE**: Number of blocks to process in one batch
-- **ETH_POLLING_INTERVAL**: Interval between checks for new blocks (milliseconds)
+The `data-ingestion` module can be configured to ingest data from different blockchain contracts by adjusting settings in the application.conf file.
 
 ### Trace Filter Functionality
 
-The application now utilizes `trace_filter` to capture all transactions (including internal ones) that interact with the target contract. This provides several benefits over the traditional event-based approach:
+The application utilizes `trace_filter` to capture all transactions (including internal ones) that interact with the target contract. This provides several benefits over the traditional event-based approach:
 
 - Captures all contract interactions, not just those emitting events
 - Includes internal transactions (those not directly initiated by EOAs)
@@ -178,14 +158,6 @@ Note that to use the `trace_filter` functionality, your Ethereum node must suppo
 - Geth with debug API enabled (--rpcapi "debug")
 - Infura (requires appropriate plan)
 - Alchemy (requires appropriate plan)
-
-By default, the application now uses `trace_filter` for data ingestion. The system maintains separate metadata for trace-based ingestion, allowing you to restart historical ingestion without conflicts.
-
-Example for ingesting data from USDC instead of DAI:
-```
-ETH_CONTRACT_ADDRESS=0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
-ETH_START_BLOCK=10000000
-```
 
 ## ABI Processing
 
@@ -217,26 +189,6 @@ events.forEach { event ->
 }
 ```
 
-The `parseABI` method returns a `Pair<List<AbiFunction>, List<AbiEvent>>` with the following structure:
-
-- **AbiFunction** properties:
-  - `name`: Name of the function
-  - `inputs`: List of function input parameters
-  - `outputs`: List of function output parameters
-  - `stateMutability`: The state mutability (view, pure, payable, etc.)
-  - `constant`: Whether the function is constant
-  - `payable`: Whether the function accepts ETH
-
-- **AbiEvent** properties:
-  - `name`: Name of the event
-  - `inputs`: List of event parameters
-  - `anonymous`: Whether the event is anonymous
-
-Both function and event inputs are represented by **AbiFunctionParameter** objects with these properties:
-  - `name`: Name of the parameter
-  - `type`: Solidity type (e.g., "uint256", "address", etc.)
-  - `indexed`: Whether the parameter is indexed (relevant for events)
-
 ## Contract Management
 
 The platform includes a contract management system to store and retrieve ABIs and contract addresses. This feature allows the application to work with multiple contracts across different chains.
@@ -252,95 +204,26 @@ The `Contract` entity includes the following properties:
 - `createdAt`: When the record was created
 - `updatedAt`: When the record was last updated
 
-### Using the Contracts Service
+## Waitlist Functionality
 
-The `ContractsService` provides methods for managing contracts:
+The project includes a waitlist system for early access signups. The waitlist allows potential users to register their interest in the platform before general availability.
 
-```kotlin
-// Create a new contract
-val contractsService = ContractsService(contractsRepository, abiService)
-val contract = contractsService.createContract(
-    address = "0x6b175474e89094c44da98b954eedeac495271d0f",
-    abi = abiJsonString,
-    chain = "ethereum-mainnet",
-    name = "DAI Stablecoin"
-)
+## Kubernetes Deployment
 
-// Find a contract by address and chain
-val daiContract = contractsService.findContractByAddressAndChain(
-    address = "0x6b175474e89094c44da98b954eedeac495271d0f", 
-    chain = "ethereum-mainnet"
-)
-
-// Use the ABI with the ABI service
-if (daiContract != null) {
-    val (functions, events) = abiService.parseABI(daiContract.abi)
-    // Work with the parsed functions and events
-}
-
-// Get all contracts on a specific chain
-val ethereumContracts = contractsService.findContractsByChain("ethereum-mainnet")
-
-// Delete a contract
-contractsService.deleteContract(contractId)
-```
-
-## Landing Page
-
-The project includes a static landing page (`index.html`) that serves as the marketing site for Decentrifi. This page is:
-
-- **Fully responsive** and mobile-friendly
-- **Static HTML/CSS/JavaScript** (no server-side dependencies)
-- Designed to match the house style specifications including:
-  - Color palette: Primary Blue (#346DF1), Accent Teal (#22D1C6), and gradient treatments
-  - Typography: Inter font family with specific sizing and weight specifications
-  - Responsive 12-column grid layout with 8px baseline
-  - Micro-interactions including scroll animations, hover effects, and form transitions
-  - Waitlist form to capture early access signups
-
-The landing page can be served alongside the main application or deployed to a separate static hosting service. It includes:
-- Hero section with value proposition
-- Three-column feature overview
-- Email waitlist form
-- Responsive navigation and mobile-friendly hamburger menu
-- SEO-optimized meta tags
-
-### Serving the Landing Page
-
-For development, you can serve the landing page using any static file server:
-```bash
-# Using Python's built-in server
-python3 -m http.server 8000
-
-# Using Node.js serve
-npx serve
-
-# Using PHP's built-in server
-php -S localhost:8000
-```
-
-For production, the landing page can be deployed to any static hosting service like:
-- GitHub Pages
-- Netlify
-- Vercel
-- CloudFront/S3
-
-### Kubernetes Deployment
-
-The project includes Terraform configuration to deploy the landing page to Kubernetes using nginx as the web server. The configuration can be found in `infra/static-nginx.tf`.
+The project includes Terraform configuration to deploy the application to Kubernetes. The configuration can be found in the `infra` directory.
 
 The deployment includes:
-- A `Deployment` with nginx:alpine containers
-- A `Service` to expose the landing page
+- Deployments for each microservice (data-ingestion, data-api)
+- Services to expose the microservices
+- ConfigMaps and Secrets for configuration
+- Integration with Cloudflare for DNS and TLS
 
-To deploy the landing page in Kubernetes:
+To deploy the application to Kubernetes:
 ```bash
 cd infra
 terraform init
 terraform apply
 ```
-
-The landing page will be accessible through the Service created at the port specified in the configuration. You can then expose it externally using an Ingress controller or LoadBalancer service.
 
 ## License
 
