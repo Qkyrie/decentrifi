@@ -222,12 +222,25 @@
             background: white;
             border-radius: 16px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            padding: 24px;
+            padding: 28px;
             margin-bottom: 30px;
             border: 1px solid var(--border-color);
             animation: fadeInUp 0.6s ease forwards 0.7s;
             opacity: 0;
             transform: translateY(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .contract-details::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient);
+            border-radius: 4px 4px 0 0;
         }
 
         .contract-details-grid {
@@ -243,16 +256,25 @@
         }
 
         .detail-card {
-            padding: 16px;
-            background: var(--light-bg);
+            padding: 20px;
+            background: white;
             border-radius: 12px;
             border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .detail-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
         }
 
         .detail-label {
             font-size: 14px;
+            font-weight: 500;
             color: rgba(42, 46, 61, 0.6);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
+            letter-spacing: 0.4px;
         }
 
         .detail-value {
@@ -260,6 +282,8 @@
             font-weight: 600;
             color: var(--dark-text);
             word-break: break-all;
+            padding: 4px 0;
+            border-bottom: 2px solid rgba(52, 109, 241, 0.1);
         }
 
         .chart-card {
@@ -558,8 +582,8 @@
                             <div class="detail-value">Ethereum Mainnet</div>
                         </div>
                         <div class="detail-card">
-                            <div class="detail-label">Contract Type</div>
-                            <div class="detail-value">Uniswap V2 Router</div>
+                            <div class="detail-label">Creation Date</div>
+                            <div class="detail-value">May 5, 2020</div>
                         </div>
                     </div>
                 </div>
@@ -839,6 +863,12 @@
             // Update contract details in the UI
             document.querySelector('.detail-card:nth-child(1) .detail-value').textContent = contract;
             document.querySelector('.detail-card:nth-child(2) .detail-value').textContent = network;
+            
+            // Set placeholder creation date (this would ideally come from the API)
+            const creationDate = new Date();
+            creationDate.setDate(creationDate.getDate() - 365 * 3); // 3 years ago as an example
+            document.querySelector('.detail-card:nth-child(3) .detail-value').textContent = 
+                creationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             
             // Fetch real data for daily view
             const realData = await fetchDailyGasUsageData(network, contract);
