@@ -4,6 +4,9 @@
 
 # decentrifi
 
+[![Build Status](https://github.com/qkyrie/decentrifi/actions/workflows/build-main.yml/badge.svg)](https://github.com/qkyrie/decentrifi/actions/workflows/build-main.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **decentrifi** is a lightweight, end-to-end analytics platform for smart contracts on the Ethereum blockchain and other EVM-compatible chains.
 
 ## What It Is
