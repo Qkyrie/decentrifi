@@ -59,6 +59,16 @@
             <artifactId>ktor-client-content-negotiation-jvm</artifactId>
             <version>${ktor.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.reactivecircus.cache4k</groupId>
+            <artifactId>cache4k</artifactId>
+            <version>${cache4k.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.reactivecircus.cache4k</groupId>
+            <artifactId>cache4k-jvm</artifactId>
+            <version>${cache4k.version}</version>
+        </dependency>
         
         <!-- Web3j for Ethereum integration -->
         <dependency>

@@ -39,37 +39,20 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <cache4k.version>0.13.0</cache4k.version>
-        <logback-logtail.version>0.3.4</logback-logtail.version>
         <arrow.version>1.2.4</arrow.version>
         <exposed.version>0.48.0</exposed.version>
         <hikaricp.version>5.1.0</hikaricp.version>
         <logback.version>1.4.14</logback.version>
         <ktor.version>2.3.13</ktor.version>
-        <web3j.version>4.10.3</web3j.version>
+        <web3j.version>4.14.0</web3j.version>
 
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-stdlib</artifactId>
-            <version>${kotlin.version}</version>
-        </dependency>
-        <dependency>
             <groupId>io.insert-koin</groupId>
             <artifactId>koin-ktor</artifactId>
             <version>4.0.4</version>
-        </dependency>
-        <dependency>
-            <groupId>com.logtail</groupId>
-            <artifactId>logback-logtail</artifactId>
-            <version>${logback-logtail.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
