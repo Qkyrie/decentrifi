@@ -11,7 +11,7 @@ on:
     inputs:
       application_to_deploy:
         type: choice
-        options: ['data-ingestion']
+        options: ['data-ingestion', 'data-api']
         description: 'What to restart'
         required: true
         default: 'data-ingestion'
