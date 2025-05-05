@@ -5,6 +5,7 @@ package fi.decentri.dataingest.ingest
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.abi.AbiEvent
 import fi.decentri.abi.AbiService
+import fi.decentri.abi.LogDecoder
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.EthereumConfig
 import fi.decentri.dataingest.model.Contract
@@ -61,15 +62,6 @@ class EventIngestorService(
             return
         }
 
-        // Store event definitions for future reference
-        storeEventDefinitions(contract, events)
-
-        // Build a map of event signatures for quick lookup during decoding
-        val eventsBySignature = events.associateBy { getEventSignature(it) }
-
-        // Update our in-memory cache
-        eventSignatureCache.putAll(eventsBySignature)
-
         // Get the latest block at the start of this run - this is our target end block
         val targetLatestBlock = blockService.getLatestBlock()
 
@@ -103,7 +95,7 @@ class EventIngestorService(
                         lastProcessedBlock + 1,
                         toBlock,
                         contract.address.lowercase(Locale.getDefault()),
-                        eventsBySignature
+                        contract.abi
                     )
 
                     lastProcessedBlock = toBlock
@@ -133,26 +125,6 @@ class EventIngestorService(
     }
 
     /**
-     * Store event definitions from the contract ABI
-     */
-    private suspend fun storeEventDefinitions(contract: Contract, events: List<AbiEvent>) {
-        val definitions = events.map { event ->
-            val signature = getEventSignature(event)
-            EventDefinitionData(
-                contractAddress = contract.address.lowercase(Locale.getDefault()),
-                eventName = event.name,
-                signature = signature,
-                abiJson = objectMapper.writeValueAsString(event),
-                network = contract.chain
-            )
-        }
-
-        // Store the event definitions
-        eventRepository.batchInsertEventDefinitions(definitions)
-        logger.info("Stored ${definitions.size} event definitions for contract ${contract.address}")
-    }
-
-    /**
      * Get the event signature (topic0) for an event
      */
     private fun getEventSignature(event: AbiEvent): String {
@@ -177,7 +149,7 @@ class EventIngestorService(
         fromBlock: Long,
         toBlock: Long,
         contractAddress: String,
-        eventsBySignature: Map<String, AbiEvent>
+        abi: String
     ) {
         logger.info("Fetching event logs from block $fromBlock to $toBlock for contract $contractAddress")
 
@@ -202,7 +174,7 @@ class EventIngestorService(
             // Process each log to extract event data
             val eventLogs = logs.mapNotNull { log ->
                 try {
-                    processLog(log, network, contractAddress, eventsBySignature)
+                    processLog(log, network, contractAddress, abi)
                 } catch (e: Exception) {
                     logger.error("Error processing log: ${e.message}", e)
                     null
@@ -228,7 +200,7 @@ class EventIngestorService(
         log: Log,
         network: String,
         contractAddress: String,
-        eventsBySignature: Map<String, AbiEvent>
+        abi: String
     ): EventLogData? {
         // Extract basic log information
         val txHash = log.transactionHash ?: return null
@@ -249,11 +221,7 @@ class EventIngestorService(
         var decoded: Map<String, Any>? = null
 
         if (topic0 != null) {
-            val eventAbi = eventsBySignature[topic0]
-            if (eventAbi != null) {
-                eventName = eventAbi.name
-                decoded = decodeEventData(eventAbi, topics, data)
-            }
+            decoded = decodeEventData(log, abi)
         }
 
         return EventLogData(
@@ -275,6 +243,33 @@ class EventIngestorService(
      * Decode event data using the ABI
      */
     private fun decodeEventData(
+        log: Log,
+        abi: String,
+    ): Map<String, Any> {
+        try {
+
+            // Use LogDecoder to decode the event data
+            val decoded = LogDecoder.decodeLog(log, abi)
+
+            if (decoded.isNotEmpty()) {
+                @Suppress("UNCHECKED_CAST")
+                return decoded as Map<String, Any>
+            }
+
+            // Fallback to simpler decoding if LogDecoder fails
+            logger.debug("LogDecoder returned empty map for event, falling back to simple decoding")
+            return emptyMap()
+        } catch (e: Exception) {
+            logger.error("Error decoding event data with LogDecoder: ${e.message}", e)
+            // Fallback to simpler decoding if LogDecoder throws an exception
+            return emptyMap()
+        }
+    }
+
+    /**
+     * Fallback method for decoding event data using a simpler approach
+     */
+    private fun fallbackDecodeEventData(
         eventAbi: AbiEvent,
         topics: List<String>,
         data: String
@@ -292,7 +287,6 @@ class EventIngestorService(
                     if (i + 1 < topics.size) {
                         val param = indexedParams[i]
                         // For simplicity, we'll just store the raw topic value
-                        // In a production system, you'd want to decode these properly based on their type
                         result[param.name] = topics[i + 1]
                     }
                 }
@@ -300,14 +294,12 @@ class EventIngestorService(
 
             // Decode non-indexed parameters from data
             if (nonIndexedParams.isNotEmpty() && data != "0x") {
-                // For simplicity, we'll just store the raw data
-                // In a production system, you'd want to decode these properly based on their types
                 result["_data"] = data
             }
 
             return result
         } catch (e: Exception) {
-            logger.error("Error decoding event data: ${e.message}", e)
+            logger.error("Error in fallback decode: ${e.message}", e)
             return mapOf("_raw" to data)
         }
     }

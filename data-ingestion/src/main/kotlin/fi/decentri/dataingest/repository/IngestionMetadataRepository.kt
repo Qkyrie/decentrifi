@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory
  * Repository for managing ingestion metadata
  */
 class IngestionMetadataRepository {
-    private val logger = LoggerFactory.getLogger(this::class.java)
 
     val types = listOf(
         "last_processed_block_raw_invocations",
