@@ -56,6 +56,11 @@
             <version>${kotlin.version}</version>
         </dependency>
         <dependency>
+            <groupId>io.insert-koin</groupId>
+            <artifactId>koin-ktor</artifactId>
+            <version>4.0.4</version>
+        </dependency>
+        <dependency>
             <groupId>com.logtail</groupId>
             <artifactId>logback-logtail</artifactId>
             <version>${logback-logtail.version}</version>

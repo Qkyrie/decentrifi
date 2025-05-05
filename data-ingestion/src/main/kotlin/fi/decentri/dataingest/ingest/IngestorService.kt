@@ -3,6 +3,7 @@
 package fi.decentri.dataingest.ingest
 
 import com.fasterxml.jackson.databind.JsonNode
+import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.EthereumConfig
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
@@ -18,6 +19,7 @@ import org.web3j.protocol.http.HttpService
 import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.time.Instant
+import java.time.LocalDateTime
 import java.util.*
 import kotlin.time.ExperimentalTime
 
@@ -25,9 +27,10 @@ import kotlin.time.ExperimentalTime
  * Service responsible for blockchain data ingestion
  */
 class IngestorService(
-    private val config: EthereumConfig,
-    private val web3j: Web3j
+    private val config: EthereumConfig, private val web3j: Web3j
 ) {
+
+    private val blockService = BlockService(web3j)
     private val logger = LoggerFactory.getLogger(this::class.java)
     private val metadataRepository = IngestionMetadataRepository()
     private val rawInvocationsRepository = RawInvocationsRepository()
@@ -38,7 +41,9 @@ class IngestorService(
         val targetLatestBlock = web3j.ethBlockNumber().send().blockNumber.longValueExact()
 
         val startBlock =
-            metadataRepository.getLastProcessedBlockForContract(contract.id!!) ?: (targetLatestBlock - config.batchSize)
+            metadataRepository.getLastProcessedBlockForContract(contract.id!!) ?: blockService.getBlockClosestTo(
+                LocalDateTime.now().minusHours(25)
+            )
 
         logger.info("Starting ingestion from block $startBlock to target latest block $targetLatestBlock")
 
@@ -59,10 +64,7 @@ class IngestorService(
 
                     // Process the block range using trace_filter
                     processBlockRangeWithTraceFilter(
-                        contract.chain,
-                        lastProcessedBlock + 1,
-                        toBlock,
-                        contract.address.lowercase(Locale.getDefault())
+                        contract.chain, lastProcessedBlock + 1, toBlock, contract.address.lowercase(Locale.getDefault())
                     )
                     lastProcessedBlock = toBlock
 
@@ -89,10 +91,7 @@ class IngestorService(
      * Process a range of blocks using trace_filter to capture all transactions including internal ones
      */
     private suspend fun processBlockRangeWithTraceFilter(
-        network: String,
-        fromBlock: Long,
-        toBlock: Long,
-        toAddress: String
+        network: String, fromBlock: Long, toBlock: Long, toAddress: String
     ) {
         logger.info("Filtering traces from block $fromBlock to $toBlock for contract $toAddress")
 
@@ -139,8 +138,7 @@ class IngestorService(
 
                     // Get the block to extract timestamp
                     val block = web3j.ethGetBlockByNumber(
-                        DefaultBlockParameter.valueOf(BigInteger(trace.get("blockNumber").asText())),
-                        false
+                        DefaultBlockParameter.valueOf(BigInteger(trace.get("blockNumber").asText())), false
                     ).send().block
 
                     // Get transaction receipt for status and gas used
@@ -182,10 +180,7 @@ class IngestorService(
      */
     private fun executeTraceFilter(params: Map<String, Any>): TraceFilterResponse {
         val request = Request<Any, TraceFilterResponse>(
-            "trace_filter",
-            listOf(params),
-            HttpService(config.rpcUrl),
-            TraceFilterResponse::class.java
+            "trace_filter", listOf(params), HttpService(config.rpcUrl), TraceFilterResponse::class.java
         )
 
         return request.send()

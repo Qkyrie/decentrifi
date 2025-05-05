@@ -1,11 +1,9 @@
 package fi.decentri.dataingest.repository
 
-import fi.decentri.dataingest.model.RawInvocations
 import fi.decentri.db.DatabaseFactory.dbQuery
+import fi.decentri.db.rawinvocation.RawInvocations
 import org.jetbrains.exposed.sql.batchInsert
-import org.jetbrains.exposed.sql.insert
 import org.slf4j.LoggerFactory
-import java.math.BigInteger
 import java.time.Instant
 
 /**
@@ -13,6 +11,7 @@ import java.time.Instant
  */
 class RawInvocationsRepository {
     private val logger = LoggerFactory.getLogger(this::class.java)
+
     /**
      * Batch insert multiple raw invocation records
      */

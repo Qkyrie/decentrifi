@@ -8,6 +8,7 @@ import fi.decentri.dataingest.ingest.IngestorService
 import fi.decentri.dataingest.repository.ContractsRepository
 import fi.decentri.dataingest.service.BlockchainIngestor
 import fi.decentri.dataingest.service.ContractsService
+import fi.decentri.db.rawinvocation.RawInvocations
 import fi.decentri.waitlist.EmailRequest
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
@@ -38,7 +39,7 @@ fun main() {
 
     // Initialize database tables
     DatabaseFactory.initTables(
-        fi.decentri.dataingest.model.RawInvocations,
+        RawInvocations,
         fi.decentri.dataingest.model.IngestionMetadata,
         fi.decentri.dataingest.model.Contracts
     )
