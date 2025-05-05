@@ -57,6 +57,7 @@ class IngestorService(private val config: EthereumConfig) {
 
                     // Process the block range using trace_filter
                     processBlockRangeWithTraceFilter(
+                        contract.chain,
                         lastProcessedBlock + 1,
                         toBlock,
                         contract.address.lowercase(Locale.getDefault())
@@ -86,6 +87,7 @@ class IngestorService(private val config: EthereumConfig) {
      * Process a range of blocks using trace_filter to capture all transactions including internal ones
      */
     private suspend fun processBlockRangeWithTraceFilter(
+        network: String,
         fromBlock: Long,
         toBlock: Long,
         toAddress: String
@@ -144,7 +146,7 @@ class IngestorService(private val config: EthereumConfig) {
 
                     // Create invocation data
                     RawInvocationData(
-                        network = "ethereum",
+                        network = network,
                         contractAddress = toAddress,
                         blockNumber = blockNumber,
                         blockTimestamp = Instant.ofEpochSecond(block.timestamp.longValueExact()),
