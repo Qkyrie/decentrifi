@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class, ExperimentalTime::class)
 
 package fi.decentri.dataingest.ingest
 
