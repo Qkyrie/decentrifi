@@ -5,9 +5,9 @@ This module is responsible for ingesting blockchain data from a specific contrac
 ## Features
 
 - Continuously polls blockchain for new contract invocations
-- Tracks and processes ERC-20 transfer events
+- Tracks and processes contract events
 - Decodes function signatures and input parameters
-- Stores decoded invocations in TimescaleDB
+- Stores decoded invocations and events in TimescaleDB
 - Tracks last processed block for resuming after restarts
 - Configurable batch size and polling interval
 - Built with Kotlin, Ktor, and Exposed ORM
@@ -97,10 +97,12 @@ docker-compose up -d
 
 ### Database Schema
 
-The data is stored in two main tables:
+The data is stored in several main tables:
 
 1. `raw_invocations` - Stores decoded contract invocations
-2. `ingestion_metadata` - Stores metadata like the last processed block
+2. `raw_logs` - Stores decoded contract events
+3. `event_definitions` - Stores ABI information for contract events
+4. `ingestion_metadata` - Stores metadata like the last processed block
 
 ## Database Schema Details
 
@@ -121,6 +123,36 @@ The data is stored in two main tables:
 | status            | BOOLEAN       | Transaction success status               |
 | gas_used          | BIGINT        | Gas used by the transaction              |
 
+### raw_logs
+
+| Column            | Type          | Description                              |
+|-------------------|---------------|------------------------------------------|
+| id                | SERIAL        | Primary key                              |
+| network           | VARCHAR(64)   | Blockchain network (e.g., "ethereum")    |
+| contract_address  | VARCHAR(42)   | Contract address                         |
+| tx_hash           | VARCHAR(66)   | Transaction hash                         |
+| log_index         | INTEGER       | Log index within transaction             |
+| block_number      | BIGINT        | Block number                             |
+| block_timestamp   | TIMESTAMP     | Block timestamp                          |
+| topic_0           | VARCHAR(66)   | Event signature (first topic)            |
+| topics            | TEXT[]        | All topics in event                      |
+| data              | TEXT          | Raw event data                           |
+| event_name        | VARCHAR(100)  | Decoded event name from ABI              |
+| decoded           | JSONB         | Parsed event parameters                  |
+
+### event_definitions
+
+| Column            | Type          | Description                              |
+|-------------------|---------------|------------------------------------------|
+| id                | SERIAL        | Primary key                              |
+| contract_address  | VARCHAR(42)   | Contract address                         |
+| event_name        | VARCHAR(100)  | Event name                               |
+| signature         | VARCHAR(66)   | Event signature hash                     |
+| abi_json          | TEXT          | JSON fragment of the event ABI           |
+| network           | VARCHAR(50)   | Blockchain network                       |
+| created_at        | TIMESTAMP     | Creation timestamp                       |
+| updated_at        | TIMESTAMP     | Last update timestamp                    |
+
 ### ingestion_metadata
 
 | Column | Type        | Description                   |
@@ -133,12 +165,16 @@ The data is stored in two main tables:
 To ingest data from a different contract:
 
 1. Update the `ethereum.contractAddress` configuration
-2. Modify the `IngestorService.kt` to handle the specific events and functions of the target contract
+2. The system will automatically ingest both raw invocations and events from the contract
 
 ## Extending
 
-The current implementation focuses on ERC-20 token transfers. To extend for other contract types:
+The current implementation can handle any contract with a valid ABI. Both raw invocations (using trace_filter) and events are automatically ingested and decoded based on the contract's ABI.
 
-1. Add new function signatures in `IngestorService.kt`
-2. Implement appropriate decoding logic in the `parseFunctionInput` method
-3. Add any additional event types you want to track
+The ingestion architecture includes:
+
+1. `RawInvocationIngestorService` - Handles all contract function calls
+2. `EventIngestorService` - Handles all contract events
+3. `BlockchainIngestor` - Orchestrates the ingestion process
+
+To customize the decoding process, you can modify the specific ingestor service that you want to enhance.

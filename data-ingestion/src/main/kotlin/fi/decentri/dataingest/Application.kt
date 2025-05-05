@@ -4,11 +4,14 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.abi.AbiService
 import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.db.DatabaseFactory
-import fi.decentri.dataingest.ingest.IngestorService
+import fi.decentri.dataingest.ingest.EventIngestorService
+import fi.decentri.dataingest.ingest.RawInvocationIngestorService
 import fi.decentri.dataingest.repository.ContractsRepository
 import fi.decentri.dataingest.service.BlockchainIngestor
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.db.rawinvocation.RawInvocations
+import fi.decentri.db.event.RawLogs
+import fi.decentri.db.event.EventDefinitions
 import fi.decentri.waitlist.EmailRequest
 import fi.decentri.waitlist.WaitlistRepository
 import io.ktor.http.*
@@ -21,10 +24,13 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.CoroutineScope
+import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
+import kotlin.time.toJavaDuration
 
 val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
 
@@ -41,6 +47,8 @@ fun main() {
     // Initialize database tables
     DatabaseFactory.initTables(
         RawInvocations,
+        RawLogs,
+        EventDefinitions,
         fi.decentri.dataingest.model.IngestionMetadata,
         fi.decentri.dataingest.model.Contracts,
         fi.decentri.waitlist.WaitlistEntries
@@ -55,14 +63,19 @@ fun main() {
         val contractsRepository = ContractsRepository()
         val abiService = AbiService()
         val contractsService = ContractsService(contractsRepository, abiService)
-        val web3j: Web3j = Web3j.build(HttpService(appConfig.ethereum.rpcUrl))
+        val web3j: Web3j = Web3j.build(HttpService(appConfig.ethereum.rpcUrl, OkHttpClient.Builder()
+            .connectTimeout(20.seconds.toJavaDuration())
+            .build()))
 
-        val ingestorService = IngestorService(appConfig.ethereum, web3j)
+        // Create ingestor services
+        val rawInvocationIngestorService = RawInvocationIngestorService(appConfig.ethereum, web3j)
+        val eventIngestorService = EventIngestorService(appConfig.ethereum, web3j)
 
         // Create and start the blockchain ingestion service
         val blockchainIngestor = BlockchainIngestor(
             contractsService,
-            ingestorService,
+            rawInvocationIngestorService,
+            eventIngestorService,
             CoroutineScope(coroutineContext)
         )
 
@@ -74,7 +87,7 @@ fun main() {
 fun Application.configureRouting() {
     // Create a waitlist repository
     val waitlistRepository = WaitlistRepository()
-    
+
     routing {
         get("/health") {
             call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
@@ -84,12 +97,12 @@ fun Application.configureRouting() {
         post("/waitlist") {
             try {
                 val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload
-                logger.info("Received email for waitlist: ${emailRequest.email}") 
-                
+                logger.info("Received email for waitlist: ${emailRequest.email}")
+
                 // Save email to database
                 val id = waitlistRepository.insert(emailRequest.email)
                 logger.info("Saved email to waitlist with ID: $id")
-                
+
                 call.respond(HttpStatusCode.OK, mapOf("message" to "Email received")) // Send success response
             } catch (e: Exception) {
                 logger.error("Failed to process waitlist request", e)

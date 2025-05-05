@@ -10,34 +10,39 @@ import org.slf4j.LoggerFactory
  */
 class IngestionMetadataRepository {
     private val logger = LoggerFactory.getLogger(this::class.java)
-    
+
+    val types = listOf(
+        "last_processed_block_raw_invocations",
+        "last_processed_block_events",
+    )
+
     /**
      * Get the last processed block number for a specific contract
      */
-    suspend fun getLastProcessedBlockForContract(contractId: Int): Long? {
+    suspend fun getMetadatForContractId(type: String, contractId: Int): String? {
         return dbQuery {
             IngestionMetadata.selectAll()
-                .where { (IngestionMetadata.key eq "last_processed_block") and (IngestionMetadata.contractId eq contractId) }
+                .where { (IngestionMetadata.key eq type) and (IngestionMetadata.contractId eq contractId) }
                 .singleOrNull()
-                ?.get(IngestionMetadata.value)?.toLongOrNull()
+                ?.get(IngestionMetadata.value)
         }
     }
 
     /**
      * Update the last processed block number for a specific contract
      */
-    suspend fun updateLastProcessedBlockForContract(contractId: Int, blockNumber: Long) {
-        logger.debug("Updating last processed block for contract $contractId to $blockNumber")
+    suspend fun updateMetadataForContractId(contractId: Int, theKey: String, theValue: String) {
         dbQuery {
-            val count = IngestionMetadata.update({ (IngestionMetadata.key eq "last_processed_block") and (IngestionMetadata.contractId eq contractId) }) {
-                it[value] = blockNumber.toString()
-            }
-            
+            val count =
+                IngestionMetadata.update({ (IngestionMetadata.key eq theKey) and (IngestionMetadata.contractId eq contractId) }) {
+                    it[value] = value
+                }
+
             // If no row was updated, insert new row
             if (count == 0) {
                 IngestionMetadata.insert {
-                    it[key] = "last_processed_block"
-                    it[value] = blockNumber.toString()
+                    it[key] = theKey
+                    it[value] = theValue
                     it[this.contractId] = contractId
                 }
             }

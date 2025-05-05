@@ -24,9 +24,9 @@ import java.util.*
 import kotlin.time.ExperimentalTime
 
 /**
- * Service responsible for blockchain data ingestion
+ * Service responsible for blockchain raw invocation data ingestion
  */
-class IngestorService(
+class RawInvocationIngestorService(
     private val config: EthereumConfig, private val web3j: Web3j
 ) {
 
@@ -41,7 +41,8 @@ class IngestorService(
         val targetLatestBlock = blockService.getLatestBlock()
 
         val startBlock =
-            metadataRepository.getLastProcessedBlockForContract(contract.id!!) ?: blockService.getBlockClosestTo(
+            metadataRepository.getMetadatForContractId("last_processed_block_raw_invocations", contract.id!!)
+                ?.toLongOrNull() ?: blockService.getBlockClosestTo(
                 LocalDateTime.now().minusHours(25)
             )
 
@@ -68,7 +69,11 @@ class IngestorService(
                     )
                     lastProcessedBlock = toBlock
 
-                    metadataRepository.updateLastProcessedBlockForContract(contract.id, toBlock)
+                    metadataRepository.updateMetadataForContractId(
+                        contract.id,
+                        "last_processed_block_raw_invocations",
+                        toBlock.toString()
+                    )
 
                     // Calculate and log progress
                     val progressPercentage =

@@ -1,0 +1,314 @@
+@file:OptIn(ExperimentalTime::class)
+
+package fi.decentri.dataingest.ingest
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import fi.decentri.abi.AbiEvent
+import fi.decentri.abi.AbiService
+import fi.decentri.block.BlockService
+import fi.decentri.dataingest.config.EthereumConfig
+import fi.decentri.dataingest.model.Contract
+import fi.decentri.dataingest.repository.EventDefinitionData
+import fi.decentri.dataingest.repository.EventLogData
+import fi.decentri.dataingest.repository.EventRepository
+import fi.decentri.dataingest.repository.IngestionMetadataRepository
+import kotlinx.coroutines.delay
+import org.slf4j.LoggerFactory
+import org.web3j.abi.EventEncoder
+import org.web3j.abi.FunctionReturnDecoder
+import org.web3j.abi.TypeReference
+import org.web3j.abi.datatypes.Event
+import org.web3j.abi.datatypes.Type
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.core.DefaultBlockParameter
+import org.web3j.protocol.core.methods.request.EthFilter
+import org.web3j.protocol.core.methods.response.EthLog
+import org.web3j.protocol.core.methods.response.Log
+import org.web3j.utils.Numeric
+import java.math.BigInteger
+import java.time.Instant
+import java.time.LocalDateTime
+import java.util.*
+import kotlin.time.ExperimentalTime
+
+/**
+ * Service responsible for blockchain event logs ingestion
+ */
+class EventIngestorService(
+    private val config: EthereumConfig,
+    private val web3j: Web3j
+) {
+    private val blockService = BlockService(web3j)
+    private val logger = LoggerFactory.getLogger(this::class.java)
+    private val metadataRepository = IngestionMetadataRepository()
+    private val eventRepository = EventRepository()
+    private val abiService = AbiService()
+    private val objectMapper = ObjectMapper()
+
+    // Cache to store decoded event signatures by topic0
+    private val eventSignatureCache = mutableMapOf<String, AbiEvent>()
+
+    /**
+     * Ingest events for a contract
+     */
+    suspend fun ingest(contract: Contract) {
+        logger.info("Starting event log ingestion for contract ${contract.address}")
+
+        // Parse ABI to extract events
+        val (_, events) = abiService.parseABI(contract.abi)
+        if (events.isEmpty()) {
+            logger.info("No events found in ABI for contract ${contract.address}. Skipping event ingestion.")
+            return
+        }
+
+        // Store event definitions for future reference
+        storeEventDefinitions(contract, events)
+
+        // Build a map of event signatures for quick lookup during decoding
+        val eventsBySignature = events.associateBy { getEventSignature(it) }
+
+        // Update our in-memory cache
+        eventSignatureCache.putAll(eventsBySignature)
+
+        // Get the latest block at the start of this run - this is our target end block
+        val targetLatestBlock = blockService.getLatestBlock()
+
+        // Get the last processed block or start from 24 hours ago
+        val startBlock =
+            metadataRepository.getMetadatForContractId("last_processed_block_events", contract.id!!)?.toLongOrNull()
+                ?: blockService.getBlockClosestTo(
+                    LocalDateTime.now().minusHours(24)
+                )
+
+        logger.info("Starting event ingestion from block $startBlock to target latest block $targetLatestBlock")
+
+        var lastProcessedBlock = startBlock
+        var completed = false
+
+        // Process blocks in batches until we reach the target latest block
+        while (!completed) {
+            try {
+                // Check if we've reached the target block
+                if (lastProcessedBlock >= targetLatestBlock) {
+                    logger.info("Reached target latest block $targetLatestBlock. Event ingestion complete.")
+                    completed = true
+                } else {
+                    // Calculate the next batch to process
+                    val toBlock = minOf(lastProcessedBlock + config.batchSize, targetLatestBlock)
+                    logger.info("Processing event logs for blocks ${lastProcessedBlock + 1} to $toBlock (${toBlock - lastProcessedBlock} blocks)")
+
+                    // Process the block range to get events
+                    processLogsInBlockRange(
+                        contract.chain,
+                        lastProcessedBlock + 1,
+                        toBlock,
+                        contract.address.lowercase(Locale.getDefault()),
+                        eventsBySignature
+                    )
+
+                    lastProcessedBlock = toBlock
+
+                    // Update the last processed block
+                    metadataRepository.updateMetadataForContractId(
+                        contract.id,
+                        "last_processed_block_events",
+                        toBlock.toString()
+                    )
+
+                    // Calculate and log progress
+                    val progressPercentage =
+                        ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
+                    logger.info("Event ingestion progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
+                }
+            } catch (e: Exception) {
+                logger.error("Error during event log ingestion: ${e.message}", e)
+                delay(config.pollingInterval)
+            }
+
+            // Add a small delay between batches to avoid overwhelming the node
+            delay(100)
+        }
+
+        logger.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
+    }
+
+    /**
+     * Store event definitions from the contract ABI
+     */
+    private suspend fun storeEventDefinitions(contract: Contract, events: List<AbiEvent>) {
+        val definitions = events.map { event ->
+            val signature = getEventSignature(event)
+            EventDefinitionData(
+                contractAddress = contract.address.lowercase(Locale.getDefault()),
+                eventName = event.name,
+                signature = signature,
+                abiJson = objectMapper.writeValueAsString(event),
+                network = contract.chain
+            )
+        }
+
+        // Store the event definitions
+        eventRepository.batchInsertEventDefinitions(definitions)
+        logger.info("Stored ${definitions.size} event definitions for contract ${contract.address}")
+    }
+
+    /**
+     * Get the event signature (topic0) for an event
+     */
+    private fun getEventSignature(event: AbiEvent): String {
+        // Create a Web3j Event object for encoding
+        val paramTypes = event.inputs.map { input ->
+            val typeRef = TypeReference.makeTypeReference(input.type)
+            typeRef as TypeReference<Type<*>>
+        }
+
+        // Create indexed parameters list
+        val indexedParams = event.inputs.filter { it.indexed }.map { it.name }
+
+        val web3jEvent = Event(event.name, paramTypes)
+        return EventEncoder.encode(web3jEvent)
+    }
+
+    /**
+     * Process logs within a block range
+     */
+    private suspend fun processLogsInBlockRange(
+        network: String,
+        fromBlock: Long,
+        toBlock: Long,
+        contractAddress: String,
+        eventsBySignature: Map<String, AbiEvent>
+    ) {
+        logger.info("Fetching event logs from block $fromBlock to $toBlock for contract $contractAddress")
+
+        try {
+            // Create a filter for the contract address
+            val filter = EthFilter(
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(fromBlock)),
+                DefaultBlockParameter.valueOf(BigInteger.valueOf(toBlock)),
+                contractAddress
+            )
+
+            // Get logs for the filter
+            val logs = web3j.ethGetLogs(filter).send().logs as List<EthLog.LogObject>
+
+            if (logs.isEmpty()) {
+                logger.debug("No event logs found for the contract in blocks $fromBlock to $toBlock")
+                return
+            }
+
+            logger.info("Found ${logs.size} event logs for the contract in blocks $fromBlock to $toBlock")
+
+            // Process each log to extract event data
+            val eventLogs = logs.mapNotNull { log ->
+                try {
+                    processLog(log, network, contractAddress, eventsBySignature)
+                } catch (e: Exception) {
+                    logger.error("Error processing log: ${e.message}", e)
+                    null
+                }
+            }
+
+            // Store events in the database
+            if (eventLogs.isNotEmpty()) {
+                eventRepository.batchInsertEvents(eventLogs)
+                logger.info("Saved ${eventLogs.size} event logs to database")
+            }
+
+        } catch (e: Exception) {
+            logger.error("Error fetching event logs: ${e.message}", e)
+            throw e
+        }
+    }
+
+    /**
+     * Process a single log entry
+     */
+    private suspend fun processLog(
+        log: Log,
+        network: String,
+        contractAddress: String,
+        eventsBySignature: Map<String, AbiEvent>
+    ): EventLogData? {
+        // Extract basic log information
+        val txHash = log.transactionHash ?: return null
+        val logIndex = log.logIndex?.intValueExact() ?: 0
+        val blockNumber = log.blockNumber?.longValueExact() ?: return null
+        val topics = log.topics ?: emptyList()
+        val data = log.data ?: "0x"
+
+        // Get the block to extract timestamp
+        val block = blockService.getBlockByNumber(log.blockNumber)
+        val blockTimestamp = Instant.ofEpochSecond(block.timestamp.longValueExact())
+
+        // Get the topic0 (event signature)
+        val topic0 = if (topics.isNotEmpty()) topics[0] else null
+
+        // Try to decode the event if we have the signature
+        var eventName: String? = null
+        var decoded: Map<String, Any>? = null
+
+        if (topic0 != null) {
+            val eventAbi = eventsBySignature[topic0]
+            if (eventAbi != null) {
+                eventName = eventAbi.name
+                decoded = decodeEventData(eventAbi, topics, data)
+            }
+        }
+
+        return EventLogData(
+            network = network,
+            contractAddress = contractAddress,
+            txHash = txHash,
+            logIndex = logIndex,
+            blockNumber = blockNumber,
+            blockTimestamp = blockTimestamp,
+            topic0 = topic0,
+            topics = topics,
+            data = data,
+            eventName = eventName,
+            decoded = decoded
+        )
+    }
+
+    /**
+     * Decode event data using the ABI
+     */
+    private fun decodeEventData(
+        eventAbi: AbiEvent,
+        topics: List<String>,
+        data: String
+    ): Map<String, Any> {
+        val result = mutableMapOf<String, Any>()
+
+        try {
+            // Create parameter types for indexed and non-indexed parameters
+            val indexedParams = eventAbi.inputs.filter { it.indexed }
+            val nonIndexedParams = eventAbi.inputs.filter { !it.indexed }
+
+            // Decode indexed parameters from topics (skipping the first topic which is the event signature)
+            if (indexedParams.isNotEmpty() && topics.size > 1) {
+                for (i in indexedParams.indices) {
+                    if (i + 1 < topics.size) {
+                        val param = indexedParams[i]
+                        // For simplicity, we'll just store the raw topic value
+                        // In a production system, you'd want to decode these properly based on their type
+                        result[param.name] = topics[i + 1]
+                    }
+                }
+            }
+
+            // Decode non-indexed parameters from data
+            if (nonIndexedParams.isNotEmpty() && data != "0x") {
+                // For simplicity, we'll just store the raw data
+                // In a production system, you'd want to decode these properly based on their types
+                result["_data"] = data
+            }
+
+            return result
+        } catch (e: Exception) {
+            logger.error("Error decoding event data: ${e.message}", e)
+            return mapOf("_raw" to data)
+        }
+    }
+}
