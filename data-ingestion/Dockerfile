@@ -5,12 +5,14 @@ WORKDIR /app
 # Copy the parent POM
 COPY pom.xml /app/
 COPY data-ingestion/pom.xml /app/data-ingestion/
+COPY db/pom.xml /app/db/
 
 # Download dependencies (this layer will be cached)
 RUN mvn dependency:go-offline -B -f data-ingestion/pom.xml
 
 # Copy source files
 COPY data-ingestion/src /app/data-ingestion/src
+COPY db/src /app/db/src
 
 # Build the application
 RUN mvn clean package -DskipTests -f data-ingestion/pom.xml
