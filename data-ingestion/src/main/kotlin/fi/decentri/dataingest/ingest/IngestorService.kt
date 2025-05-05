@@ -152,7 +152,6 @@ class IngestorService(private val config: EthereumConfig) {
                         fromAddress = from,
                         functionSelector = functionSelector,
                         inputArgs = mapOf("rawInput" to input),
-                        status = receipt?.isStatusOK ?: false,
                         gasUsed = receipt?.gasUsed?.longValueExact() ?: 0
                     )
                 } catch (e: Exception) {
