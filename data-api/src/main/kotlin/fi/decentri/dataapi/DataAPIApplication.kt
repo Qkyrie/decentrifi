@@ -3,6 +3,8 @@ package fi.decentri.dataapi
 import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.dataapi.config.AppConfig
 import fi.decentri.dataapi.repository.RawInvocationsRepository
+import fi.decentri.dataapi.repository.RawLogsRepository
+import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
 import fi.decentri.db.DatabaseFactory
 import io.ktor.http.*
@@ -32,19 +34,21 @@ fun main() {
 
     // Initialize repositories
     val rawInvocationsRepository = RawInvocationsRepository()
+    val rawLogsRepository = RawLogsRepository()
     
     // Initialize services
     val gasUsageService = GasUsageService(rawInvocationsRepository)
+    val eventService = EventService(rawLogsRepository)
 
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
-        configureRouting(gasUsageService)
+        configureRouting(gasUsageService, eventService)
         configureSerialization()
         configureTemplating()
     }.start(wait = true)
 }
 
-fun Application.configureRouting(gasUsageService: GasUsageService) {
+fun Application.configureRouting(gasUsageService: GasUsageService, eventService: EventService) {
     routing {
 
         staticResources("/images", "static/images")
@@ -75,6 +79,20 @@ fun Application.configureRouting(gasUsageService: GasUsageService) {
                     call.respond(gasUsageData)
                 } catch (e: Exception) {
                     logger.error("Error fetching gas usage data", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+                }
+            }
+            
+            get("/{network}/{contract}/events/daily") {
+                try {
+                    val network = call.parameters["network"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing network parameter")
+                    val contract = call.parameters["contract"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing contract parameter")
+                    
+                    logger.info("Fetching events from last 24 hours for network=$network, contract=$contract")
+                    val eventsData = eventService.getEventsFromLast24Hours(network, contract)
+                    call.respond(eventsData)
+                } catch (e: Exception) {
+                    logger.error("Error fetching events data", e)
                     call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
                 }
             }
