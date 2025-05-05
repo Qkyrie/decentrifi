@@ -4,10 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.web3j.abi.EventEncoder
 import org.web3j.abi.TypeReference
 import org.web3j.abi.datatypes.*
-import org.web3j.abi.datatypes.generated.*
 import org.web3j.protocol.core.methods.response.Log
 import org.web3j.tx.Contract
-import java.math.BigInteger
 
 object LogDecoder {
 
