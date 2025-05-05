@@ -20,6 +20,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.CoroutineScope
 import org.slf4j.LoggerFactory
+import org.web3j.protocol.Web3j
+import org.web3j.protocol.http.HttpService
 import kotlin.time.ExperimentalTime
 
 val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
@@ -33,7 +35,7 @@ fun main() {
 
     // Initialize database
     DatabaseFactory.init(appConfig.database)
-    
+
     // Initialize database tables
     DatabaseFactory.initTables(
         fi.decentri.dataingest.model.RawInvocations,
@@ -50,15 +52,17 @@ fun main() {
         val contractsRepository = ContractsRepository()
         val abiService = AbiService()
         val contractsService = ContractsService(contractsRepository, abiService)
-        val ingestorService = IngestorService(appConfig.ethereum)
-        
+        val web3j: Web3j = Web3j.build(HttpService(appConfig.ethereum.rpcUrl))
+
+        val ingestorService = IngestorService(appConfig.ethereum, web3j)
+
         // Create and start the blockchain ingestion service
         val blockchainIngestor = BlockchainIngestor(
-            contractsService, 
+            contractsService,
             ingestorService,
             CoroutineScope(coroutineContext)
         )
-        
+
         // Start the blockchain data ingestion service
         blockchainIngestor.startIngestion()
     }.start(wait = true)

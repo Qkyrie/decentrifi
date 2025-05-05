@@ -24,9 +24,11 @@ import kotlin.time.ExperimentalTime
 /**
  * Service responsible for blockchain data ingestion
  */
-class IngestorService(private val config: EthereumConfig) {
+class IngestorService(
+    private val config: EthereumConfig,
+    private val web3j: Web3j
+) {
     private val logger = LoggerFactory.getLogger(this::class.java)
-    private val web3j: Web3j = Web3j.build(HttpService(config.rpcUrl))
     private val metadataRepository = IngestionMetadataRepository()
     private val rawInvocationsRepository = RawInvocationsRepository()
 
