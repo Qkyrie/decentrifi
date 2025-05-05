@@ -1,80 +1,9 @@
-variable "app_name" {
-  description = "Name of the application"
-  type        = string
-}
-
-variable "namespace" {
-  description = "Kubernetes namespace"
-  type        = string
-}
-
-variable "github_repo" {
-  description = "GitHub repository name (org/repo format)"
-  type        = string
-}
-
-variable "container_port" {
-  description = "Container port"
-  type        = number
-  default     = 8080
-}
-
-variable "replicas" {
-  description = "Number of replicas"
-  type        = number
-  default     = 1
-}
-
-variable "cpu_limit" {
-  description = "CPU limit"
-  type        = string
-  default     = "0.5"
-}
-
-variable "memory_limit" {
-  description = "Memory limit"
-  type        = string
-  default     = "512Mi"
-}
-
-variable "cpu_request" {
-  description = "CPU request"
-  type        = string
-  default     = "0.2"
-}
-
-variable "memory_request" {
-  description = "Memory request"
-  type        = string
-  default     = "256Mi"
-}
-
-variable "env_vars" {
-  description = "Environment variables"
-  type = list(object({
-    name  = string
-    value = optional(string)
-    value_from = optional(object({
-      secret_key_ref = optional(object({
-        name = string
-        key  = string
-      }))
-    }))
-  }))
-  default = []
-}
-
 resource "kubernetes_service" "app_service" {
   metadata {
-    namespace = var.namespace
-    name      = var.app_name
-    labels = {
-      team = "decentrifi"
-    }
-    annotations = {
-      "prometheus.io/scrape" : "true"
-      "prometheus.io/port" : tostring(var.container_port)
-    }
+    namespace   = var.namespace
+    name        = var.app_name
+    labels      = local.common_labels
+    annotations = local.prometheus_annotations
   }
 
   spec {
@@ -95,9 +24,7 @@ resource "kubernetes_deployment" "app_deployment" {
   metadata {
     namespace = var.namespace
     name      = var.app_name
-    labels = {
-      app : var.app_name
-    }
+    labels    = local.common_labels
   }
   spec {
     replicas = var.replicas
@@ -111,9 +38,7 @@ resource "kubernetes_deployment" "app_deployment" {
     }
     template {
       metadata {
-        labels = {
-          app : var.app_name
-        }
+        labels = local.common_labels
       }
       spec {
         container {
@@ -123,11 +48,11 @@ resource "kubernetes_deployment" "app_deployment" {
           port {
             container_port = var.container_port
           }
-          
+
           dynamic "env" {
             for_each = var.env_vars
             content {
-              name = env.value.name
+              name  = env.value.name
               value = env.value.value
               dynamic "value_from" {
                 for_each = env.value.value_from != null ? [env.value.value_from] : []
@@ -143,16 +68,10 @@ resource "kubernetes_deployment" "app_deployment" {
               }
             }
           }
-          
+
           resources {
-            limits = {
-              cpu    = var.cpu_limit
-              memory = var.memory_limit
-            }
-            requests = {
-              cpu    = var.cpu_request
-              memory = var.memory_request
-            }
+            limits   = var.resources.limits
+            requests = var.resources.requests
           }
           liveness_probe {
             http_get {
@@ -161,6 +80,14 @@ resource "kubernetes_deployment" "app_deployment" {
             }
             initial_delay_seconds = 30
             period_seconds        = 10
+          }
+          readiness_probe {
+            http_get {
+              path = "/health"
+              port = var.container_port
+            }
+            initial_delay_seconds = 10
+            period_seconds        = 5
           }
         }
       }
