@@ -1,9 +1,8 @@
 package fi.decentri.dataapi.waitlist
 
 import fi.decentri.db.DatabaseFactory.dbQuery
-import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.slf4j.LoggerFactory
+import fi.decentri.db.waitlist.WaitlistEntries
+import org.jetbrains.exposed.sql.insert
 import java.time.Instant
 
 /**
