@@ -131,12 +131,12 @@ resource "kubernetes_cron_job_v1" "data-ingestion-hourly" {
 
               resources {
                 requests = {
-                  cpu    = "50m"
-                  memory = "128Mi"
+                  cpu    = "100m"
+                  memory = "512Mi"
                 }
                 limits = {
-                  cpu    = "200m"
-                  memory = "256Mi"
+                  cpu    = "500m"
+                  memory = "1.5Gi"
                 }
               }
             }
