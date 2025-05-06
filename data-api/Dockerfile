@@ -1,31 +1,28 @@
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9.6-amazoncorretto-21 AS build
 WORKDIR /app
 
-# Copy pom.xml files for dependency resolution
+# copy the aggregator pom + module poms
 COPY pom.xml ./
-COPY data-api/pom.xml ./data-api/
+COPY data-ingestion/pom.xml data-ingestion/
+COPY data-api/pom.xml data-api/
+COPY db/pom.xml db/
 
-# Download all required dependencies
-RUN mvn dependency:go-offline -B -f data-api/pom.xml
+# fetch all *remote* deps for data-api AND the modules it depends on (db, data-api)
+RUN mvn dependency:go-offline -B \
+    -pl data-api -am \
+    -f pom.xml
 
-# Copy source files
-COPY data-api/src ./data-api/src
+# now bring in your source
+COPY . .
 
-# Package the application
-RUN mvn package -B -f data-api/pom.xml
+# build data-api AND its reactor dependencies (db, data-api)
+RUN mvn clean package -DskipTests -B \
+    -pl data-api -am \
+    -f pom.xml
 
-# Runtime image
-FROM eclipse-temurin:21.0.3_7-jre-alpine
+# --- runtime stage unchanged ---
+FROM amazoncorretto:21-alpine
 WORKDIR /app
-
-# Copy the built application
-COPY --from=build /app/data-api/target/app.jar ./app.jar
-
-# Create directory for logs
-RUN mkdir -p /app/logs
-
-# Expose the application port
-EXPOSE 8081
-
-# Launch the application
-CMD ["java", "-jar", "app.jar"]
+COPY --from=build /app/data-api/target/app.jar /app/app.jar
+COPY data-api/src/main/resources/application.conf /app/application.conf
+CMD ["java","-jar","/app/app.jar"]
