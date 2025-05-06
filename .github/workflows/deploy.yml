@@ -5,6 +5,9 @@ env:
   JAVA_VERSION: '21'
   JAVA_DISTRIBUTION: 'temurin'
   IMAGE_NAME: ${{ github.repository }}
+  # Configuration for deployment targets
+  # Services listed here will be deployed to Kubernetes
+  K8S_SERVICES: 'data-api'
 
 on:
   workflow_dispatch:
@@ -74,16 +77,24 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Set up kubectl
+        if: contains(env.K8S_SERVICES, github.event.inputs.application_to_deploy)
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
       - name: Kubernetes context
+        if: contains(env.K8S_SERVICES, github.event.inputs.application_to_deploy)
         uses: Azure/k8s-set-context@v1
         with:
           method: kubeconfig
           kubeconfig: ${{ secrets.K8S_CONFIG }}
 
       - name: Restart deployment
+        if: contains(env.K8S_SERVICES, github.event.inputs.application_to_deploy)
         run: |
           kubectl rollout restart deployment/${{ github.event.inputs.application_to_deploy }} -n decentrifi
+          
+      - name: Package-only deployment notice
+        if: "!contains(env.K8S_SERVICES, github.event.inputs.application_to_deploy)"
+        run: |
+          echo "::notice::${{ github.event.inputs.application_to_deploy }} was only deployed to package registry. No Kubernetes deployment performed."
