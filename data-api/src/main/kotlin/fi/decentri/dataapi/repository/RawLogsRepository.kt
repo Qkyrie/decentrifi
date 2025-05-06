@@ -24,8 +24,8 @@ class RawLogsRepository {
             RawLogs
                 .selectAll()
                 .where {
-                    (RawLogs.network eq network) and
-                    (RawLogs.contractAddress eq contractAddress) and
+                    (RawLogs.network eq network.lowercase()) and
+                    (RawLogs.contractAddress eq contractAddress.lowercase()) and
                     (RawLogs.blockTimestamp greaterEq oneDayAgo)
                 }
                 .orderBy(RawLogs.blockTimestamp)

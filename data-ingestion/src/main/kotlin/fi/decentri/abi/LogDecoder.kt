@@ -1,5 +1,6 @@
 package fi.decentri.abi
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.web3j.abi.EventEncoder
 import org.web3j.abi.TypeReference
@@ -33,15 +34,14 @@ object LogDecoder {
             val eventName = eventJson["name"].asText()
             val inputsJson = eventJson["inputs"]
 
-            val indexedRefs  = mutableListOf<TypeReference<out Type<*>>>()
-            val nonIdxRefs   = mutableListOf<TypeReference<out Type<*>>>()
-            val inputNames   = mutableListOf<Pair<String, Boolean>>()          // name + indexed?
+            val indexedRefs = mutableListOf<TypeReference<out Type<*>>>()
+            val nonIdxRefs = mutableListOf<TypeReference<out Type<*>>>()
+            val inputNames = mutableListOf<Pair<String, Boolean>>()          // name + indexed?
 
             // build the TypeReference lists
             inputsJson.forEach { input ->
-                val solidityType = input["type"].asText()
-                val isIndexed   = input["indexed"].asBoolean()
-                val ref = buildTypeReference(solidityType, isIndexed)
+                val isIndexed = input["indexed"].asBoolean()
+                val ref = buildTypeReference(input, isIndexed)
 
                 if (isIndexed) indexedRefs.add(ref) else nonIdxRefs.add(ref)
                 inputNames.add(input["name"].asText() to isIndexed)
@@ -57,8 +57,8 @@ object LogDecoder {
 
             // Merge indexed + non‑indexed back into the original order
             val result = mutableMapOf<String, Any?>()
-            var idxIdx  = 0
-            var nonIdx  = 0
+            var idxIdx = 0
+            var nonIdx = 0
 
             inputNames.forEach { (name, isIndexed) ->
                 val value = if (isIndexed) values.indexedValues[idxIdx++] else values.nonIndexedValues[nonIdx++]
@@ -68,33 +68,51 @@ object LogDecoder {
         }
         return null
     }
-    
 
-    /**
-     * Map a Solidity type string (e.g. "uint256", "address") to the correct
-     * Web3j TypeReference.
-     *
-     * Supports the most common scalar types; extend as needed.
-     */
+
     @Suppress("UNCHECKED_CAST")
-    private fun buildTypeReference(solidityType: String, indexed: Boolean): TypeReference<out Type<*>> {
+    private fun buildTypeReference(input: JsonNode, indexed: Boolean): TypeReference<out Type<*>> {
+        val solidityType = input["type"].asText()
+
+        // ---------- tuple & tuple[] ----------
+        if (solidityType.startsWith("tuple")) {
+            val components = input["components"]
+            val componentRefs = components.map { buildTypeReference(it, false) }
+
+            fun structRef(idx: Boolean) =
+                object : TypeReference<DynamicStruct>(idx, componentRefs) {}
+
+            return if (solidityType.endsWith("[]")) {
+                object : TypeReference<DynamicArray<DynamicStruct>>(indexed) {
+                    override fun getSubTypeReference() = structRef(false)
+                }
+            } else {
+                structRef(indexed)
+            }
+        }
+
+        // ---------- scalar types ----------
         val cls: Class<out Type<*>> = when {
-            solidityType == "address"        -> Address::class.java
-            solidityType == "bool"           -> Bool::class.java
-            solidityType == "string"         -> Utf8String::class.java
-            solidityType == "bytes"          -> DynamicBytes::class.java
+            solidityType == "address" -> Address::class.java
+            solidityType == "bool" -> Bool::class.java
+            solidityType == "string" -> Utf8String::class.java
+            solidityType == "bytes" -> DynamicBytes::class.java
             solidityType.startsWith("bytes") -> Class.forName(
                 "org.web3j.abi.datatypes.generated.Bytes${solidityType.removePrefix("bytes")}"
             ) as Class<out Type<*>>
-            solidityType.startsWith("uint")  -> Class.forName(
+
+            solidityType.startsWith("uint") -> Class.forName(
                 "org.web3j.abi.datatypes.generated.Uint${solidityType.removePrefix("uint")}"
             ) as Class<out Type<*>>
-            solidityType.startsWith("int")   -> Class.forName(
+
+            solidityType.startsWith("int") -> Class.forName(
                 "org.web3j.abi.datatypes.generated.Int${solidityType.removePrefix("int")}"
             ) as Class<out Type<*>>
+
             else -> throw IllegalArgumentException("Unsupported Solidity type: $solidityType")
         }
         return TypeReference.create(cls as Class<Type<*>>, indexed)
     }
+
 
 }

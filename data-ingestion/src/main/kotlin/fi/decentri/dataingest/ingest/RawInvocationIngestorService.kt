@@ -85,9 +85,6 @@ class RawInvocationIngestorService(
                 logger.error("Error during trace_filter ingestion: ${e.message}", e)
                 delay(config.pollingInterval)
             }
-
-            // Add a small delay between batches to avoid overwhelming the node
-            delay(100)
         }
 
         logger.info("Ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")

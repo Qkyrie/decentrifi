@@ -35,11 +35,10 @@ class BlockchainIngestor(
                 // Start ingestion for each contract address
                 contracts.forEach { contract ->
                     logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
-                    
+
                     // Launch raw invocations ingestion
-                /*    launch(Dispatchers.IO) {
+                    launch {
                         try {
-                            logger.info("Starting raw invocations ingestion for contract ${contract.address}")
                             rawInvocationIngestorService.ingest(contract)
                             logger.info("Raw invocations ingestion complete for contract ${contract.address}: caught up with the latest block")
                         } catch (e: Exception) {
@@ -48,8 +47,8 @@ class BlockchainIngestor(
                                 e
                             )
                         }
-                    } */
-                    
+                    }
+
                     // Launch events ingestion
                     launch {
                         try {
