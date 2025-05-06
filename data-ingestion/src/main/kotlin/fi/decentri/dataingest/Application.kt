@@ -33,7 +33,7 @@ import kotlin.time.toJavaDuration
 val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
 
 @ExperimentalTime
-fun main() {
+suspend fun main() {
     logger.info("Starting data ingestion application")
 
     // Load configuration
@@ -78,5 +78,17 @@ fun main() {
         applicationScope,
     )
 
-    val job = blockchainIngestor.startIngestion()
+    try {
+        // Start the ingestion job and wait for it to complete
+        val job = blockchainIngestor.startIngestion()
+        job.join() // Wait for the job to complete
+        logger.info("Ingestion job completed successfully")
+    } catch (e: Exception) {
+        logger.error("Error during ingestion job: ${e.message}", e)
+    } finally {
+        // Shutdown resources
+        applicationScope.cancel()
+        web3j.shutdown()
+        logger.info("Application shutdown complete")
+    }
 }

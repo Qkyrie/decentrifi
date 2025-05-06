@@ -3,11 +3,14 @@ package fi.decentri.dataingest.repository
 import fi.decentri.dataingest.model.IngestionMetadata
 import fi.decentri.db.DatabaseFactory.dbQuery
 import org.jetbrains.exposed.sql.*
+import org.slf4j.LoggerFactory
 
 /**
  * Repository for managing ingestion metadata
  */
 class IngestionMetadataRepository {
+
+    val logger = LoggerFactory.getLogger(this::class.java)
 
     val types = listOf(
         "last_processed_block_raw_invocations",
@@ -35,6 +38,7 @@ class IngestionMetadataRepository {
                 IngestionMetadata.update({ (IngestionMetadata.key eq theKey) and (IngestionMetadata.contractId eq contractId) }) {
                     it[value] = value
                 }
+            logger.info("Updated ingestion metadata for contract $contractId and key $theKey with value $theValue")
 
             // If no row was updated, insert new row
             if (count == 0) {
@@ -43,6 +47,7 @@ class IngestionMetadataRepository {
                     it[value] = theValue
                     it[this.contractId] = contractId
                 }
+                logger.info("Inserted new ingestion metadata for contract $contractId and key $theKey")
             }
         }
     }

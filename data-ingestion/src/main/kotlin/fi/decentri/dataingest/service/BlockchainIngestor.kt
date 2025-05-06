@@ -53,7 +53,6 @@ class BlockchainIngestor(
                     // Launch events ingestion
                     launch {
                         try {
-                            logger.info("Starting events ingestion for contract ${contract.address}")
                             eventIngestorService.ingest(contract)
                             logger.info("Events ingestion complete for contract ${contract.address}: caught up with the latest block")
                         } catch (e: Exception) {
