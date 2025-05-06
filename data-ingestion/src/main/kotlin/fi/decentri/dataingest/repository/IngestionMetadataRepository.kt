@@ -36,7 +36,7 @@ class IngestionMetadataRepository {
         dbQuery {
             val count =
                 IngestionMetadata.update({ (IngestionMetadata.key eq theKey) and (IngestionMetadata.contractId eq contractId) }) {
-                    it[value] = value
+                    it[value] = theValue
                 }
             logger.info("Updated ingestion metadata for contract $contractId and key $theKey with value $theValue")
 
