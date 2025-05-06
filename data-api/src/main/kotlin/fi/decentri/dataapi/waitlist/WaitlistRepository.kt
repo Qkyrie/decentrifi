@@ -1,4 +1,4 @@
-package fi.decentri.waitlist
+package fi.decentri.dataapi.waitlist
 
 import fi.decentri.db.DatabaseFactory.dbQuery
 import org.jetbrains.exposed.sql.*

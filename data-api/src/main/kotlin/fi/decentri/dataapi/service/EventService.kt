@@ -69,6 +69,18 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
             null
         }
         
+        // Convert JsonElement topics to List<String>
+        val topicsList = try {
+            if (entry.topics is JsonArray) {
+                entry.topics.map { it.jsonPrimitive.content }
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to parse topics JSON for event ${entry.txHash}:${entry.logIndex}", e)
+            emptyList()
+        }
+        
         return EventDTO(
             contractAddress = entry.contractAddress,
             txHash = entry.txHash,
@@ -76,7 +88,7 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
             blockNumber = entry.blockNumber,
             blockTimestamp = entry.blockTimestamp,
             eventName = entry.eventName,
-            topics = entry.topics,
+            topics = topicsList,
             data = entry.data,
             decoded = decodedMap
         )

@@ -6,6 +6,8 @@ import fi.decentri.dataapi.repository.RawInvocationsRepository
 import fi.decentri.dataapi.repository.RawLogsRepository
 import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
+import fi.decentri.dataapi.waitlist.EmailRequest
+import fi.decentri.dataapi.waitlist.WaitlistRepository
 import fi.decentri.db.DatabaseFactory
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
@@ -14,12 +16,12 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.thymeleaf.*
 import org.slf4j.LoggerFactory
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
-import java.io.File
 
 val logger = LoggerFactory.getLogger("fi.decentri.dataapi.Application")
 
@@ -34,21 +36,26 @@ fun main() {
 
     // Initialize repositories
     val rawInvocationsRepository = RawInvocationsRepository()
+    val waitlistRepository = WaitlistRepository()
     val rawLogsRepository = RawLogsRepository()
-    
+
     // Initialize services
     val gasUsageService = GasUsageService(rawInvocationsRepository)
     val eventService = EventService(rawLogsRepository)
 
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
-        configureRouting(gasUsageService, eventService)
+        configureRouting(gasUsageService, eventService, waitlistRepository)
         configureSerialization()
         configureTemplating()
     }.start(wait = true)
 }
 
-fun Application.configureRouting(gasUsageService: GasUsageService, eventService: EventService) {
+fun Application.configureRouting(
+    gasUsageService: GasUsageService,
+    eventService: EventService,
+    waitlistRepository: WaitlistRepository
+) {
     routing {
 
         staticResources("/images", "static/images")
@@ -61,19 +68,47 @@ fun Application.configureRouting(gasUsageService: GasUsageService, eventService:
             call.respond(ThymeleafContent("analytics-landing.html", mapOf("title" to "Data Ingestion Service")))
         }
 
+        post("/waitlist") {
+            try {
+                val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload
+                logger.info("Received email for waitlist: ${emailRequest.email}")
+
+                // Save email to database
+                val id = waitlistRepository.insert(emailRequest.email)
+                logger.info("Saved email to waitlist with ID: $id")
+
+                call.respond(HttpStatusCode.OK, mapOf("message" to "Email received")) // Send success response
+            } catch (e: Exception) {
+                logger.error("Failed to process waitlist request", e)
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request"))
+            }
+        }
+
         get("/{network}/{contract}") {
-            val network = call.parameters["network"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing network parameter")
-            val contract = call.parameters["contract"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing contract parameter")
+            val network = call.parameters["network"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                "Missing network parameter"
+            )
+            val contract = call.parameters["contract"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                "Missing contract parameter"
+            )
             call.respond(ThymeleafContent("contract-analytics.html", mapOf("title" to "Data Ingestion Service")))
         }
-        
+
         // API endpoints
         route("/data") {
             get("/{network}/{contract}/gas-used/daily") {
                 try {
-                    val network = call.parameters["network"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing network parameter")
-                    val contract = call.parameters["contract"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing contract parameter")
-                    
+                    val network = call.parameters["network"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing network parameter"
+                    )
+                    val contract = call.parameters["contract"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing contract parameter"
+                    )
+
                     logger.info("Fetching daily gas usage for network=$network, contract=$contract")
                     val gasUsageData = gasUsageService.getDailyGasUsage(network, contract)
                     call.respond(gasUsageData)
@@ -82,12 +117,18 @@ fun Application.configureRouting(gasUsageService: GasUsageService, eventService:
                     call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
                 }
             }
-            
+
             get("/{network}/{contract}/events/daily") {
                 try {
-                    val network = call.parameters["network"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing network parameter")
-                    val contract = call.parameters["contract"] ?: return@get call.respond(HttpStatusCode.BadRequest, "Missing contract parameter")
-                    
+                    val network = call.parameters["network"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing network parameter"
+                    )
+                    val contract = call.parameters["contract"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing contract parameter"
+                    )
+
                     logger.info("Fetching events from last 24 hours for network=$network, contract=$contract")
                     val eventsData = eventService.getEventsFromLast24Hours(network, contract)
                     call.respond(eventsData)

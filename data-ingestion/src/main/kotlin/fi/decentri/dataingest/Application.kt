@@ -12,8 +12,6 @@ import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.db.rawinvocation.RawInvocations
 import fi.decentri.db.event.RawLogs
 import fi.decentri.db.event.EventDefinitions
-import fi.decentri.waitlist.EmailRequest
-import fi.decentri.waitlist.WaitlistRepository
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
@@ -23,9 +21,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.Web3j
@@ -50,10 +46,9 @@ fun main() {
     DatabaseFactory.initTables(
         RawInvocations,
         RawLogs,
-        EventDefinitions,
         fi.decentri.dataingest.model.IngestionMetadata,
         fi.decentri.dataingest.model.Contracts,
-        fi.decentri.waitlist.WaitlistEntries
+        fi.decentri.db.waitlist.WaitlistEntries
     )
 
 
@@ -73,50 +68,15 @@ fun main() {
     val rawInvocationIngestorService = RawInvocationIngestorService(appConfig.ethereum, web3j)
     val eventIngestorService = EventIngestorService(appConfig.ethereum, web3j)
 
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     // Create and start the blockchain ingestion service
     val blockchainIngestor = BlockchainIngestor(
         contractsService,
         rawInvocationIngestorService,
         eventIngestorService,
+        applicationScope,
     )
 
-    // Start the blockchain data ingestion service
-    GlobalScope.launch { blockchainIngestor.startIngestion() }
-}
-
-fun Application.configureRouting() {
-    // Create a waitlist repository
-    val waitlistRepository = WaitlistRepository()
-
-    routing {
-        get("/health") {
-            call.respond(HttpStatusCode.OK, mapOf("status" to "UP"))
-        }
-
-
-        post("/waitlist") {
-            try {
-                val emailRequest = call.receive<EmailRequest>() // Receive the JSON payload
-                logger.info("Received email for waitlist: ${emailRequest.email}")
-
-                // Save email to database
-                val id = waitlistRepository.insert(emailRequest.email)
-                logger.info("Saved email to waitlist with ID: $id")
-
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Email received")) // Send success response
-            } catch (e: Exception) {
-                logger.error("Failed to process waitlist request", e)
-                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid request"))
-            }
-        }
-    }
-}
-
-fun Application.configureSerialization() {
-    install(ContentNegotiation) {
-        jackson {
-            enable(SerializationFeature.INDENT_OUTPUT)
-            disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        }
-    }
+    val job = blockchainIngestor.startIngestion()
 }

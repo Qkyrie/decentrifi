@@ -1,4 +1,4 @@
-package fi.decentri.waitlist
+package fi.decentri.dataapi.waitlist
 
 
 data class EmailRequest(val email: String)

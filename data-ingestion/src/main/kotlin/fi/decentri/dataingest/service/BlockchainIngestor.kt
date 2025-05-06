@@ -4,10 +4,7 @@ package fi.decentri.dataingest.service
 
 import fi.decentri.dataingest.ingest.EventIngestorService
 import fi.decentri.dataingest.ingest.RawInvocationIngestorService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import kotlin.time.ExperimentalTime
 
@@ -15,10 +12,14 @@ class BlockchainIngestor(
     private val contractsService: ContractsService,
     private val rawInvocationIngestorService: RawInvocationIngestorService,
     private val eventIngestorService: EventIngestorService,
+    parentScope: CoroutineScope  // inject an application/lifecycle scope
 ) {
+
+    private val scope = parentScope + SupervisorJob(parentScope.coroutineContext[Job])
+
     private val logger = LoggerFactory.getLogger(BlockchainIngestor::class.java)
 
-    suspend fun startIngestion() = coroutineScope {
+    fun startIngestion(): Job = scope.launch {
         // Start the blockchain data ingestion process in a background coroutine
         launch(Dispatchers.IO) {
             logger.info("Starting blockchain data ingestion service (raw invocations and events)")

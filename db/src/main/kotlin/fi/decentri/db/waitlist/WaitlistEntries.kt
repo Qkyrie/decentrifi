@@ -1,4 +1,4 @@
-package fi.decentri.waitlist
+package fi.decentri.db.waitlist
 
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.javatime.timestamp
