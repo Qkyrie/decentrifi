@@ -22,28 +22,6 @@
             <artifactId>db</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
-        <!-- Ktor -->
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-core-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-netty-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-content-negotiation-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-serialization-jackson-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-client-core-jvm</artifactId>

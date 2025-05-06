@@ -10,14 +10,13 @@ import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.db.DatabaseFactory
 import fi.decentri.db.event.RawLogs
 import fi.decentri.db.rawinvocation.RawInvocations
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
+import java.util.concurrent.Executors
+import kotlin.system.exitProcess
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.toJavaDuration
@@ -25,7 +24,7 @@ import kotlin.time.toJavaDuration
 val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
 
 @ExperimentalTime
-suspend fun main() {
+fun main(): Unit = runBlocking {
     logger.info("Starting data ingestion application")
 
     // Load configuration
@@ -48,12 +47,16 @@ suspend fun main() {
     val contractsRepository = ContractsRepository()
     val abiService = AbiService()
     val contractsService = ContractsService(contractsRepository, abiService)
-    val web3j: Web3j = Web3j.build(
+
+    // 3. Web3j – supply your own scheduled executor so you can shut it down
+    val scheduler = Executors.newScheduledThreadPool(4)
+    val web3j = Web3j.build(
         HttpService(
-            appConfig.ethereum.rpcUrl, OkHttpClient.Builder()
+            appConfig.ethereum.rpcUrl,
+            OkHttpClient.Builder()
                 .connectTimeout(20.seconds.toJavaDuration())
                 .build()
-        )
+        ), 2_000L, scheduler
     )
 
     // Create ingestor services
@@ -81,6 +84,8 @@ suspend fun main() {
         // Shutdown resources
         applicationScope.cancel()
         web3j.shutdown()
+        scheduler.shutdown()
         logger.info("Application shutdown complete")
     }
+    exitProcess(0)
 }
