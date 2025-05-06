@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.EthereumConfig
 import fi.decentri.dataingest.model.Contract
+import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
 import fi.decentri.dataingest.repository.RawInvocationData
 import fi.decentri.dataingest.repository.RawInvocationsRepository
@@ -41,7 +42,7 @@ class RawInvocationIngestorService(
         val targetLatestBlock = blockService.getLatestBlock()
 
         val startBlock =
-            metadataRepository.getMetadatForContractId("last_processed_block_raw_invocations", contract.id!!)
+            metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, contract.id!!)
                 ?.toLongOrNull() ?: blockService.getBlockClosestTo(
                 LocalDateTime.now().minusHours(25)
             )
@@ -71,7 +72,7 @@ class RawInvocationIngestorService(
 
                     metadataRepository.updateMetadataForContractId(
                         contract.id,
-                        "last_processed_block_raw_invocations",
+                        MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS,
                         toBlock.toString()
                     )
 

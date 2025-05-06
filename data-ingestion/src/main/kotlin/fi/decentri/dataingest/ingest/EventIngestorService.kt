@@ -11,6 +11,7 @@ import fi.decentri.abi.LogDecoder
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.EthereumConfig
 import fi.decentri.dataingest.model.Contract
+import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.dataingest.repository.EventLogData
 import fi.decentri.dataingest.repository.EventRepository
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
@@ -41,10 +42,6 @@ class EventIngestorService(
     private val metadataRepository = IngestionMetadataRepository()
     private val eventRepository = EventRepository()
     private val abiService = AbiService()
-    private val objectMapper = ObjectMapper()
-
-    // Cache to store decoded event signatures by topic0
-    private val eventSignatureCache = mutableMapOf<String, AbiEvent>()
 
     /**
      * Ingest events for a contract
@@ -64,7 +61,7 @@ class EventIngestorService(
 
         // Get the last processed block or start from 24 hours ago
         val startBlock =
-            metadataRepository.getMetadatForContractId("last_processed_block_events", contract.id!!)?.toLongOrNull()
+            metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, contract.id!!)?.toLongOrNull()
                 ?: blockService.getBlockClosestTo(
                     LocalDateTime.now().minusHours(24)
                 )
@@ -101,7 +98,7 @@ class EventIngestorService(
                     // Update the last processed block
                     metadataRepository.updateMetadataForContractId(
                         contract.id,
-                        "last_processed_block_events",
+                        MetadataType.LAST_PROCESSED_BLOCK_EVENTS,
                         toBlock.toString()
                     )
 
@@ -116,6 +113,13 @@ class EventIngestorService(
             }
         }
 
+        // Save the last run timestamp
+        metadataRepository.updateMetadataForContractId(
+            contract.id,
+            MetadataType.EVENTS_LAST_RUN_TIMESTAMP,
+            Instant.now().toString()
+        )
+        
         logger.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
     }
 
