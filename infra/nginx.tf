@@ -71,9 +71,9 @@ resource "kubernetes_ingress_v1" "decentrifi-www-redirect" {
   }
 }
 
-resource "kubernetes_ingress_v1" "decentrifi-data-ingestion" {
+resource "kubernetes_ingress_v1" "decentrifi-data-api" {
   metadata {
-    name = "data-ingestion-ingress"
+    name = "data-api-ingress"
     annotations = {
       "nginx.ingress.kubernetes.io/enable-cors"     = "true"
       "nginx.ingress.kubernetes.io/proxy-body-size" = "20m"
@@ -94,7 +94,7 @@ resource "kubernetes_ingress_v1" "decentrifi-data-ingestion" {
           path_type = "Prefix"
           backend {
             service {
-              name = "data-ingestion"
+              name = "data-api"
               port {
                 number = 8080
               }

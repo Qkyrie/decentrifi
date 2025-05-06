@@ -4,9 +4,9 @@ variable "github_repo" {
   default     = "qkyrie/decentrifi"
 }
 
-module "data_ingestion" {
+module "data_api" {
   source       = "./modules/kubernetes-app"
-  app_name     = "data-ingestion"
+  app_name     = "data-api"
   namespace    = kubernetes_namespace.decentrifi-namespace.metadata.0.name
   github_repo  = var.github_repo
   container_port = 8080
@@ -43,6 +43,10 @@ module "data_ingestion" {
           key  = "postgres-password"
         }
       }
+    },
+    {
+      name = "SERVER_PORT"
+      value = "8080"
     }
   ]
 }
