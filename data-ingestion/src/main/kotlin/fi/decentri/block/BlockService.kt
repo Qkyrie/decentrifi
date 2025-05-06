@@ -1,6 +1,9 @@
 package fi.decentri.block
 
 import io.github.reactivecircus.cache4k.Cache
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.withContext
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
@@ -65,10 +68,12 @@ class BlockService(private val web3j: Web3j) {
         .build()
 
     suspend fun getBlockByNumber(number: BigInteger): EthBlock.Block {
-        return blockCache.get(number) {
-            web3j.ethGetBlockByNumber(
-                DefaultBlockParameter.valueOf(number), false
-            ).send().block
+        return withContext(Dispatchers.IO) {
+            blockCache.get(number) {
+                web3j.ethGetBlockByNumber(
+                    DefaultBlockParameter.valueOf(number), false
+                ).sendAsync().await().block
+            }
         }
     }
 }

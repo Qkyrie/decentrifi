@@ -53,7 +53,7 @@ class DatabaseConfigImpl(config: Config) : DatabaseConfig {
 
 class EthereumConfig(config: Config) {
     val rpcUrl: String = config.getString("rpcUrl")
-    val startBlock: Long = config.getLong("startBlock")
     val batchSize: Int = config.getInt("batchSize")
+    val eventBatchSize: Int = config.getInt("eventBatchSize")
     val pollingInterval: Long = config.getLong("pollingInterval")
 }

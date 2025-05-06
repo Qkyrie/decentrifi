@@ -49,7 +49,14 @@
             <artifactId>exposed-json</artifactId>
             <version>${exposed.version}</version>
         </dependency>
-        
+        <dependency>
+            <groupId>io.arrow-kt</groupId>
+            <artifactId>arrow-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.arrow-kt</groupId>
+            <artifactId>arrow-fx-coroutines</artifactId>
+        </dependency>
         <!-- PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>

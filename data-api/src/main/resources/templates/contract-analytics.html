@@ -616,6 +616,35 @@
                         <canvas id="gasChart"></canvas>
                     </div>
                 </div>
+                
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" stroke="#346DF1" stroke-width="2"/>
+                                <path d="M8 10h8" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M8 14h4" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            Events Per Hour by Type (Last 24 Hours)
+                        </div>
+                        <div class="chart-controls">
+                            <button class="chart-button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Export
+                            </button>
+                            <div class="time-selector">
+                                <div class="time-option active">Hourly Events</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="eventsChart"></canvas>
+                    </div>
+                </div>
 
                 <div class="metrics-grid">
                     <div class="metric-card">
@@ -921,6 +950,217 @@
             
             if (txElement) {
                 txElement.textContent = txCount.toLocaleString();
+            }
+        }
+        
+        // Function to fetch events data from the API
+        async function fetchEventsData(network, contract) {
+            try {
+                const response = await fetch(`/data/${network}/${contract}/events/daily`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error fetching events data:", error);
+                return null;
+            }
+        }
+        
+        // Process events data for stacked bar chart by hour and type
+        function processEventsData(apiData) {
+            if (!apiData || !apiData.events || apiData.events.length === 0) {
+                return {
+                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    datasets: [
+                        {
+                            label: 'No Events',
+                            data: Array(24).fill(0),
+                            backgroundColor: 'rgba(52, 109, 241, 0.7)',
+                            borderColor: '#346DF1',
+                            borderWidth: 1
+                        }
+                    ]
+                };
+            }
+            
+            // Create hour labels
+            const hourLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+            
+            // Categorize events by type and hour
+            const eventsByTypeAndHour = {};
+            const eventTypes = new Set();
+            
+            // Process all events to build our data structure
+            apiData.events.forEach(event => {
+                const eventTime = new Date(event.blockTimestamp);
+                const hourOfDay = eventTime.getHours();
+                const eventName = event.eventName || 'Unknown';
+                
+                // Add to our set of event types
+                eventTypes.add(eventName);
+                
+                // Initialize the data structure if needed
+                if (!eventsByTypeAndHour[eventName]) {
+                    eventsByTypeAndHour[eventName] = Array(24).fill(0);
+                }
+                
+                // Increment the count for this event type and hour
+                eventsByTypeAndHour[eventName][hourOfDay]++;
+            });
+            
+            // Convert the set to an array and sort
+            const sortedEventTypes = [...eventTypes].sort();
+            
+            // Generate a color palette for our event types
+            const colorPalette = [
+                'rgba(52, 109, 241, 0.8)',    // Blue
+                'rgba(34, 209, 198, 0.8)',    // Teal
+                'rgba(230, 100, 80, 0.8)',    // Red/Orange
+                'rgba(143, 97, 227, 0.8)',    // Purple
+                'rgba(241, 196, 15, 0.8)',    // Yellow
+                'rgba(46, 204, 113, 0.8)',    // Green
+                'rgba(231, 76, 60, 0.8)',     // Red
+                'rgba(155, 89, 182, 0.8)',    // Violet
+                'rgba(52, 152, 219, 0.8)',    // Light Blue
+                'rgba(243, 156, 18, 0.8)'     // Orange
+            ];
+            
+            // If we have more event types than colors, we'll cycle through them
+            const getColor = (index) => {
+                return colorPalette[index % colorPalette.length];
+            };
+            
+            // Create a dataset for each event type
+            const datasets = sortedEventTypes.map((eventType, index) => {
+                return {
+                    label: eventType,
+                    data: eventsByTypeAndHour[eventType],
+                    backgroundColor: getColor(index),
+                    borderColor: getColor(index).replace('0.8', '1.0'),
+                    borderWidth: 1
+                };
+            });
+            
+            return {
+                labels: hourLabels,
+                datasets: datasets
+            };
+        }
+        
+        // Initialize events chart
+        const eventsCtx = document.getElementById('eventsChart').getContext('2d');
+        let eventsChartData = {
+            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            datasets: [
+                {
+                    label: 'Loading...',
+                    data: Array(24).fill(0),
+                    backgroundColor: 'rgba(52, 109, 241, 0.7)',
+                    borderColor: '#346DF1',
+                    borderWidth: 1
+                }
+            ]
+        };
+        
+        const eventsChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        title: function(context) {
+                            return context[0].label;
+                        },
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Events'
+                    },
+                    ticks: {
+                        precision: 0
+                    },
+                    grid: {
+                        color: 'rgba(225, 228, 232, 0.3)',
+                    }
+                },
+                x: {
+                    stacked: true,
+                    title: {
+                        display: true,
+                        text: 'Hour of Day'
+                    },
+                    grid: {
+                        color: 'rgba(225, 228, 232, 0.3)',
+                    }
+                }
+            }
+        };
+        
+        let eventsChart = new Chart(eventsCtx, {
+            type: 'bar',
+            data: eventsChartData,
+            options: eventsChartOptions
+        });
+        
+        // Fetch and update both charts on page load
+        async function initializeRealData() {
+            const { network, contract } = getNetworkAndContract();
+            
+            // Update contract details in the UI
+            document.querySelector('.detail-card:nth-child(1) .detail-value').textContent = contract;
+            document.querySelector('.detail-card:nth-child(2) .detail-value').textContent = network;
+            
+            // Set placeholder creation date (this would ideally come from the API)
+            const creationDate = new Date();
+            creationDate.setDate(creationDate.getDate() - 365 * 3); // 3 years ago as an example
+            document.querySelector('.detail-card:nth-child(3) .detail-value').textContent = 
+                creationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            
+            // Fetch both gas usage and events data in parallel
+            const [gasData, eventsData] = await Promise.all([
+                fetchDailyGasUsageData(network, contract),
+                fetchEventsData(network, contract)
+            ]);
+            
+            // Update gas usage chart
+            if (gasData) {
+                const processedGasData = processDailyGasData(gasData);
+                gasChart.data.labels = processedGasData.labels;
+                gasChart.data.datasets = processedGasData.datasets;
+                gasChart.update();
+                
+                // Update metrics cards with real data
+                updateMetricsCards(gasData);
+            }
+            
+            // Update events chart
+            if (eventsData) {
+                const processedEventsData = processEventsData(eventsData);
+                eventsChart.data.labels = processedEventsData.labels;
+                eventsChart.data.datasets = processedEventsData.datasets;
+                eventsChart.update();
             }
         }
         

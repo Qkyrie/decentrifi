@@ -37,7 +37,7 @@ class RawLogsRepository {
                         blockNumber = row[RawLogs.blockNumber],
                         blockTimestamp = row[RawLogs.blockTimestamp],
                         eventName = row[RawLogs.eventName],
-                        topics = row[RawLogs.topics].toList(),
+                        topics = row[RawLogs.topics],
                         data = row[RawLogs.data],
                         decoded = row[RawLogs.decoded]
                     )
@@ -55,7 +55,7 @@ data class RawLogEntry(
     val blockNumber: Long,
     val blockTimestamp: Instant,
     val eventName: String?,
-    val topics: List<String>,
+    val topics: JsonElement,
     val data: String?,
     val decoded: JsonElement
 )

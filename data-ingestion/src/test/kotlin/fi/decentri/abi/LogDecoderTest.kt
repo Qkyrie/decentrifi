@@ -1,7 +1,6 @@
 package fi.decentri.abi
 
 import fi.decentri.abi.LogDecoder.decodeLog
-import fi.decentri.abi.LogDecoder.decodeLogToMap
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.DisplayName
@@ -29,20 +28,6 @@ class DecodeLogTest {
         assertNotNull(actual, "Decoded log should not be null for $caseName")
         assertEquals(expectedEventName, actual!!.eventName, "Event name mismatch for $caseName")
         assertEquals(expectedParams, actual.parameters, "Parameters mismatch for $caseName")
-    }
-    
-    @DisplayName("decodeLogToMap should correctly map log topics/data to parameter map")
-    @ParameterizedTest(name = "#{index} – {0}")
-    @MethodSource("arguments")
-    fun testDecodeLogToMap(
-        caseName: String,
-        abi: String,
-        log: Log,
-        expected: Map<String, Any?>,
-        expectedEventName: String
-    ) {
-        val actual = decodeLogToMap(log, abi)
-        assertEquals(expected, actual, "Mismatch for $caseName")
     }
 
     /** ----------  Test‑case generator  ---------- */

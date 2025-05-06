@@ -7,6 +7,7 @@ import fi.decentri.dataingest.ingest.RawInvocationIngestorService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
 import kotlin.time.ExperimentalTime
 
@@ -14,13 +15,12 @@ class BlockchainIngestor(
     private val contractsService: ContractsService,
     private val rawInvocationIngestorService: RawInvocationIngestorService,
     private val eventIngestorService: EventIngestorService,
-    private val coroutineScope: CoroutineScope
 ) {
     private val logger = LoggerFactory.getLogger(BlockchainIngestor::class.java)
 
-    fun startIngestion() {
+    suspend fun startIngestion() = coroutineScope {
         // Start the blockchain data ingestion process in a background coroutine
-        coroutineScope.launch(Dispatchers.IO) {
+        launch(Dispatchers.IO) {
             logger.info("Starting blockchain data ingestion service (raw invocations and events)")
 
             // Fetch all contracts from the database
@@ -36,7 +36,7 @@ class BlockchainIngestor(
                     logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
                     
                     // Launch raw invocations ingestion
-                    launch(Dispatchers.IO) {
+                /*    launch(Dispatchers.IO) {
                         try {
                             logger.info("Starting raw invocations ingestion for contract ${contract.address}")
                             rawInvocationIngestorService.ingest(contract)
@@ -47,10 +47,10 @@ class BlockchainIngestor(
                                 e
                             )
                         }
-                    }
+                    } */
                     
                     // Launch events ingestion
-                    launch(Dispatchers.IO) {
+                    launch {
                         try {
                             logger.info("Starting events ingestion for contract ${contract.address}")
                             eventIngestorService.ingest(contract)

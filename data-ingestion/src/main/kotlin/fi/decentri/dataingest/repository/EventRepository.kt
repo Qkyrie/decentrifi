@@ -34,11 +34,13 @@ class EventRepository {
                 this[RawLogs.blockNumber] = data.blockNumber
                 this[RawLogs.blockTimestamp] = data.blockTimestamp
                 this[RawLogs.topic0] = data.topic0
-                this[RawLogs.topics] = data.topics.toTypedArray().toList()
+                this[RawLogs.topics] = Json.parseToJsonElement(
+                    objectMapper.writeValueAsString(data.topics)
+                )
                 this[RawLogs.data] = data.data
                 this[RawLogs.eventName] = data.eventName
                 this[RawLogs.decoded] = Json.parseToJsonElement(
-                    ObjectMapper().writeValueAsString(data.decoded)
+                    objectMapper.writeValueAsString(data.decoded)
                 )
             }
         }

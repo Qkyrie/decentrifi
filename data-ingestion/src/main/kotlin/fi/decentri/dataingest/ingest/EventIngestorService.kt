@@ -2,6 +2,7 @@
 
 package fi.decentri.dataingest.ingest
 
+import arrow.fx.coroutines.parMap
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.abi.AbiEvent
 import fi.decentri.abi.AbiService
@@ -10,28 +11,23 @@ import fi.decentri.abi.LogDecoder
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.EthereumConfig
 import fi.decentri.dataingest.model.Contract
-import fi.decentri.dataingest.repository.EventDefinitionData
 import fi.decentri.dataingest.repository.EventLogData
 import fi.decentri.dataingest.repository.EventRepository
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.future.await
 import org.slf4j.LoggerFactory
-import org.web3j.abi.EventEncoder
-import org.web3j.abi.FunctionReturnDecoder
-import org.web3j.abi.TypeReference
-import org.web3j.abi.datatypes.Event
-import org.web3j.abi.datatypes.Type
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.methods.request.EthFilter
 import org.web3j.protocol.core.methods.response.EthLog
 import org.web3j.protocol.core.methods.response.Log
-import org.web3j.utils.Numeric
 import java.math.BigInteger
 import java.time.Instant
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.time.ExperimentalTime
+import kotlin.time.measureTime
 
 /**
  * Service responsible for blockchain event logs ingestion
@@ -87,7 +83,7 @@ class EventIngestorService(
                     completed = true
                 } else {
                     // Calculate the next batch to process
-                    val toBlock = minOf(lastProcessedBlock + config.batchSize, targetLatestBlock)
+                    val toBlock = minOf(lastProcessedBlock + config.eventBatchSize, targetLatestBlock)
                     logger.info("Processing event logs for blocks ${lastProcessedBlock + 1} to $toBlock (${toBlock - lastProcessedBlock} blocks)")
 
                     // Process the block range to get events
@@ -98,6 +94,7 @@ class EventIngestorService(
                         contract.address.lowercase(Locale.getDefault()),
                         contract.abi
                     )
+
 
                     lastProcessedBlock = toBlock
 
@@ -117,29 +114,9 @@ class EventIngestorService(
                 logger.error("Error during event log ingestion: ${e.message}", e)
                 delay(config.pollingInterval)
             }
-
-            // Add a small delay between batches to avoid overwhelming the node
-            delay(100)
         }
 
         logger.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
-    }
-
-    /**
-     * Get the event signature (topic0) for an event
-     */
-    private fun getEventSignature(event: AbiEvent): String {
-        // Create a Web3j Event object for encoding
-        val paramTypes = event.inputs.map { input ->
-            val typeRef = TypeReference.makeTypeReference(input.type)
-            typeRef as TypeReference<Type<*>>
-        }
-
-        // Create indexed parameters list
-        val indexedParams = event.inputs.filter { it.indexed }.map { it.name }
-
-        val web3jEvent = Event(event.name, paramTypes)
-        return EventEncoder.encode(web3jEvent)
     }
 
     /**
@@ -163,7 +140,7 @@ class EventIngestorService(
             )
 
             // Get logs for the filter
-            val logs = web3j.ethGetLogs(filter).send().logs as List<EthLog.LogObject>
+            val logs = web3j.ethGetLogs(filter).sendAsync().await().logs as List<EthLog.LogObject>
 
             if (logs.isEmpty()) {
                 logger.debug("No event logs found for the contract in blocks $fromBlock to $toBlock")
@@ -173,21 +150,23 @@ class EventIngestorService(
             logger.info("Found ${logs.size} event logs for the contract in blocks $fromBlock to $toBlock")
 
             // Process each log to extract event data
-            val eventLogs = logs.mapNotNull { log ->
-                try {
-                    processLog(log, network, contractAddress, abi)
-                } catch (e: Exception) {
-                    logger.error("Error processing log: ${e.message}", e)
-                    null
+            logs.chunked(1500).forEach { chunkedLogs ->
+                val timed = measureTime {
+                    val eventLogs = chunkedLogs.parMap(concurrency = 24) { log ->
+                        try {
+                            processLog(log, network, contractAddress, abi)
+                        } catch (e: Exception) {
+                            logger.error("Error processing log: ${e.message}", e)
+                            null
+                        }
+                    }.filterNotNull()
+                    if (eventLogs.isNotEmpty()) {
+                        eventRepository.batchInsertEvents(eventLogs)
+                        logger.debug("Saved ${eventLogs.size} event logs to database")
+                    }
                 }
+                logger.info("Processed ${chunkedLogs.size} logs in ${timed.inWholeSeconds} seconds")
             }
-
-            // Store events in the database
-            if (eventLogs.isNotEmpty()) {
-                eventRepository.batchInsertEvents(eventLogs)
-                logger.info("Saved ${eventLogs.size} event logs to database")
-            }
-
         } catch (e: Exception) {
             logger.error("Error fetching event logs: ${e.message}", e)
             throw e
