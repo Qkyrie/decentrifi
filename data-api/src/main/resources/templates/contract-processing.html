@@ -209,6 +209,22 @@
             );
             animation: shimmer 1.5s infinite;
         }
+        
+        .progress-bar.indeterminate {
+            width: 100%;
+            background: linear-gradient(90deg, var(--primary-blue) 25%, var(--accent-teal) 50%, var(--primary-blue) 75%);
+            background-size: 200% 100%;
+            animation: progress-indeterminate 2s linear infinite;
+        }
+        
+        @keyframes progress-indeterminate {
+            0% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
 
         .progress-label {
             font-size: 14px;
@@ -366,8 +382,9 @@
             <div class="status-panel">
                 <h2 class="status-title">Processing Smart Contract</h2>
                 <p class="status-message">
-                    We're analyzing your smart contract and importing events. This may take a few minutes 
-                    while we decode and process the blockchain data.
+                    We're analyzing your smart contract and importing events. The validation step takes a few seconds,
+                    but importing events may take longer depending on contract complexity and blockchain activity.
+                    Please be patient while we process your data.
                 </p>
 
                 <div class="progress-container">
@@ -584,52 +601,54 @@
         
         // Simulate the processing stages
         function simulateProcessing() {
-            // Simulate validation step (completes in ~5 seconds)
-            setTimeout(() => {
-                // Mark validation complete
-                validationComplete = true;
-                document.getElementById('validation-step').classList.add('completed');
-                document.getElementById('validation-status').textContent = 'Complete';
-                
-                // Start events import
-                document.getElementById('events-step').classList.add('active');
-                document.getElementById('events-status').textContent = 'In progress...';
-                
-                // Simulate events import completion (takes ~10 more seconds)
-                setTimeout(() => {
-                    eventsImportComplete = true;
-                    document.getElementById('events-step').classList.add('completed');
-                    document.getElementById('events-status').textContent = 'Complete';
-                    
-                    // Redirect to analytics page in 2 seconds
-                    setTimeout(() => {
-                        // Using a relative path to make it work in any environment
-                        window.location.href = 'contract-analytics.html';
-                    }, 2000);
-                }, 10000);
-            }, 5000);
+            const progressBar = document.getElementById('progress-bar');
+            const progressLabel = document.getElementById('progress-label');
             
-            // Update progress continuously
-            const progressInterval = setInterval(() => {
-                if (!validationComplete) {
-                    // During validation (0-30%)
-                    progressValue = Math.min(30, progressValue + 1);
-                } else if (!eventsImportComplete) {
-                    // During events import (31-95%)
-                    progressValue = Math.min(95, progressValue + 1);
+            // Simulate validation step (completes in ~3 seconds)
+            // For validation, we show a determinate progress bar
+            let validationProgress = 0;
+            const validationInterval = setInterval(() => {
+                validationProgress += 3;
+                if (validationProgress <= 100) {
+                    progressBar.style.width = `${validationProgress}%`;
+                    progressLabel.textContent = `Validating... ${validationProgress}%`;
                 } else {
-                    // Completed (96-100%)
-                    progressValue = Math.min(100, progressValue + 1);
+                    clearInterval(validationInterval);
                     
-                    if (progressValue === 100) {
-                        clearInterval(progressInterval);
-                    }
+                    // Mark validation complete
+                    validationComplete = true;
+                    document.getElementById('validation-step').classList.add('completed');
+                    document.getElementById('validation-status').textContent = 'Complete';
+                    
+                    // Switch to indeterminate progress for event import
+                    progressBar.style.width = '';
+                    progressBar.classList.add('indeterminate');
+                    progressLabel.textContent = 'Importing events... (time remaining unknown)';
+                    
+                    // Start events import
+                    document.getElementById('events-step').classList.add('active');
+                    document.getElementById('events-status').textContent = 'In progress...';
+                    
+                    // For demo purposes only - simulate events import completion
+                    // In a real implementation, this would be based on server-side events/progress
+                    setTimeout(() => {
+                        eventsImportComplete = true;
+                        document.getElementById('events-step').classList.add('completed');
+                        document.getElementById('events-status').textContent = 'Complete';
+                        
+                        // Return to determinate progress at 100%
+                        progressBar.classList.remove('indeterminate');
+                        progressBar.style.width = '100%';
+                        progressLabel.textContent = 'Complete!';
+                        
+                        // Redirect to analytics page in 2 seconds
+                        setTimeout(() => {
+                            // Using a relative path to make it work in any environment
+                            window.location.href = 'contract-analytics.html';
+                        }, 2000);
+                    }, 10000);
                 }
-                
-                // Update UI
-                document.getElementById('progress-bar').style.width = `${progressValue}%`;
-                document.getElementById('progress-label').textContent = `${progressValue}%`;
-            }, 250);
+            }, 100);
         }
         
         // Initialize scene when page loads
