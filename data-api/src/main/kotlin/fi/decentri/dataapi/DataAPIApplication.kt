@@ -131,6 +131,26 @@ fun Application.configureRouting(
                 }
             }
 
+            get("/{network}/{contract}/unique-addresses") {
+                try {
+                    val network = call.parameters["network"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing network parameter"
+                    )
+                    val contract = call.parameters["contract"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing contract parameter"
+                    )
+
+                    logger.info("Fetching unique from_addresses count for network=$network, contract=$contract")
+                    val uniqueAddressesData = gasUsageService.getUniqueAddressesCount(network, contract)
+                    call.respond(uniqueAddressesData)
+                } catch (e: Exception) {
+                    logger.error("Error fetching unique addresses data", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+                }
+            }
+
             get("/{network}/{contract}/events/daily") {
                 try {
                     val filters = call.parseJsonbFilters()

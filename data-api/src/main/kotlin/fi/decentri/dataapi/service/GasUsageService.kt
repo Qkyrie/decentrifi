@@ -2,6 +2,7 @@ package fi.decentri.dataapi.service
 
 import fi.decentri.dataapi.model.DailyGasUsageDTO
 import fi.decentri.dataapi.model.GasUsagePoint
+import fi.decentri.dataapi.model.UniqueAddressesDTO
 import fi.decentri.dataapi.repository.RawInvocationsRepository
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -32,6 +33,20 @@ class GasUsageService(private val rawInvocationsRepository: RawInvocationsReposi
             network = network,
             contract = contract,
             dataPoints = filledDataPoints
+        )
+    }
+
+    /**
+     * Gets the count of unique from_addresses that have interacted with the contract
+     * in the last 24 hours
+     */
+    suspend fun getUniqueAddressesCount(network: String, contract: String): UniqueAddressesDTO {
+        val uniqueCount = rawInvocationsRepository.getUniqueFromAddressCount24Hours(network, contract)
+        return UniqueAddressesDTO(
+            network = network,
+            contract = contract,
+            uniqueAddressCount = uniqueCount,
+            periodHours = 24
         )
     }
     

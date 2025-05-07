@@ -4,6 +4,9 @@ import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.rawinvocation.RawInvocations
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.countDistinct
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.lowerCase
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -36,5 +39,24 @@ class RawInvocationsRepository {
                         row[RawInvocations.gasUsed]
                     )
                 }
+        }
+        
+    /**
+     * Count the number of unique from_addresses for a contract on a network in the last 24 hours
+     * Returns the total count of distinct addresses
+     */
+    suspend fun getUniqueFromAddressCount24Hours(network: String, contract: String): Long =
+        dbQuery {
+            val now = LocalDateTime.now(ZoneOffset.UTC)
+            val oneDayAgo = now.minusDays(1)
+
+            RawInvocations
+                .slice(RawInvocations.fromAddress.countDistinct())
+                .selectAll().where {
+                    (RawInvocations.network eq network) and
+                            (RawInvocations.contractAddress.lowerCase() eq contract.lowercase()) and
+                            (RawInvocations.blockTimestamp greaterEq oneDayAgo.toInstant(ZoneOffset.UTC))
+                }
+                .first()[RawInvocations.fromAddress.countDistinct()]
         }
 }

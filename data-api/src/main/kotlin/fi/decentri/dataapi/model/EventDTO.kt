@@ -36,7 +36,7 @@ data class EventsResponseDTO(
  */
 @Serializable
 data class HourlyEventCount(
-    val hour: Int,
+    val timestamp: Instant,
     val count: Int
 )
 

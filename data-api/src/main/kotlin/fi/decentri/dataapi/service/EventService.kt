@@ -39,18 +39,27 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
         // Process events by type and hour
         val eventsByType = eventDTOs.groupBy { it.eventName ?: "Unknown" }
         val hourlyDataByType = eventsByType.map { (eventName, events) ->
-            // Create a map to hold the count for each hour (0-23)
-            val hourlyCounts = mutableMapOf<Int, Int>()
+            // Create 24 hour slots from 24 hours ago until now
+            val hourSlots = mutableListOf<Instant>()
+            for (hourOffset in 23 downTo 0) {
+                hourSlots.add(now.minus(hourOffset.toLong(), ChronoUnit.HOURS).truncatedTo(ChronoUnit.HOURS))
+            }
+            
+            // Create a map to hold the count for each hour slot
+            val hourlyCounts = mutableMapOf<Instant, Int>()
 
-            // Initialize all hours with zero counts
-            for (hour in 0..23) {
-                hourlyCounts[hour] = 0
+            // Initialize all hour slots with zero counts
+            hourSlots.forEach { hourSlot ->
+                hourlyCounts[hourSlot] = 0
             }
 
-            // Count events by hour
+            // Count events by hour slot
             events.forEach { event ->
-                val hour = event.blockTimestamp.atZone(java.time.ZoneOffset.UTC).hour
-                hourlyCounts[hour] = hourlyCounts.getOrDefault(hour, 0) + 1
+                // Find the matching hour slot for this event
+                val eventHourTimestamp = event.blockTimestamp.truncatedTo(ChronoUnit.HOURS)
+                if (hourlyCounts.containsKey(eventHourTimestamp)) {
+                    hourlyCounts[eventHourTimestamp] = hourlyCounts.getOrDefault(eventHourTimestamp, 0) + 1
+                }
             }
 
             // Convert to our DTO structure
