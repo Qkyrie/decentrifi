@@ -596,7 +596,7 @@
                                 <path d="M8 10h8" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
                                 <path d="M8 14h4" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            Events Per Hour by Type (Last 24 Hours)
+                            Events Per Hour by Type (T-24h to Now)
                         </div>
                         <div class="chart-controls">
                             <button class="chart-button">
@@ -608,7 +608,7 @@
                                 Export
                             </button>
                             <div class="time-selector">
-                                <div class="time-option active">Hourly Events</div>
+                                <div class="time-option active">Last 24 Hours</div>
                             </div>
                         </div>
                     </div>
@@ -625,7 +625,7 @@
                                 <path d="M3 6H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 <path d="M3 12H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            Daily Gas Usage (Last 24 Hours)
+                            Gas Usage (T-24h to Now)
                         </div>
                         <div class="chart-controls">
                             <button class="chart-button">
@@ -637,7 +637,7 @@
                                 Export
                             </button>
                             <div class="time-selector">
-                                <div class="time-option active">Daily Gas Usage</div>
+                                <div class="time-option active">Last 24 Hours</div>
                             </div>
                         </div>
                     </div>
@@ -774,9 +774,17 @@
 
         // Process real data for daily chart
         function processDailyGasData(apiData) {
+            // Generate labels for the last 24 hours (T-24h to now)
+            const now = new Date();
+            const hourLabels = Array.from({length: 24}, (_, i) => {
+                const hourAgo = new Date(now);
+                hourAgo.setHours(now.getHours() - (23 - i)); // 23 hours ago to now
+                return `${hourAgo.getHours()}:00`;
+            });
+            
             if (!apiData || !apiData.dataPoints) {
                 return {
-                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    labels: hourLabels,
                     datasets: [
                         {
                             label: 'Gas Used',
@@ -793,18 +801,36 @@
 
             // Extract data points from API response
             const dataPoints = apiData.dataPoints;
+            const currentHour = now.getHours();
             
-            // Format timestamps to hour labels
-            const labels = dataPoints.map(point => {
+            // Create an array of 24 elements with zeros
+            const gasUsedValues = Array(24).fill(0);
+            
+            // Get current time for comparing timestamps
+            const currentTime = now.getTime();
+            const oneDayInMs = 24 * 60 * 60 * 1000;
+            
+            // Map the data points to the appropriate position in our timeline
+            dataPoints.forEach(point => {
                 const date = new Date(point.timestamp);
-                return `${date.getHours()}:00`;
+                const pointTime = date.getTime();
+                
+                // Only include data from the last 24 hours based on timestamp
+                if (currentTime - pointTime <= oneDayInMs) {
+                    // Calculate which hour slot this belongs to
+                    const hourDiff = Math.floor((currentTime - pointTime) / (60 * 60 * 1000));
+                    
+                    // Make sure it's within our 24-hour window
+                    if (hourDiff >= 0 && hourDiff < 24) {
+                        // 23 - hourDiff gives us the correct index (23 is the most recent hour)
+                        const timelineIndex = 23 - hourDiff;
+                        gasUsedValues[timelineIndex] = point.gasUsed;
+                    }
+                }
             });
             
-            // Extract gas used values
-            const gasUsedValues = dataPoints.map(point => point.gasUsed);
-            
             return {
-                labels: labels,
+                labels: hourLabels,
                 datasets: [
                     {
                         label: 'Gas Used',
@@ -820,8 +846,16 @@
         }
 
         // Initialize with empty data for daily view (will be replaced with real data)
+        // Generate labels for the last 24 hours
+        const gasChartNow = new Date();
+        const gasChartLabels = Array.from({length: 24}, (_, i) => {
+            const hourAgo = new Date(gasChartNow);
+            hourAgo.setHours(gasChartNow.getHours() - (23 - i)); // 23 hours ago to now
+            return `${hourAgo.getHours()}:00`;
+        });
+        
         let chartData = {
-            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            labels: gasChartLabels,
             datasets: [
                 {
                     label: 'Gas Used',
@@ -860,6 +894,10 @@
                     }
                 },
                 x: {
+                    title: {
+                        display: true,
+                        text: 'Last 24 Hours'
+                    },
                     grid: {
                         color: 'rgba(225, 228, 232, 0.3)',
                     }
@@ -885,34 +923,6 @@
             options: chartOptions
         });
 
-        // Fetch and update real data for daily view on page load
-        async function initializeRealData() {
-            const { network, contract } = getNetworkAndContract();
-            
-            // Update contract details in the UI
-            document.querySelector('.detail-card:nth-child(1) .detail-value').textContent = contract;
-            document.querySelector('.detail-card:nth-child(2) .detail-value').textContent = network;
-            
-            // Set placeholder creation date (this would ideally come from the API)
-            const creationDate = new Date();
-            creationDate.setDate(creationDate.getDate() - 365 * 3); // 3 years ago as an example
-            document.querySelector('.detail-card:nth-child(3) .detail-value').textContent = 
-                creationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-            
-            // Fetch real data for daily view
-            const realData = await fetchDailyGasUsageData(network, contract);
-            if (realData) {
-                // Process and update chart data
-                const processedData = processDailyGasData(realData);
-                gasChart.data.labels = processedData.labels;
-                gasChart.data.datasets = processedData.datasets;
-                gasChart.update();
-                
-                // Update metrics cards with real data
-                updateMetricsCards(realData);
-            }
-        }
-        
         // Update metrics cards with real data
         function updateMetricsCards(data) {
             if (!data || !data.dataPoints || data.dataPoints.length === 0) return;
@@ -970,8 +980,13 @@
         
         // Process events data for stacked bar chart by hour and type
         function processEventsData(apiData) {
-            // Create hour labels (0-23)
-            const hourLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+            // Create hour labels for the last 24 hours (from now backwards)
+            const now = new Date();
+            const hourLabels = Array.from({length: 24}, (_, i) => {
+                const hourAgo = new Date(now);
+                hourAgo.setHours(now.getHours() - (23 - i)); // 23 hours ago to now
+                return `${hourAgo.getHours()}:00`;
+            });
             
             // Check if we have valid data from the API
             if (!apiData || !apiData.eventTypes || apiData.eventTypes.length === 0) {
@@ -1010,12 +1025,47 @@
             
             // Create a dataset for each event type from the backend data
             const datasets = apiData.eventTypes.map((eventType, index) => {
-                // Convert the hourly counts to an array of 24 values
+                // Convert the hourly counts to an array of 24 values (from T-24h to now)
                 const hourlyData = Array(24).fill(0);
                 
-                // Fill in the data from the API
+                // Get the current hour and calculate the offset for each hour in the last 24 hours
+                const currentHour = new Date().getHours();
+                
+                // Get the current date for comparison
+                const now = new Date();
+                const currentDate = now.toDateString();
+                const yesterdayDate = new Date(now);
+                yesterdayDate.setDate(now.getDate() - 1);
+                const yesterdayDateStr = yesterdayDate.toDateString();
+                
+                // Fill in the data from the API, mapping the hours to our T-24h to now timeline
                 eventType.hourlyCounts.forEach(hourCount => {
-                    hourlyData[hourCount.hour] = hourCount.count;
+                    // For events, we typically have an hourCount object with hour, date, and count
+                    // If we don't have date info in the API, we'll fallback to hour-based logic
+                    
+                    if (hourCount.date) {
+                        // Check if the event is from today or yesterday
+                        const eventDate = new Date(hourCount.date).toDateString();
+                        if (eventDate === currentDate || eventDate === yesterdayDateStr) {
+                            // Calculate hours from now
+                            const eventDateObj = new Date(hourCount.date);
+                            const hourDiff = Math.floor((now - eventDateObj) / (60 * 60 * 1000));
+                            
+                            if (hourDiff >= 0 && hourDiff < 24) {
+                                const timelineIndex = 23 - hourDiff;
+                                hourlyData[timelineIndex] = hourCount.count;
+                            }
+                        }
+                    } else {
+                        // Fallback to hour-based calculation (less accurate, but works with minimal API data)
+                        const hourOffset = (hourCount.hour - currentHour + 24) % 24;
+                        const timelineIndex = (24 - hourOffset) % 24;
+                        
+                        // Only include data from the last 24 hours
+                        if (hourOffset < 24) {
+                            hourlyData[timelineIndex] = hourCount.count;
+                        }
+                    }
                 });
                 
                 return {
@@ -1035,8 +1085,16 @@
         
         // Initialize events chart
         const eventsCtx = document.getElementById('eventsChart').getContext('2d');
+        // Generate labels for the last 24 hours
+        const currentTime = new Date();
+        const last24HoursLabels = Array.from({length: 24}, (_, i) => {
+            const hourAgo = new Date(currentTime);
+            hourAgo.setHours(currentTime.getHours() - (23 - i)); // 23 hours ago to now
+            return `${hourAgo.getHours()}:00`;
+        });
+        
         let eventsChartData = {
-            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            labels: last24HoursLabels,
             datasets: [
                 {
                     label: 'Loading...',
@@ -1093,7 +1151,7 @@
                     stacked: true,
                     title: {
                         display: true,
-                        text: 'Hour of Day'
+                        text: 'Last 24 Hours'
                     },
                     grid: {
                         color: 'rgba(225, 228, 232, 0.3)',
