@@ -1314,41 +1314,22 @@
                 // Convert the hourly counts to an array of 24 values (from T-24h to now)
                 const hourlyData = Array(24).fill(0);
                 
-                // Get the current hour and calculate the offset for each hour in the last 24 hours
-                const currentHour = new Date().getHours();
-                
                 // Get the current date for comparison
                 const now = new Date();
-                const currentDate = now.toDateString();
-                const yesterdayDate = new Date(now);
-                yesterdayDate.setDate(now.getDate() - 1);
-                const yesterdayDateStr = yesterdayDate.toDateString();
                 
-                // Fill in the data from the API, mapping the hours to our T-24h to now timeline
+                // Fill in the data from the API, mapping the timestamps to our T-24h to now timeline
                 eventType.hourlyCounts.forEach(hourCount => {
-                    // For events, we typically have an hourCount object with hour, date, and count
-                    // If we don't have date info in the API, we'll fallback to hour-based logic
-                    
-                    if (hourCount.date) {
-                        // Check if the event is from today or yesterday
-                        const eventDate = new Date(hourCount.date).toDateString();
-                        if (eventDate === currentDate || eventDate === yesterdayDateStr) {
-                            // Calculate hours from now
-                            const eventDateObj = new Date(hourCount.date);
-                            const hourDiff = Math.floor((now - eventDateObj) / (60 * 60 * 1000));
-                            
-                            if (hourDiff >= 0 && hourDiff < 24) {
-                                const timelineIndex = 23 - hourDiff;
-                                hourlyData[timelineIndex] = hourCount.count;
-                            }
-                        }
-                    } else {
-                        // Fallback to hour-based calculation (less accurate, but works with minimal API data)
-                        const hourOffset = (hourCount.hour - currentHour + 24) % 24;
-                        const timelineIndex = (24 - hourOffset) % 24;
+                    // New structure uses timestamp instead of hour
+                    if (hourCount.timestamp) {
+                        // Create a date from the timestamp
+                        const eventTime = new Date(hourCount.timestamp);
+                        
+                        // Calculate hours from now
+                        const hourDiff = Math.floor((now - eventTime) / (60 * 60 * 1000));
                         
                         // Only include data from the last 24 hours
-                        if (hourOffset < 24) {
+                        if (hourDiff >= 0 && hourDiff < 24) {
+                            const timelineIndex = 23 - hourDiff;
                             hourlyData[timelineIndex] = hourCount.count;
                         }
                     }
