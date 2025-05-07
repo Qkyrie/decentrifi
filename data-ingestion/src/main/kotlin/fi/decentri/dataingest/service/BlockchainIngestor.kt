@@ -37,7 +37,7 @@ class BlockchainIngestor(
                     logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
 
                     // Launch raw invocations ingestion
-               /*     launch {
+                    launch {
                         try {
                             rawInvocationIngestorService.ingest(contract)
                             logger.info("Raw invocations ingestion complete for contract ${contract.address}: caught up with the latest block")
@@ -47,7 +47,7 @@ class BlockchainIngestor(
                                 e
                             )
                         }
-                    } */
+                    }
 
                     // Launch events ingestion
                     launch {

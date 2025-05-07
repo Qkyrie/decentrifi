@@ -2,6 +2,7 @@
 
 package fi.decentri.dataingest.ingest
 
+import arrow.fx.coroutines.parMap
 import com.fasterxml.jackson.databind.JsonNode
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.EthereumConfig
@@ -117,13 +118,13 @@ class RawInvocationIngestorService(
             logger.info("Found ${traces.size} traces for the contract in blocks $fromBlock to $toBlock")
 
             // Process each trace to extract invocation data
-            val invocations = traces.mapNotNull { trace ->
+            val invocations = traces.parMap(concurrency = 8) { trace ->
                 try {
                     // Extract transaction data from the trace
-                    val txHash = trace.get("transactionHash")?.asText() ?: return@mapNotNull null
+                    val txHash = trace.get("transactionHash")?.asText() ?: return@parMap null
                     val blockNumber = trace.get("blockNumber")?.asText()?.let {
                         Numeric.decodeQuantity(it).longValueExact()
-                    } ?: return@mapNotNull null
+                    } ?: return@parMap null
 
                     // Get the input data (function call data)
                     val input = trace.get("action")?.get("input")?.asText() ?: "0x"
@@ -136,13 +137,12 @@ class RawInvocationIngestorService(
                     }
 
                     // Get the sender address
-                    val from = trace.get("action")?.get("from")?.asText() ?: return@mapNotNull null
+                    val from = trace.get("action")?.get("from")?.asText() ?: return@parMap null
+
+                    val gasUsed = Numeric.decodeQuantity(trace.get("result").get("gasUsed").textValue())
 
                     // Get the block to extract timestamp
                     val block = blockService.getBlockByNumber(BigInteger(trace.get("blockNumber").asText()))
-
-                    // Get transaction receipt for status and gas used
-                    val receipt = web3j.ethGetTransactionReceipt(txHash).send().transactionReceipt.orElse(null)
 
                     // Create invocation data
                     RawInvocationData(
@@ -154,13 +154,13 @@ class RawInvocationIngestorService(
                         fromAddress = from,
                         functionSelector = functionSelector,
                         inputArgs = mapOf("rawInput" to input),
-                        gasUsed = receipt?.gasUsed?.longValueExact() ?: 0
+                        gasUsed = gasUsed.toLong()
                     )
                 } catch (e: Exception) {
                     logger.error("Error processing trace: ${e.message}", e)
                     null
                 }
-            }.distinctBy { it.txHash } // Deduplicate by transaction hash
+            }.filterNotNull().distinctBy { it.txHash } // Deduplicate by transaction hash
 
             // Store invocations in the database
             if (invocations.isNotEmpty()) {
