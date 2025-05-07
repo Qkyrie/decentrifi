@@ -1,10 +1,13 @@
 package fi.decentri.dataapi.repository
 
+import fi.decentri.dataapi.JsonbFilter
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.event.RawLogs
 import kotlinx.serialization.json.JsonElement
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -13,21 +16,51 @@ import java.time.temporal.ChronoUnit
  */
 class RawLogsRepository {
 
+
+    /**
+     * Extension to extract text from a jsonb column (decoded ->> 'key').
+     */
+    fun Column<JsonElement>.jsonbText(key: String): Expression<String> =
+        CustomFunction("jsonb_extract_path_text", TextColumnType(), this, stringLiteral(key))
+
+    /**
+     * Helper to fold a base predicate with a list of JsonbFilter expressions.
+     */
+    private fun Op<Boolean>.withJsonbFilters(
+        filters: List<JsonbFilter>,
+        jsonColumn: Column<JsonElement>
+    ): Op<Boolean> =
+        filters.fold(this) { acc, filter ->
+            val field = jsonColumn.jsonbText(filter.key)
+            val cond: Op<Boolean> = field.lowerCase() like filter.value.lowercase()
+            acc and cond
+        }
+
     /**
      * Get all events for a contract on a specific network from the last 24 hours
      */
-    suspend fun getEventsFromLast24Hours(network: String, contractAddress: String): List<RawLogEntry> = 
+    suspend fun getEventsFromLast24Hours(
+        network: String, contractAddress: String,
+        filters: List<JsonbFilter> = emptyList()        // default = no filter
+    ): List<RawLogEntry> =
         dbQuery {
             val now = Instant.now()
             val oneDayAgo = now.minus(24, ChronoUnit.HOURS)
 
+
+            // Base predicate (network, contract, and time‑range)
+            var predicate: Op<Boolean> =
+                (RawLogs.network eq network.lowercase()) and
+                        (RawLogs.contractAddress eq contractAddress.lowercase()) and
+                        (RawLogs.blockTimestamp greaterEq oneDayAgo)
+
+            // Augment with JSONB filters, if provided
+            if (filters.isNotEmpty()) {
+                predicate = predicate.withJsonbFilters(filters, RawLogs.decoded)
+            }
+
             RawLogs
-                .selectAll()
-                .where {
-                    (RawLogs.network eq network.lowercase()) and
-                    (RawLogs.contractAddress eq contractAddress.lowercase()) and
-                    (RawLogs.blockTimestamp greaterEq oneDayAgo)
-                }
+                .selectAll().where(predicate)
                 .orderBy(RawLogs.blockTimestamp)
                 .map { row ->
                     RawLogEntry(

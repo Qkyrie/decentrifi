@@ -1,7 +1,7 @@
 package fi.decentri.dataapi.service
 
-import fi.decentri.dataapi.model.EventDTO
-import fi.decentri.dataapi.model.EventsResponseDTO
+import fi.decentri.dataapi.JsonbFilter
+import fi.decentri.dataapi.model.*
 import fi.decentri.dataapi.repository.RawLogsRepository
 import fi.decentri.dataapi.repository.RawLogEntry
 import kotlinx.serialization.json.*
@@ -16,44 +16,77 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     /**
-     * Get all events from the last 24 hours for a specific contract on a given network
+     * Get hourly event counts from the last 24 hours for a specific contract on a given network
+     * Returns data aggregated by hour and event type
      */
-    suspend fun getEventsFromLast24Hours(network: String, contract: String): EventsResponseDTO {
-        logger.info("Fetching events from last 24 hours for network=$network, contract=$contract")
-        
+    suspend fun getHourlyEventCounts(
+        network: String,
+        contract: String,
+        filters: List<JsonbFilter> = emptyList()        // default = no filter
+    ): HourlyEventsResponseDTO {
+        logger.info("Calculating hourly event counts for network=$network, contract=$contract")
+
         // Get raw data from repository
-        val rawEvents = rawLogsRepository.getEventsFromLast24Hours(network, contract)
-        
+        val rawEvents = rawLogsRepository.getEventsFromLast24Hours(network, contract, filters)
+
         // Calculate time range
         val now = Instant.now()
         val oneDayAgo = now.minus(24, ChronoUnit.HOURS)
-        
-        // Convert to DTOs
+
+        // Convert to DTOs first
         val eventDTOs = rawEvents.map { convertToDTO(it) }
-        
-        return EventsResponseDTO(
+
+        // Process events by type and hour
+        val eventsByType = eventDTOs.groupBy { it.eventName ?: "Unknown" }
+        val hourlyDataByType = eventsByType.map { (eventName, events) ->
+            // Create a map to hold the count for each hour (0-23)
+            val hourlyCounts = mutableMapOf<Int, Int>()
+
+            // Initialize all hours with zero counts
+            for (hour in 0..23) {
+                hourlyCounts[hour] = 0
+            }
+
+            // Count events by hour
+            events.forEach { event ->
+                val hour = event.blockTimestamp.atZone(java.time.ZoneOffset.UTC).hour
+                hourlyCounts[hour] = hourlyCounts.getOrDefault(hour, 0) + 1
+            }
+
+            // Convert to our DTO structure
+            val hourlyCountsList = hourlyCounts.entries
+                .sortedBy { it.key }
+                .map { HourlyEventCount(it.key, it.value) }
+
+            EventTypeHourlyData(
+                eventName = eventName,
+                hourlyCounts = hourlyCountsList
+            )
+        }
+
+        return HourlyEventsResponseDTO(
             network = network,
             contract = contract,
-            events = eventDTOs,
+            eventTypes = hourlyDataByType,
             from = oneDayAgo,
             to = now
         )
     }
 
     private fun JsonElement.toAny(): Any? = when (this) {
-        JsonNull           -> null
+        JsonNull -> null
 
         is JsonPrimitive -> when {
-            isString                     -> content                     // "foo"
-            booleanOrNull     != null    -> boolean                     // true / false
-            longOrNull        != null    -> long                        // 42
-            doubleOrNull      != null    -> double                      // 3.14
-            else                           -> content                   // fallback as String
+            isString -> content                     // "foo"
+            booleanOrNull != null -> boolean                     // true / false
+            longOrNull != null -> long                        // 42
+            doubleOrNull != null -> double                      // 3.14
+            else -> content                   // fallback as String
         }
 
-        is JsonArray       -> map { it.toAny() }                        // List<Any?>
+        is JsonArray -> map { it.toAny() }                        // List<Any?>
 
-        is JsonObject      -> mapValues { (_, v) -> v.toAny() }         // Map<String, Any?>
+        is JsonObject -> mapValues { (_, v) -> v.toAny() }         // Map<String, Any?>
     }
 
     /**
@@ -68,7 +101,7 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
             logger.warn("Failed to parse decoded JSON for event ${entry.txHash}:${entry.logIndex}", e)
             null
         }
-        
+
         // Convert JsonElement topics to List<String>
         val topicsList = try {
             if (entry.topics is JsonArray) {
@@ -80,7 +113,7 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
             logger.warn("Failed to parse topics JSON for event ${entry.txHash}:${entry.logIndex}", e)
             emptyList()
         }
-        
+
         return EventDTO(
             contractAddress = entry.contractAddress,
             txHash = entry.txHash,

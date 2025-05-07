@@ -30,3 +30,33 @@ data class EventsResponseDTO(
     val from: Instant,
     val to: Instant
 )
+
+/**
+ * Data structure for counting events per hour
+ */
+@Serializable
+data class HourlyEventCount(
+    val hour: Int,
+    val count: Int
+)
+
+/**
+ * Data structure for events per hour by type
+ */
+@Serializable
+data class EventTypeHourlyData(
+    val eventName: String,
+    val hourlyCounts: List<HourlyEventCount>
+)
+
+/**
+ * Response object for hourly event data
+ */
+@Serializable
+data class HourlyEventsResponseDTO(
+    val network: String,
+    val contract: String,
+    val eventTypes: List<EventTypeHourlyData>,
+    val from: Instant,
+    val to: Instant
+)

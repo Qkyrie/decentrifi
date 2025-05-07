@@ -592,35 +592,6 @@
                     <div class="chart-header">
                         <div class="chart-title">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3 18H13" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M3 6H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M3 12H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Daily Gas Usage (Last 24 Hours)
-                        </div>
-                        <div class="chart-controls">
-                            <button class="chart-button">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                Export
-                            </button>
-                            <div class="time-selector">
-                                <div class="time-option active">Daily Gas Usage</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="gasChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" stroke="#346DF1" stroke-width="2"/>
                                 <path d="M8 10h8" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
                                 <path d="M8 14h4" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
@@ -643,6 +614,35 @@
                     </div>
                     <div class="chart-container">
                         <canvas id="eventsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 18H13" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3 6H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M3 12H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Daily Gas Usage (Last 24 Hours)
+                        </div>
+                        <div class="chart-controls">
+                            <button class="chart-button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Export
+                            </button>
+                            <div class="time-selector">
+                                <div class="time-option active">Daily Gas Usage</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="gasChart"></canvas>
                     </div>
                 </div>
 
@@ -970,9 +970,13 @@
         
         // Process events data for stacked bar chart by hour and type
         function processEventsData(apiData) {
-            if (!apiData || !apiData.events || apiData.events.length === 0) {
+            // Create hour labels (0-23)
+            const hourLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
+            
+            // Check if we have valid data from the API
+            if (!apiData || !apiData.eventTypes || apiData.eventTypes.length === 0) {
                 return {
-                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                    labels: hourLabels,
                     datasets: [
                         {
                             label: 'No Events',
@@ -984,34 +988,6 @@
                     ]
                 };
             }
-            
-            // Create hour labels
-            const hourLabels = Array.from({length: 24}, (_, i) => `${i}:00`);
-            
-            // Categorize events by type and hour
-            const eventsByTypeAndHour = {};
-            const eventTypes = new Set();
-            
-            // Process all events to build our data structure
-            apiData.events.forEach(event => {
-                const eventTime = new Date(event.blockTimestamp);
-                const hourOfDay = eventTime.getHours();
-                const eventName = event.eventName || 'Unknown';
-                
-                // Add to our set of event types
-                eventTypes.add(eventName);
-                
-                // Initialize the data structure if needed
-                if (!eventsByTypeAndHour[eventName]) {
-                    eventsByTypeAndHour[eventName] = Array(24).fill(0);
-                }
-                
-                // Increment the count for this event type and hour
-                eventsByTypeAndHour[eventName][hourOfDay]++;
-            });
-            
-            // Convert the set to an array and sort
-            const sortedEventTypes = [...eventTypes].sort();
             
             // Generate a color palette for our event types
             const colorPalette = [
@@ -1032,11 +1008,19 @@
                 return colorPalette[index % colorPalette.length];
             };
             
-            // Create a dataset for each event type
-            const datasets = sortedEventTypes.map((eventType, index) => {
+            // Create a dataset for each event type from the backend data
+            const datasets = apiData.eventTypes.map((eventType, index) => {
+                // Convert the hourly counts to an array of 24 values
+                const hourlyData = Array(24).fill(0);
+                
+                // Fill in the data from the API
+                eventType.hourlyCounts.forEach(hourCount => {
+                    hourlyData[hourCount.hour] = hourCount.count;
+                });
+                
                 return {
-                    label: eventType,
-                    data: eventsByTypeAndHour[eventType],
+                    label: eventType.eventName,
+                    data: hourlyData,
                     backgroundColor: getColor(index),
                     borderColor: getColor(index).replace('0.8', '1.0'),
                     borderWidth: 1

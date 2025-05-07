@@ -120,6 +120,9 @@ fun Application.configureRouting(
 
             get("/{network}/{contract}/events/daily") {
                 try {
+
+                    val filters = call.parseJsonbFilters()
+
                     val network = call.parameters["network"] ?: return@get call.respond(
                         HttpStatusCode.BadRequest,
                         "Missing network parameter"
@@ -129,8 +132,8 @@ fun Application.configureRouting(
                         "Missing contract parameter"
                     )
 
-                    logger.info("Fetching events from last 24 hours for network=$network, contract=$contract")
-                    val eventsData = eventService.getEventsFromLast24Hours(network, contract)
+                    logger.info("Fetching hourly event counts for network=$network, contract=$contract")
+                    val eventsData = eventService.getHourlyEventCounts(network, contract, filters)
                     call.respond(eventsData)
                 } catch (e: Exception) {
                     logger.error("Error fetching events data", e)
@@ -140,6 +143,17 @@ fun Application.configureRouting(
         }
     }
 }
+
+data class JsonbFilter(val key: String, val value: String)
+
+fun ApplicationCall.parseJsonbFilters(): List<JsonbFilter> =
+    request.queryParameters.getAll("filter")
+        ?.mapNotNull { token ->
+            token.split(":", limit = 2)
+                .takeIf { it.size == 2 }
+                ?.let { (k, v) -> JsonbFilter(k.lowercase(), v) }
+        }
+        ?: emptyList()
 
 fun Application.configureTemplating() {
     install(Thymeleaf) {
