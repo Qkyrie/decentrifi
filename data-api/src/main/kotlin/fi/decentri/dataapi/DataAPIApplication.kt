@@ -123,7 +123,7 @@ fun Application.configureRouting(
                     )
 
                     logger.info("Fetching daily gas usage for network=$network, contract=$contract")
-                    val gasUsageData = gasUsageService.getDailyGasUsage(network, contract)
+                    val gasUsageData = gasUsageService.getInvocationData(network, contract)
                     call.respond(gasUsageData)
                 } catch (e: Exception) {
                     logger.error("Error fetching gas usage data", e)

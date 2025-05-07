@@ -1051,7 +1051,7 @@
 
         // Process real data for daily chart
         function processDailyGasData(apiData) {
-            // Generate labels for the last 24 hours (T-24h to now)
+            // Generate labels for the last 24 hours (T-24h to now) in local browser time
             const now = new Date();
             const hourLabels = Array.from({length: 24}, (_, i) => {
                 const hourAgo = new Date(now);
@@ -1078,30 +1078,41 @@
 
             // Extract data points from API response
             const dataPoints = apiData.dataPoints;
-            const currentHour = now.getHours();
             
             // Create an array of 24 elements with zeros
             const gasUsedValues = Array(24).fill(0);
             
             // Get current time for comparing timestamps
             const currentTime = now.getTime();
-            const oneDayInMs = 24 * 60 * 60 * 1000;
+            
+            // Create an array of all hour slots from 24 hours ago to now, in UTC
+            const hourSlots = [];
+            const nowUtc = new Date(Date.now());
+            
+            for (let i = 23; i >= 0; i--) {
+                const slotTime = new Date(nowUtc);
+                slotTime.setHours(nowUtc.getHours() - i);
+                slotTime.setMinutes(0, 0, 0);
+                hourSlots.push(slotTime);
+            }
             
             // Map the data points to the appropriate position in our timeline
             dataPoints.forEach(point => {
+                // Parse the timestamp from the backend (already in ISO-8601 format)
+                // Note: Backend sends UTC timestamps
                 const date = new Date(point.timestamp);
-                const pointTime = date.getTime();
-                
-                // Only include data from the last 24 hours based on timestamp
-                if (currentTime - pointTime <= oneDayInMs) {
-                    // Calculate which hour slot this belongs to
-                    const hourDiff = Math.floor((currentTime - pointTime) / (60 * 60 * 1000));
-                    
-                    // Make sure it's within our 24-hour window
-                    if (hourDiff >= 0 && hourDiff < 24) {
-                        // 23 - hourDiff gives us the correct index (23 is the most recent hour)
-                        const timelineIndex = 23 - hourDiff;
-                        gasUsedValues[timelineIndex] = point.gasUsed;
+
+                // Find which hour slot this timestamp belongs to
+                for (let i = 0; i < hourSlots.length; i++) {
+                    const slot = hourSlots[i];
+                    // If timestamps are in the same hour
+                    if (slot.getUTCFullYear() === date.getUTCFullYear() &&
+                        slot.getUTCMonth() === date.getUTCMonth() &&
+                        slot.getUTCDate() === date.getUTCDate() &&
+                        slot.getUTCHours() === date.getUTCHours()) {
+                        // Assign gas used value to correct index
+                        gasUsedValues[i] = point.gasUsed;
+                        break;
                     }
                 }
             });
@@ -1216,7 +1227,7 @@
             const totalGas = data.dataPoints.reduce((sum, point) => sum + point.gasUsed, 0);
             
             // Count transactions
-            const txCount = data.dataPoints.length;
+            const txCount = data.txCount;
             
             // Update the metric cards
             const avgGasUsedElement = document.querySelector('.metric-card:nth-child(1) .metric-value');
