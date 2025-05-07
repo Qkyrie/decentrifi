@@ -170,7 +170,7 @@ fun ApplicationCall.parseJsonbFilters(): List<JsonbFilter> =
         ?.mapNotNull { token ->
             token.split(":", limit = 2)
                 .takeIf { it.size == 2 }
-                ?.let { (k, v) -> JsonbFilter(k.lowercase(), v) }
+                ?.let { (k, v) -> JsonbFilter(k, v) }
         }
         ?: emptyList()
 
