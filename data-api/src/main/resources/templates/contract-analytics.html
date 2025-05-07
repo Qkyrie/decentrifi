@@ -232,7 +232,7 @@
             overflow: hidden;
         }
         
-        .contract-details::before {
+        .contract-details::before, .segments-panel::before {
             content: '';
             position: absolute;
             top: 0;
@@ -247,6 +247,141 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
+        }
+        
+        /* Segments Panel Styles */
+        .segments-panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            padding: 28px;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+            animation: fadeInUp 0.6s ease forwards 0.7s;
+            opacity: 0;
+            transform: translateY(20px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .segments-content {
+            margin-top: 15px;
+        }
+        
+        .segment-search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .segment-search input {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .segment-search input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(52, 109, 241, 0.2);
+        }
+        
+        .segment-button {
+            padding: 10px 16px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .segment-button:hover {
+            background: #2558d9;
+        }
+        
+        .segment-button-outlined {
+            background: transparent;
+            color: var(--primary-blue);
+            border: 1px solid var(--primary-blue);
+        }
+        
+        .segment-button-outlined:hover {
+            background: rgba(52, 109, 241, 0.1);
+        }
+        
+        .active-segments {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .segment-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: rgba(52, 109, 241, 0.1);
+            color: var(--primary-blue);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .segment-tag-remove {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(52, 109, 241, 0.2);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .segment-tag-remove:hover {
+            background: rgba(52, 109, 241, 0.3);
+        }
+        
+        .segment-suggestions {
+            margin-top: 10px;
+            display: none;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .segment-suggestion-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.3s ease;
+        }
+        
+        .segment-suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .segment-suggestion-item:hover {
+            background-color: rgba(52, 109, 241, 0.05);
+        }
+        
+        .suggestion-title {
+            padding: 8px 15px;
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(42, 46, 61, 0.6);
+            background-color: rgba(245, 248, 250, 0.7);
+            border-bottom: 1px solid var(--border-color);
         }
 
         @media (max-width: 768px) {
@@ -562,6 +697,30 @@
                     </p>
                 </div>
 
+                <div class="segments-panel">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 11h-6V5h6v6zm-6 2h6v6h-6v-6zm-2 6H5v-6h6v6zm0-14v6H5V5h6z" stroke="#346DF1" stroke-width="1.8"/>
+                            </svg>
+                            Segments
+                        </div>
+                    </div>
+                    <div class="segments-content">
+                        <div class="segment-search">
+                            <input type="text" id="segmentSearch" placeholder="Search for sender=0xabc... or aggregatorId=8180..." />
+                            <button id="applySegment" class="segment-button">Apply</button>
+                            <button id="clearSegment" class="segment-button segment-button-outlined">Clear</button>
+                        </div>
+                        <div class="active-segments" id="activeSegments">
+                            <!-- Active segments will be displayed here -->
+                        </div>
+                        <div class="segment-suggestions" id="segmentSuggestions">
+                            <!-- Suggestions will be shown here -->
+                        </div>
+                    </div>
+                </div>
+
                 <div class="contract-details">
                     <div class="chart-header">
                         <div class="chart-title">
@@ -733,15 +892,28 @@
             navLinks.classList.toggle('active');
         });
 
-        // No time selector functionality needed anymore as we only have one view
+        // Store active segments globally
+        const activeSegments = new Set();
 
-        // Initialize the gas chart
-        const ctx = document.getElementById('gasChart').getContext('2d');
-        
+        // Initialize the segments panel
+        const segmentSearch = document.getElementById('segmentSearch');
+        const segmentSuggestions = document.getElementById('segmentSuggestions');
+        const activeSegmentsContainer = document.getElementById('activeSegments');
+        const applySegmentBtn = document.getElementById('applySegment');
+        const clearSegmentBtn = document.getElementById('clearSegment');
+
         // Function to fetch real gas usage data from the API
-        async function fetchDailyGasUsageData(network, contract) {
+        async function fetchDailyGasUsageData(network, contract, filters = []) {
             try {
-                const response = await fetch(`/data/${network}/${contract}/gas-used/daily`);
+                let url = `/data/${network}/${contract}/gas-used/daily`;
+                
+                // Add filters as query parameters if they exist
+                if (filters.length > 0) {
+                    const filterParams = filters.map(f => `filter=${encodeURIComponent(f.key + ':' + f.value)}`).join('&');
+                    url += `?${filterParams}`;
+                }
+                
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -917,6 +1089,7 @@
         };
 
         // Create the chart with initial data
+        const ctx = document.getElementById('gasChart').getContext('2d');
         let gasChart = new Chart(ctx, {
             type: 'line',
             data: chartData,
@@ -963,10 +1136,18 @@
             }
         }
         
-        // Function to fetch events data from the API
-        async function fetchEventsData(network, contract) {
+        // Function to fetch events data from the API with optional filters
+        async function fetchEventsData(network, contract, filters = []) {
             try {
-                const response = await fetch(`/data/${network}/${contract}/events/daily`);
+                let url = `/data/${network}/${contract}/events/daily`;
+                
+                // Add filters as query parameters if they exist
+                if (filters.length > 0) {
+                    const filterParams = filters.map(f => `filter=${encodeURIComponent(f.key + ':' + f.value)}`).join('&');
+                    url += `?${filterParams}`;
+                }
+                
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -1166,6 +1347,205 @@
             options: eventsChartOptions
         });
         
+        // Function to parse a segment string (e.g., "sender=0xabc...")
+        function parseSegment(segmentText) {
+            const parts = segmentText.split('=');
+            if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+                return null;
+            }
+            
+            return {
+                key: parts[0].trim(),
+                value: parts[1].trim()
+            };
+        }
+        
+        // Function to add a segment tag to the UI
+        function addSegmentTag(segment) {
+            const segmentTag = document.createElement('div');
+            segmentTag.className = 'segment-tag';
+            segmentTag.setAttribute('data-key', segment.key);
+            segmentTag.setAttribute('data-value', segment.value);
+            
+            segmentTag.innerHTML = `
+                ${segment.key}=${segment.value}
+                <span class="segment-tag-remove">×</span>
+            `;
+            
+            // Add click handler for removal
+            segmentTag.querySelector('.segment-tag-remove').addEventListener('click', function() {
+                segmentTag.remove();
+                
+                // Remove from active segments
+                const segmentStr = `${segment.key}:${segment.value}`;
+                activeSegments.delete(segmentStr);
+                
+                // Reload data with updated filters
+                reloadChartsWithFilters();
+            });
+            
+            activeSegmentsContainer.appendChild(segmentTag);
+            
+            // Add to active segments set
+            const segmentStr = `${segment.key}:${segment.value}`;
+            activeSegments.add(segmentStr);
+        }
+        
+        // Generate filter objects from activeSegments set
+        function getActiveFilters() {
+            const filters = [];
+            activeSegments.forEach(segmentStr => {
+                const [key, value] = segmentStr.split(':');
+                filters.push({ key, value });
+            });
+            return filters;
+        }
+        
+        // Function to reload all charts with current filters
+        async function reloadChartsWithFilters() {
+            const filters = getActiveFilters();
+            const { network, contract } = getNetworkAndContract();
+            
+            // Fetch both gas usage and events data in parallel with filters
+            const [gasData, eventsData] = await Promise.all([
+                fetchDailyGasUsageData(network, contract, filters),
+                fetchEventsData(network, contract, filters)
+            ]);
+            
+            // Update gas usage chart
+            if (gasData) {
+                const processedGasData = processDailyGasData(gasData);
+                gasChart.data.labels = processedGasData.labels;
+                gasChart.data.datasets = processedGasData.datasets;
+                gasChart.update();
+                
+                // Update metrics cards with real data
+                updateMetricsCards(gasData);
+            }
+            
+            // Update events chart
+            if (eventsData) {
+                const processedEventsData = processEventsData(eventsData);
+                eventsChart.data.labels = processedEventsData.labels;
+                eventsChart.data.datasets = processedEventsData.datasets;
+                eventsChart.update();
+                
+                // Update segment suggestions from event data
+                updateSegmentSuggestions(eventsData);
+            }
+        }
+        
+        // Function to update segment suggestions based on event data
+        function updateSegmentSuggestions(eventsData) {
+            // We would normally get this from the backend
+            // For now, just showing some examples
+            const suggestedFields = [
+                'sender', 'recipient', 'amount', 'tokenId', 'aggregatorId', 
+                'price', 'operator', 'owner', 'spender', 'value'
+            ];
+            
+            // Clear existing suggestions
+            segmentSuggestions.innerHTML = '';
+            
+            // Add title
+            const suggestionTitle = document.createElement('div');
+            suggestionTitle.className = 'suggestion-title';
+            suggestionTitle.textContent = 'Common fields:';
+            segmentSuggestions.appendChild(suggestionTitle);
+            
+            // Add suggestion items
+            suggestedFields.forEach(field => {
+                const item = document.createElement('div');
+                item.className = 'segment-suggestion-item';
+                item.textContent = field;
+                
+                item.addEventListener('click', function() {
+                    segmentSearch.value = field + '=';
+                    segmentSearch.focus();
+                    // Position cursor after the "="
+                    const pos = segmentSearch.value.length;
+                    segmentSearch.setSelectionRange(pos, pos);
+                });
+                
+                segmentSuggestions.appendChild(item);
+            });
+        }
+        
+        // Event handler for apply button
+        applySegmentBtn.addEventListener('click', function() {
+            const segmentText = segmentSearch.value.trim();
+            if (!segmentText) return;
+            
+            const segment = parseSegment(segmentText);
+            if (!segment) {
+                alert('Please enter a valid filter in the format "field=value"');
+                return;
+            }
+            
+            // Check if this segment already exists
+            const segmentStr = `${segment.key}:${segment.value}`;
+            if (activeSegments.has(segmentStr)) {
+                alert('This filter is already applied');
+                return;
+            }
+            
+            // Add the segment tag and update the data
+            addSegmentTag(segment);
+            segmentSearch.value = '';
+            
+            // Reload data with the new filter
+            reloadChartsWithFilters();
+        });
+        
+        // Event handler for clear button
+        clearSegmentBtn.addEventListener('click', function() {
+            // Clear all segment tags
+            activeSegmentsContainer.innerHTML = '';
+            activeSegments.clear();
+            
+            // Reload data without filters
+            reloadChartsWithFilters();
+        });
+        
+        // Event listener for Enter key in the search input
+        segmentSearch.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                applySegmentBtn.click();
+            }
+        });
+        
+        // Function to show segment suggestions
+        segmentSearch.addEventListener('focus', function() {
+            segmentSuggestions.style.display = 'block';
+        });
+        
+        // Function to hide segment suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!segmentSearch.contains(e.target) && !segmentSuggestions.contains(e.target)) {
+                segmentSuggestions.style.display = 'none';
+            }
+        });
+        
+        // Function to filter suggestions as user types
+        segmentSearch.addEventListener('input', function() {
+            const searchText = segmentSearch.value.trim().toLowerCase();
+            
+            // If search includes '=', don't filter suggestions
+            if (searchText.includes('=')) {
+                return;
+            }
+            
+            // Show only matching suggestions
+            const suggestions = segmentSuggestions.querySelectorAll('.segment-suggestion-item');
+            suggestions.forEach(item => {
+                if (searchText === '' || item.textContent.toLowerCase().includes(searchText)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+        
         // Fetch and update both charts on page load
         async function initializeRealData() {
             const { network, contract } = getNetworkAndContract();
@@ -1203,6 +1583,9 @@
                 eventsChart.data.labels = processedEventsData.labels;
                 eventsChart.data.datasets = processedEventsData.datasets;
                 eventsChart.update();
+                
+                // Initialize segment suggestions from event data
+                updateSegmentSuggestions(eventsData);
             }
         }
         
