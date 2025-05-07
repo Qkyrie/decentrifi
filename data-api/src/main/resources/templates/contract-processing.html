@@ -595,7 +595,7 @@
                 document.getElementById('events-step').classList.add('active');
                 document.getElementById('events-status').textContent = 'In progress...';
                 
-                // Simulate events import completion (takes ~15 more seconds)
+                // Simulate events import completion (takes ~10 more seconds)
                 setTimeout(() => {
                     eventsImportComplete = true;
                     document.getElementById('events-step').classList.add('completed');
@@ -603,9 +603,10 @@
                     
                     // Redirect to analytics page in 2 seconds
                     setTimeout(() => {
+                        // Using a relative path to make it work in any environment
                         window.location.href = 'contract-analytics.html';
                     }, 2000);
-                }, 15000);
+                }, 10000);
             }, 5000);
             
             // Update progress continuously
