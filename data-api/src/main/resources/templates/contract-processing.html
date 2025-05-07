@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentrifi - Processing Smart Contract</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        :root {
+            --primary-blue: #346DF1;
+            --accent-teal: #22D1C6;
+            --gradient: linear-gradient(45deg, #346DF1, #7D4CFF);
+            --light-bg: #F5F8FA;
+            --dark-text: #2A2E3D;
+            --border-color: #E1E4E8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--dark-text);
+            line-height: 1.5;
+            background-color: var(--light-bg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header & Navigation */
+        .header {
+            padding: 16px 0;
+            position: fixed;
+            width: 100%;
+            z-index: 100;
+            transition: background-color 0.3s ease;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-lockup {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--dark-text);
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark-text);
+            font-size: 14px;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-teal);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            height: 2px;
+            width: 0;
+            background-color: var(--accent-teal);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* 3D Scene Container */
+        .scene-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+        }
+
+        #scene-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Status Overlay */
+        .status-overlay {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 24px 36px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            max-width: 600px;
+            transform: translateY(20px);
+            animation: floatUp 0.6s ease forwards;
+        }
+
+        .status-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .status-message {
+            font-size: 16px;
+            line-height: 1.6;
+            color: rgba(42, 46, 61, 0.8);
+            margin-bottom: 24px;
+        }
+
+        .progress-container {
+            height: 8px;
+            background: rgba(52, 109, 241, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: var(--gradient);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: shimmer 1.5s infinite;
+        }
+
+        .progress-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(42, 46, 61, 0.6);
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .status-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 48%;
+        }
+
+        .step-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .step-icon svg {
+            width: 24px;
+            height: 24px;
+            color: var(--primary-blue);
+        }
+
+        .step-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        .step-status {
+            font-size: 12px;
+            color: rgba(42, 46, 61, 0.6);
+            margin-top: 4px;
+        }
+
+        .step.active .step-icon {
+            background: var(--gradient);
+        }
+
+        .step.active .step-icon svg {
+            color: white;
+        }
+
+        .step.completed .step-icon::after {
+            content: '✓';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #2ecc71;
+            border-radius: 50%;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animations */
+        @keyframes floatUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .step.active .step-icon {
+            animation: pulse 2s infinite;
+        }
+
+        /* Media Queries */
+        @media (max-width: 768px) {
+            .status-panel {
+                width: 90%;
+                padding: 20px;
+            }
+
+            .status-title {
+                font-size: 24px;
+            }
+
+            .status-message {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header" id="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-lockup">
+                    <div class="logo-icon">
+                        <img src="/images/logo.png" alt="logo" />
+                    </div>
+                    <div class="logo-text">decentrifi</div>
+                </div>
+                <nav>
+                    <ul class="nav-links" id="nav-links">
+                        <li><a href="../../../../../landing/index.html">Home</a></li>
+                        <li><a href="#analytics">Analytics</a></li>
+                        <li><a href="#docs">Docs</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#login">Login</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="scene-container">
+        <canvas id="scene-canvas"></canvas>
+
+        <div class="status-overlay">
+            <div class="status-panel">
+                <h2 class="status-title">Processing Smart Contract</h2>
+                <p class="status-message">
+                    We're analyzing your smart contract and importing events. This may take a few minutes 
+                    while we decode and process the blockchain data.
+                </p>
+
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+                <div class="progress-label" id="progress-label">0%</div>
+
+                <div class="status-steps">
+                    <div class="step active" id="validation-step">
+                        <div class="step-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="step-label">Validating Contract</div>
+                        <div class="step-status" id="validation-status">In progress...</div>
+                    </div>
+                    <div class="step" id="events-step">
+                        <div class="step-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </div>
+                        <div class="step-label">Importing Events</div>
+                        <div class="step-status" id="events-status">Waiting...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scene setup
+        let scene, camera, renderer, particles;
+        const particleCount = 800;
+        const particlesData = [];
+        let validationComplete = false;
+        let eventsImportComplete = false;
+        let progressValue = 0;
+        
+        // Initialize 3D scene
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f8fa);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: document.getElementById('scene-canvas'),
+                antialias: true
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio > 1 ? 2 : 1);
+            
+            // Create particle system
+            createParticleSystem();
+            
+            // Create a light
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(0, 0, 1);
+            scene.add(light);
+            
+            // Add ambient light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            // Add event listener for window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Start animation loop
+            animate();
+            
+            // Simulate processing
+            simulateProcessing();
+        }
+        
+        // Create particle system
+        function createParticleSystem() {
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const sizes = new Float32Array(particleCount);
+            
+            // Color palette for particles
+            const colorPalette = [
+                new THREE.Color(0x346df1), // Primary blue
+                new THREE.Color(0x22d1c6), // Accent teal
+                new THREE.Color(0x7d4cff)  // Purple
+            ];
+            
+            for (let i = 0; i < particleCount; i++) {
+                // Create a particle in a spherical distribution
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const radius = 15 + Math.random() * 5;
+                
+                positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+                positions[i * 3 + 2] = radius * Math.cos(phi);
+                
+                // Particle velocity for animation
+                particlesData.push({
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05,
+                        (Math.random() - 0.5) * 0.05
+                    ),
+                    position: new THREE.Vector3(
+                        positions[i * 3],
+                        positions[i * 3 + 1],
+                        positions[i * 3 + 2]
+                    )
+                });
+                
+                // Random color from palette
+                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+                
+                // Random size
+                sizes[i] = Math.random() * 0.5 + 0.1;
+            }
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            
+            // Create particle material
+            const material = new THREE.PointsMaterial({
+                size: 0.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true
+            });
+            
+            // Create the particle system
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+            
+            // Create connecting lines between particles
+            createConnections();
+        }
+        
+        // Create connections between nearby particles
+        function createConnections() {
+            const linesMaterial = new THREE.LineBasicMaterial({
+                color: 0x346df1,
+                transparent: true,
+                opacity: 0.2
+            });
+            
+            for (let i = 0; i < particleCount; i++) {
+                for (let j = i + 1; j < particleCount; j++) {
+                    const p1 = particlesData[i].position;
+                    const p2 = particlesData[j].position;
+                    const distance = p1.distanceTo(p2);
+                    
+                    // Only connect particles that are close to each other
+                    if (distance < 5) {
+                        const lineGeometry = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+                        const line = new THREE.Line(lineGeometry, linesMaterial);
+                        scene.add(line);
+                    }
+                }
+            }
+        }
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate particle system
+            if (particles) {
+                particles.rotation.x += 0.0005;
+                particles.rotation.y += 0.001;
+                
+                // Update particle positions
+                const positions = particles.geometry.attributes.position.array;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const pd = particlesData[i];
+                    pd.position.add(pd.velocity);
+                    
+                    // Bounce off imaginary sphere
+                    const distance = pd.position.length();
+                    if (distance > 20 || distance < 10) {
+                        pd.velocity.multiplyScalar(-1);
+                    }
+                    
+                    positions[i * 3] = pd.position.x;
+                    positions[i * 3 + 1] = pd.position.y;
+                    positions[i * 3 + 2] = pd.position.z;
+                }
+                
+                particles.geometry.attributes.position.needsUpdate = true;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Simulate the processing stages
+        function simulateProcessing() {
+            // Simulate validation step (completes in ~5 seconds)
+            setTimeout(() => {
+                // Mark validation complete
+                validationComplete = true;
+                document.getElementById('validation-step').classList.add('completed');
+                document.getElementById('validation-status').textContent = 'Complete';
+                
+                // Start events import
+                document.getElementById('events-step').classList.add('active');
+                document.getElementById('events-status').textContent = 'In progress...';
+                
+                // Simulate events import completion (takes ~15 more seconds)
+                setTimeout(() => {
+                    eventsImportComplete = true;
+                    document.getElementById('events-step').classList.add('completed');
+                    document.getElementById('events-status').textContent = 'Complete';
+                    
+                    // Redirect to analytics page in 2 seconds
+                    setTimeout(() => {
+                        window.location.href = 'contract-analytics.html';
+                    }, 2000);
+                }, 15000);
+            }, 5000);
+            
+            // Update progress continuously
+            const progressInterval = setInterval(() => {
+                if (!validationComplete) {
+                    // During validation (0-30%)
+                    progressValue = Math.min(30, progressValue + 1);
+                } else if (!eventsImportComplete) {
+                    // During events import (31-95%)
+                    progressValue = Math.min(95, progressValue + 1);
+                } else {
+                    // Completed (96-100%)
+                    progressValue = Math.min(100, progressValue + 1);
+                    
+                    if (progressValue === 100) {
+                        clearInterval(progressInterval);
+                    }
+                }
+                
+                // Update UI
+                document.getElementById('progress-bar').style.width = `${progressValue}%`;
+                document.getElementById('progress-label').textContent = `${progressValue}%`;
+            }, 250);
+        }
+        
+        // Initialize scene when page loads
+        window.onload = init;
+    </script>
+</body>
+</html>
