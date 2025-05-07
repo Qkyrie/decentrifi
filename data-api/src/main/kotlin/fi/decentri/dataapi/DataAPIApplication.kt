@@ -9,6 +9,11 @@ import fi.decentri.dataapi.service.GasUsageService
 import fi.decentri.dataapi.waitlist.EmailRequest
 import fi.decentri.dataapi.waitlist.WaitlistRepository
 import fi.decentri.db.DatabaseFactory
+import fi.decentri.db.contract.Contracts
+import fi.decentri.db.event.RawLogs
+import fi.decentri.db.ingestion.IngestionMetadata
+import fi.decentri.db.rawinvocation.RawInvocations
+import fi.decentri.db.waitlist.WaitlistEntries
 import io.ktor.http.*
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
@@ -33,6 +38,14 @@ fun main() {
 
     // Initialize database
     DatabaseFactory.init(appConfig.database)
+
+    DatabaseFactory.initTables(
+        RawInvocations,
+        RawLogs,
+        IngestionMetadata,
+        Contracts,
+        WaitlistEntries
+    )
 
     // Initialize repositories
     val rawInvocationsRepository = RawInvocationsRepository()
@@ -139,7 +152,7 @@ fun Application.configureRouting(
                     call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
                 }
             }
-            
+
             get("/{network}/{contract}/events/decoded-keys") {
                 try {
                     val network = call.parameters["network"] ?: return@get call.respond(

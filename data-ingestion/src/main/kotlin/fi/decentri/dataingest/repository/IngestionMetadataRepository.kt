@@ -1,8 +1,8 @@
 package fi.decentri.dataingest.repository
 
-import fi.decentri.dataingest.model.IngestionMetadata
 import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.db.DatabaseFactory.dbQuery
+import fi.decentri.db.ingestion.IngestionMetadata
 import org.jetbrains.exposed.sql.*
 import org.slf4j.LoggerFactory
 

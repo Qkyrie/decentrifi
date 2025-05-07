@@ -1,8 +1,8 @@
 package fi.decentri.dataingest.repository
 
 import fi.decentri.dataingest.model.Contract
-import fi.decentri.dataingest.model.Contracts
 import fi.decentri.db.DatabaseFactory.dbQuery
+import fi.decentri.db.contract.Contracts
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.slf4j.LoggerFactory
@@ -28,8 +28,6 @@ class ContractsRepository {
                 it[abi] = contract.abi
                 it[chain] = contract.chain
                 it[name] = contract.name
-                it[createdAt] = contract.createdAt.toJavaInstant()
-                it[updatedAt] = contract.updatedAt.toJavaInstant()
             }[Contracts.id]
         }
     }
@@ -48,7 +46,6 @@ class ContractsRepository {
                 it[abi] = contract.abi
                 it[chain] = contract.chain
                 it[name] = contract.name
-                it[updatedAt] = Instant.now()
             }
             rowsUpdated > 0
         }
@@ -126,8 +123,6 @@ class ContractsRepository {
             abi = row[Contracts.abi],
             chain = row[Contracts.chain],
             name = row[Contracts.name],
-            createdAt = row[Contracts.createdAt].toKotlinInstant(),
-            updatedAt = row[Contracts.updatedAt].toKotlinInstant()
         )
     }
 }

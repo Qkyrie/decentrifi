@@ -33,16 +33,6 @@ fun main(): Unit = runBlocking {
     // Initialize database
     DatabaseFactory.init(appConfig.database)
 
-    // Initialize database tables
-    DatabaseFactory.initTables(
-        RawInvocations,
-        RawLogs,
-        fi.decentri.dataingest.model.IngestionMetadata,
-        fi.decentri.dataingest.model.Contracts,
-        fi.decentri.db.waitlist.WaitlistEntries
-    )
-
-
     // Create necessary services
     val contractsRepository = ContractsRepository()
     val abiService = AbiService()
