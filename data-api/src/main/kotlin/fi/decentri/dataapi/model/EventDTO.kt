@@ -60,3 +60,13 @@ data class HourlyEventsResponseDTO(
     val from: Instant,
     val to: Instant
 )
+
+/**
+ * Response object for decoded event keys
+ */
+@Serializable
+data class DecodedKeysResponseDTO(
+    val network: String,
+    val contract: String,
+    val eventKeys: Map<String, List<String>> // Map of event name to list of decoded parameter names
+)

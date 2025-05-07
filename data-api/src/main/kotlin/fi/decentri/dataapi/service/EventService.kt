@@ -73,6 +73,22 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
         )
     }
 
+    /**
+     * Get all unique decoded keys for events from a specific contract
+     * Returns a map of event names to their decoded parameter keys
+     */
+    suspend fun getDecodedEventKeys(network: String, contract: String): DecodedKeysResponseDTO {
+        logger.info("Getting decoded event keys for network=$network, contract=$contract")
+        
+        val eventKeys = rawLogsRepository.getDecodedEventKeys(network, contract)
+        
+        return DecodedKeysResponseDTO(
+            network = network,
+            contract = contract,
+            eventKeys = eventKeys
+        )
+    }
+
     private fun JsonElement.toAny(): Any? = when (this) {
         JsonNull -> null
 

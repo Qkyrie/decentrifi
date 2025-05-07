@@ -383,6 +383,69 @@
             background-color: rgba(245, 248, 250, 0.7);
             border-bottom: 1px solid var(--border-color);
         }
+        
+        /* Event Type Filter styles */
+        .filter-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .event-type-selector,
+        .parameter-selector {
+            flex: 1;
+        }
+        
+        .filter-select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: white;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232A2E3D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(52, 109, 241, 0.2);
+        }
+        
+        .filter-select:disabled {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .filter-select option {
+            padding: 8px;
+        }
+        
+        .event-tag {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+        
+        .parameter-tag {
+            background-color: rgba(155, 89, 182, 0.1);
+            color: #9b59b6;
+            border: 1px solid rgba(155, 89, 182, 0.3);
+        }
+        
+        .event-type-indicator {
+            font-weight: 600;
+            opacity: 0.8;
+            margin-right: 2px;
+        }
 
         @media (max-width: 768px) {
             .contract-details-grid {
@@ -703,14 +766,28 @@
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 11h-6V5h6v6zm-6 2h6v6h-6v-6zm-2 6H5v-6h6v6zm0-14v6H5V5h6z" stroke="#346DF1" stroke-width="1.8"/>
                             </svg>
-                            Segments
+                            Filter by Event Parameters
                         </div>
                     </div>
                     <div class="segments-content">
+                        <div class="filter-controls">
+                            <div class="event-type-selector">
+                                <select id="eventTypeSelect" class="filter-select">
+                                    <option value="">Select Event Type</option>
+                                    <!-- Event types will be loaded here -->
+                                </select>
+                            </div>
+                            <div class="parameter-selector">
+                                <select id="parameterSelect" class="filter-select" disabled>
+                                    <option value="">Select Parameter</option>
+                                    <!-- Parameters will be loaded here -->
+                                </select>
+                            </div>
+                        </div>
                         <div class="segment-search">
-                            <input type="text" id="segmentSearch" placeholder="Search for sender=0xabc... or aggregatorId=8180..." />
-                            <button id="applySegment" class="segment-button">Apply</button>
-                            <button id="clearSegment" class="segment-button segment-button-outlined">Clear</button>
+                            <input type="text" id="segmentSearch" placeholder="Enter value (e.g., 0xabc...)" />
+                            <button id="applySegment" class="segment-button">Apply Filter</button>
+                            <button id="clearSegment" class="segment-button segment-button-outlined">Clear All</button>
                         </div>
                         <div class="active-segments" id="activeSegments">
                             <!-- Active segments will be displayed here -->
@@ -1361,16 +1438,31 @@
         }
         
         // Function to add a segment tag to the UI
-        function addSegmentTag(segment) {
+        function addSegmentTag(segment, eventType = null) {
             const segmentTag = document.createElement('div');
-            segmentTag.className = 'segment-tag';
+            
+            // Apply different styles based on if we have event context
+            if (eventType) {
+                segmentTag.className = 'segment-tag parameter-tag';
+            } else {
+                segmentTag.className = 'segment-tag';
+            }
+            
             segmentTag.setAttribute('data-key', segment.key);
             segmentTag.setAttribute('data-value', segment.value);
             
-            segmentTag.innerHTML = `
-                ${segment.key}=${segment.value}
-                <span class="segment-tag-remove">×</span>
-            `;
+            // If we have event type, display it as part of the tag
+            if (eventType) {
+                segmentTag.innerHTML = `
+                    <span class="event-type-indicator">${eventType}:</span> ${segment.key}=${segment.value}
+                    <span class="segment-tag-remove">×</span>
+                `;
+            } else {
+                segmentTag.innerHTML = `
+                    ${segment.key}=${segment.value}
+                    <span class="segment-tag-remove">×</span>
+                `;
+            }
             
             // Add click handler for removal
             segmentTag.querySelector('.segment-tag-remove').addEventListener('click', function() {
@@ -1435,66 +1527,254 @@
             }
         }
         
+        // Function to fetch decoded event keys from the API
+        async function fetchDecodedEventKeys(network, contract) {
+            try {
+                const url = `/data/${network}/${contract}/events/decoded-keys`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error fetching decoded event keys:", error);
+                return null;
+            }
+        }
+        
+        // Global variable to store event keys by type
+        let eventKeysData = null;
+        
+        // Function to update event type dropdown
+        function updateEventTypeSelector(decodedKeys) {
+            if (!decodedKeys || !decodedKeys.eventKeys) return;
+            
+            const eventTypeSelect = document.getElementById('eventTypeSelect');
+            // Clear current options except the first one
+            while (eventTypeSelect.options.length > 1) {
+                eventTypeSelect.remove(1);
+            }
+            
+            // Add event types from the API data
+            const eventTypes = Object.keys(decodedKeys.eventKeys);
+            eventTypes.forEach(eventType => {
+                const option = document.createElement('option');
+                option.value = eventType;
+                option.textContent = eventType;
+                eventTypeSelect.appendChild(option);
+            });
+            
+            // Enable the select if we have options
+            eventTypeSelect.disabled = eventTypes.length === 0;
+            
+            // Store the data globally for later use
+            eventKeysData = decodedKeys;
+        }
+        
+        // Function to update parameter dropdown based on selected event type
+        function updateParameterSelector(eventType) {
+            const parameterSelect = document.getElementById('parameterSelect');
+            
+            // Clear current options except the first one
+            while (parameterSelect.options.length > 1) {
+                parameterSelect.remove(1);
+            }
+            
+            if (!eventType || !eventKeysData || !eventKeysData.eventKeys[eventType]) {
+                parameterSelect.disabled = true;
+                return;
+            }
+            
+            // Add parameters from the selected event type
+            const parameters = eventKeysData.eventKeys[eventType];
+            parameters.forEach(param => {
+                const option = document.createElement('option');
+                option.value = param;
+                option.textContent = param;
+                parameterSelect.appendChild(option);
+            });
+            
+            // Enable the select if we have options
+            parameterSelect.disabled = parameters.length === 0;
+            
+            // Update placeholder in search input
+            if (parameters.length > 0) {
+                segmentSearch.placeholder = `Enter value for ${parameters[0]}`;
+            } else {
+                segmentSearch.placeholder = "Enter value";
+            }
+        }
+        
         // Function to update segment suggestions based on event data
         function updateSegmentSuggestions(eventsData) {
-            // We would normally get this from the backend
-            // For now, just showing some examples
-            const suggestedFields = [
-                'sender', 'recipient', 'amount', 'tokenId', 'aggregatorId', 
-                'price', 'operator', 'owner', 'spender', 'value'
-            ];
-            
             // Clear existing suggestions
             segmentSuggestions.innerHTML = '';
             
-            // Add title
-            const suggestionTitle = document.createElement('div');
-            suggestionTitle.className = 'suggestion-title';
-            suggestionTitle.textContent = 'Common fields:';
-            segmentSuggestions.appendChild(suggestionTitle);
-            
-            // Add suggestion items
-            suggestedFields.forEach(field => {
-                const item = document.createElement('div');
-                item.className = 'segment-suggestion-item';
-                item.textContent = field;
+            if (!eventKeysData || !eventKeysData.eventKeys) {
+                // Fallback to generic suggestions
+                const suggestedFields = [
+                    'sender', 'recipient', 'amount', 'tokenId', 'aggregatorId', 
+                    'price', 'operator', 'owner', 'spender', 'value'
+                ];
                 
-                item.addEventListener('click', function() {
-                    segmentSearch.value = field + '=';
-                    segmentSearch.focus();
-                    // Position cursor after the "="
-                    const pos = segmentSearch.value.length;
-                    segmentSearch.setSelectionRange(pos, pos);
+                // Add title
+                const suggestionTitle = document.createElement('div');
+                suggestionTitle.className = 'suggestion-title';
+                suggestionTitle.textContent = 'Common fields:';
+                segmentSuggestions.appendChild(suggestionTitle);
+                
+                // Add suggestion items
+                suggestedFields.forEach(field => {
+                    const item = document.createElement('div');
+                    item.className = 'segment-suggestion-item';
+                    item.textContent = field;
+                    
+                    item.addEventListener('click', function() {
+                        segmentSearch.value = field + '=';
+                        segmentSearch.focus();
+                        // Position cursor after the "="
+                        const pos = segmentSearch.value.length;
+                        segmentSearch.setSelectionRange(pos, pos);
+                    });
+                    
+                    segmentSuggestions.appendChild(item);
                 });
+                return;
+            }
+            
+            // If we have event data, show event types and their parameters
+            const eventTypes = Object.keys(eventKeysData.eventKeys);
+            
+            // Only show suggestions if we have actual parameters
+            if (eventTypes.length > 0) {
+                // Add title
+                const suggestionTitle = document.createElement('div');
+                suggestionTitle.className = 'suggestion-title';
+                suggestionTitle.textContent = 'Event Parameters:';
+                segmentSuggestions.appendChild(suggestionTitle);
                 
-                segmentSuggestions.appendChild(item);
-            });
+                // Add suggestion items grouped by event type
+                eventTypes.forEach(eventType => {
+                    const params = eventKeysData.eventKeys[eventType];
+                    if (params && params.length > 0) {
+                        // Add event type header
+                        const eventHeader = document.createElement('div');
+                        eventHeader.className = 'suggestion-title event-type-header';
+                        eventHeader.textContent = eventType;
+                        segmentSuggestions.appendChild(eventHeader);
+                        
+                        // Add parameter items
+                        params.forEach(param => {
+                            const item = document.createElement('div');
+                            item.className = 'segment-suggestion-item';
+                            item.textContent = `${param}`;
+                            
+                            item.addEventListener('click', function() {
+                                // Set the event type in the dropdown
+                                const eventTypeSelect = document.getElementById('eventTypeSelect');
+                                eventTypeSelect.value = eventType;
+                                
+                                // Update parameter dropdown
+                                updateParameterSelector(eventType);
+                                
+                                // Set the selected parameter
+                                const parameterSelect = document.getElementById('parameterSelect');
+                                parameterSelect.value = param;
+                                
+                                // Focus on the search input
+                                segmentSearch.placeholder = `Enter value for ${param}`;
+                                segmentSearch.focus();
+                                
+                                // Hide suggestions
+                                segmentSuggestions.style.display = 'none';
+                            });
+                            
+                            segmentSuggestions.appendChild(item);
+                        });
+                    }
+                });
+            }
         }
+        
+        // Event handler for event type selector
+        document.getElementById('eventTypeSelect').addEventListener('change', function() {
+            const selectedEventType = this.value;
+            updateParameterSelector(selectedEventType);
+        });
+        
+        // Event handler for parameter selector
+        document.getElementById('parameterSelect').addEventListener('change', function() {
+            const selectedParam = this.value;
+            if (selectedParam) {
+                segmentSearch.placeholder = `Enter value for ${selectedParam}`;
+                segmentSearch.focus();
+            }
+        });
         
         // Event handler for apply button
         applySegmentBtn.addEventListener('click', function() {
-            const segmentText = segmentSearch.value.trim();
-            if (!segmentText) return;
+            const eventTypeSelect = document.getElementById('eventTypeSelect');
+            const parameterSelect = document.getElementById('parameterSelect');
+            const segmentValue = segmentSearch.value.trim();
             
-            const segment = parseSegment(segmentText);
-            if (!segment) {
-                alert('Please enter a valid filter in the format "field=value"');
-                return;
+            // Get the selected event type and parameter
+            const eventType = eventTypeSelect.value;
+            const parameter = parameterSelect.value;
+            
+            // If we have the dropdowns filled, use those
+            if (eventType && parameter) {
+                if (!segmentValue) {
+                    alert('Please enter a value for the selected parameter');
+                    return;
+                }
+                
+                // Create segment from dropdown selections
+                const segment = {
+                    key: parameter,
+                    value: segmentValue
+                };
+                
+                // Check if this segment already exists
+                const segmentStr = `${segment.key}:${segment.value}`;
+                if (activeSegments.has(segmentStr)) {
+                    alert('This filter is already applied');
+                    return;
+                }
+                
+                // Add the segment tag with event context
+                addSegmentTag(segment, eventType);
+                segmentSearch.value = '';
+                
+                // Reload data with the new filter
+                reloadChartsWithFilters();
+            } else {
+                // Legacy format (text input only)
+                const segmentText = segmentSearch.value.trim();
+                if (!segmentText) return;
+                
+                const segment = parseSegment(segmentText);
+                if (!segment) {
+                    alert('Please select an event type and parameter, or enter a valid filter in the format "field=value"');
+                    return;
+                }
+                
+                // Check if this segment already exists
+                const segmentStr = `${segment.key}:${segment.value}`;
+                if (activeSegments.has(segmentStr)) {
+                    alert('This filter is already applied');
+                    return;
+                }
+                
+                // Add the segment tag and update the data
+                addSegmentTag(segment);
+                segmentSearch.value = '';
+                
+                // Reload data with the new filter
+                reloadChartsWithFilters();
             }
-            
-            // Check if this segment already exists
-            const segmentStr = `${segment.key}:${segment.value}`;
-            if (activeSegments.has(segmentStr)) {
-                alert('This filter is already applied');
-                return;
-            }
-            
-            // Add the segment tag and update the data
-            addSegmentTag(segment);
-            segmentSearch.value = '';
-            
-            // Reload data with the new filter
-            reloadChartsWithFilters();
         });
         
         // Event handler for clear button
@@ -1560,10 +1840,11 @@
             document.querySelector('.detail-card:nth-child(3) .detail-value').textContent = 
                 creationDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
             
-            // Fetch both gas usage and events data in parallel
-            const [gasData, eventsData] = await Promise.all([
+            // Fetch gas usage, events data, and decoded keys in parallel
+            const [gasData, eventsData, decodedKeys] = await Promise.all([
                 fetchDailyGasUsageData(network, contract),
-                fetchEventsData(network, contract)
+                fetchEventsData(network, contract),
+                fetchDecodedEventKeys(network, contract)
             ]);
             
             // Update gas usage chart
@@ -1583,8 +1864,15 @@
                 eventsChart.data.labels = processedEventsData.labels;
                 eventsChart.data.datasets = processedEventsData.datasets;
                 eventsChart.update();
-                
-                // Initialize segment suggestions from event data
+            }
+            
+            // Update event type selector and parameter dropdown with decoded keys
+            if (decodedKeys) {
+                updateEventTypeSelector(decodedKeys);
+                // Initialize segment suggestions with the decoded keys
+                updateSegmentSuggestions(eventsData);
+            } else {
+                // Fallback to basic suggestions if we couldn't fetch decoded keys
                 updateSegmentSuggestions(eventsData);
             }
         }

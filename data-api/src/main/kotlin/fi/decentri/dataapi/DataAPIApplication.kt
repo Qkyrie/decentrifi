@@ -120,7 +120,6 @@ fun Application.configureRouting(
 
             get("/{network}/{contract}/events/daily") {
                 try {
-
                     val filters = call.parseJsonbFilters()
 
                     val network = call.parameters["network"] ?: return@get call.respond(
@@ -137,6 +136,26 @@ fun Application.configureRouting(
                     call.respond(eventsData)
                 } catch (e: Exception) {
                     logger.error("Error fetching events data", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+                }
+            }
+            
+            get("/{network}/{contract}/events/decoded-keys") {
+                try {
+                    val network = call.parameters["network"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing network parameter"
+                    )
+                    val contract = call.parameters["contract"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing contract parameter"
+                    )
+
+                    logger.info("Fetching decoded event keys for network=$network, contract=$contract")
+                    val decodedKeys = eventService.getDecodedEventKeys(network, contract)
+                    call.respond(decodedKeys)
+                } catch (e: Exception) {
+                    logger.error("Error fetching decoded event keys", e)
                     call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
                 }
             }
