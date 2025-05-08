@@ -777,10 +777,20 @@
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M19 11h-6V5h6v6zm-6 2h6v6h-6v-6zm-2 6H5v-6h6v6zm0-14v6H5V5h6z" stroke="#346DF1" stroke-width="1.8"/>
                             </svg>
-                            Filter by Event Parameters
+                            <span>Filters</span>
                         </div>
+                        <button id="toggleFilters" class="chart-button">
+                            <svg id="filterArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg); transition: transform 0.3s ease;">
+                                <path d="M6 9l6 6 6-6" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span id="filterToggleText">Show Filters</span>
+                        </button>
                     </div>
-                    <div class="segments-content">
+                    <div class="active-segments" id="activeSegments" style="margin-top: 15px;">
+                        <!-- Active segments will be displayed here -->
+                    </div>
+                    
+                    <div class="segments-content" id="filtersContent" style="display: none; transition: all 0.3s ease;">
                         <div class="filter-controls">
                             <div class="event-type-selector">
                                 <select id="eventTypeSelect" class="filter-select">
@@ -800,36 +810,39 @@
                             <button id="applySegment" class="segment-button">Apply Filter</button>
                             <button id="clearSegment" class="segment-button segment-button-outlined">Clear All</button>
                         </div>
-                        <div class="active-segments" id="activeSegments">
-                            <!-- Active segments will be displayed here -->
-                        </div>
                         <div class="segment-suggestions" id="segmentSuggestions">
                             <!-- Suggestions will be shown here -->
                         </div>
                     </div>
                 </div>
 
-                <div class="contract-details">
+
+                <div class="chart-card">
                     <div class="chart-header">
                         <div class="chart-title">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21 8V20.9932C21 21.5501 20.5552 22 20.0066 22H3.9934C3.44495 22 3 21.556 3 21.0082V2.9918C3 2.45531 3.4487 2 4.00221 2H14.9968L21 8Z" stroke="#346DF1" stroke-width="2"/>
-                                <path d="M14 2V8H21" stroke="#346DF1" stroke-width="2"/>
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="9" cy="7" r="4" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            Contract Details
+                            User Activity (Last 24 Hours)
                         </div>
                     </div>
-                    <div class="contract-details-grid">
-                        <div class="detail-card">
-                            <div class="detail-label">Contract Address</div>
-                            <div class="detail-value">0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D</div>
+                    <div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="metric-card">
+                            <div class="metric-title">Total Interactions</div>
+                            <div class="metric-value" id="totalInteractions">0</div>
+                            <div class="metric-change">Number of transactions in 24 hours</div>
                         </div>
-                        <div class="detail-card">
-                            <div class="detail-label">Network</div>
-                            <div class="detail-value">Ethereum Mainnet</div>
+                        <div class="metric-card unique-addresses-card">
+                            <div class="metric-title">Active Users</div>
+                            <div class="metric-value" id="uniqueAddressCount">0</div>
+                            <div class="metric-change">Unique addresses in the last 24 hours</div>
                         </div>
                     </div>
                 </div>
+
 
                 <div class="chart-card">
                     <div class="chart-header">
@@ -889,33 +902,36 @@
                     </div>
                 </div>
 
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-title">Average Gas Used</div>
-                        <div class="metric-value">0</div>
-                        <div class="metric-change">Per transaction in the last 24 hours</div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 17L12 22L22 17" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Gas Metrics (Last 24 Hours)
+                        </div>
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-title">Max Gas Used</div>
-                        <div class="metric-value">0</div>
-                        <div class="metric-change">Highest gas consumption in 24 hours</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-title">Total Gas (millions)</div>
-                        <div class="metric-value">0</div>
-                        <div class="metric-change">Total gas used in the last 24 hours</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-title">Transaction Count</div>
-                        <div class="metric-value">0</div>
-                        <div class="metric-change">Number of transactions in 24 hours</div>
-                    </div>
-                    <div class="metric-card unique-addresses-card">
-                        <div class="metric-title">Unique Users</div>
-                        <div class="metric-value" id="uniqueAddressCount">0</div>
-                        <div class="metric-change">Unique addresses in the last 24 hours</div>
+                    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="metric-card">
+                            <div class="metric-title">Average Gas Used</div>
+                            <div class="metric-value" id="avgGasUsed">0</div>
+                            <div class="metric-change">Per transaction in the last 24 hours</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">Max Gas Used</div>
+                            <div class="metric-value" id="maxGasUsed">0</div>
+                            <div class="metric-change">Highest gas consumption in 24 hours</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-title">Total Gas (millions)</div>
+                            <div class="metric-value" id="totalGasUsed">0</div>
+                            <div class="metric-change">Total gas used in the last 24 hours</div>
+                        </div>
                     </div>
                 </div>
+                
             </div>
         </div>
     </section>
@@ -979,6 +995,27 @@
 
         hamburger.addEventListener('click', function() {
             navLinks.classList.toggle('active');
+        });
+        
+        // Filter toggle functionality
+        const toggleFiltersBtn = document.getElementById('toggleFilters');
+        const filtersContent = document.getElementById('filtersContent');
+        const filterArrow = document.getElementById('filterArrow');
+        const filterToggleText = document.getElementById('filterToggleText');
+        
+        toggleFiltersBtn.addEventListener('click', function() {
+            // Toggle display of filters content
+            const isVisible = filtersContent.style.display !== 'none';
+            
+            if (isVisible) {
+                filtersContent.style.display = 'none';
+                filterArrow.style.transform = 'rotate(180deg)';
+                filterToggleText.textContent = 'Show Filters';
+            } else {
+                filtersContent.style.display = 'block';
+                filterArrow.style.transform = 'rotate(0deg)';
+                filterToggleText.textContent = 'Hide Filters';
+            }
         });
 
         // Store active segments globally
@@ -1229,12 +1266,13 @@
             // Count transactions
             const txCount = data.txCount;
             
-            // Update the metric cards
-            const avgGasUsedElement = document.querySelector('.metric-card:nth-child(1) .metric-value');
-            const maxGasUsedElement = document.querySelector('.metric-card:nth-child(2) .metric-value');
-            const gasElement = document.querySelector('.metric-card:nth-child(3) .metric-value');
-            const txElement = document.querySelector('.metric-card:nth-child(4) .metric-value');
+            // Update the metrics by ID instead of relying on element order
+            const avgGasUsedElement = document.getElementById('avgGasUsed');
+            const maxGasUsedElement = document.getElementById('maxGasUsed');
+            const totalGasElement = document.getElementById('totalGasUsed');
+            const totalInteractionsElement = document.getElementById('totalInteractions');
             
+            // Update gas metrics
             if (avgGasUsedElement) {
                 avgGasUsedElement.textContent = avgGasUsed.toLocaleString();
             }
@@ -1243,12 +1281,13 @@
                 maxGasUsedElement.textContent = maxGasUsed.toLocaleString();
             }
             
-            if (gasElement) {
-                gasElement.textContent = (totalGas / 1000000).toFixed(2).toLocaleString();
+            if (totalGasElement) {
+                totalGasElement.textContent = (totalGas / 1000000).toFixed(2).toLocaleString();
             }
             
-            if (txElement) {
-                txElement.textContent = txCount.toLocaleString();
+            // Update interaction metrics
+            if (totalInteractionsElement) {
+                totalInteractionsElement.textContent = txCount.toLocaleString();
             }
         }
         
@@ -1859,11 +1898,7 @@
         async function initializeRealData() {
             const { network, contract } = getNetworkAndContract();
             
-            // Update contract details in the UI
-            document.querySelector('.detail-card:nth-child(1) .detail-value').textContent = contract;
-            document.querySelector('.detail-card:nth-child(2) .detail-value').textContent = network;
-            
-            // No need to set creation date anymore since we removed that card
+            // Contract details section has been removed
             
             // Fetch all data in parallel
             const [gasData, eventsData, decodedKeys, uniqueAddressesData] = await Promise.all([
