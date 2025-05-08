@@ -3,7 +3,9 @@ package fi.decentri.dataapi
 import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.dataapi.config.AppConfig
 import fi.decentri.dataapi.model.ContractSubmission
+import fi.decentri.dataapi.model.MetadataType
 import fi.decentri.dataapi.repository.ContractsRepository
+import fi.decentri.dataapi.repository.IngestionMetadataRepository
 import fi.decentri.dataapi.repository.RawInvocationsRepository
 import fi.decentri.dataapi.repository.RawLogsRepository
 import fi.decentri.dataapi.service.EventService
@@ -56,6 +58,7 @@ fun main() {
     val waitlistRepository = WaitlistRepository()
     val rawLogsRepository = RawLogsRepository()
     val contractsRepository = ContractsRepository()
+    val ingestionMetadataRepository = IngestionMetadataRepository()
 
     // Initialize services
     val gasUsageService = GasUsageService(rawInvocationsRepository)
@@ -63,7 +66,7 @@ fun main() {
 
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
-        configureRouting(gasUsageService, eventService, waitlistRepository, contractsRepository)
+        configureRouting(gasUsageService, eventService, waitlistRepository, contractsRepository, ingestionMetadataRepository)
         configureSerialization()
         configureTemplating()
     }.start(wait = true)
@@ -74,7 +77,8 @@ fun Application.configureRouting(
     gasUsageService: GasUsageService,
     eventService: EventService,
     waitlistRepository: WaitlistRepository,
-    contractsRepository: ContractsRepository
+    contractsRepository: ContractsRepository,
+    ingestionMetadataRepository: IngestionMetadataRepository
 ) {
     routing {
 
@@ -103,7 +107,7 @@ fun Application.configureRouting(
 
                 call.respond(
                     HttpStatusCode.OK,
-                    mapOf("location" to "/{${contractSubmission.network}/{${contractSubmission.contractAddress}")
+                    mapOf("location" to "/${contractSubmission.network}/${contractSubmission.contractAddress}")
                 )
             } catch (e: Exception) {
                 logger.error("Failed to process contract submission", e)
@@ -132,11 +136,37 @@ fun Application.configureRouting(
                 HttpStatusCode.BadRequest,
                 "Missing network parameter"
             )
-            val contract = call.parameters["contract"] ?: return@get call.respond(
+            val contractAddress = call.parameters["contract"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest,
                 "Missing contract parameter"
             )
-            call.respond(ThymeleafContent("contract-analytics.html", mapOf("title" to "Data Ingestion Service")))
+            
+            // Check if the contract/network combination exists in our database
+            val contract = contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
+            if (contract == null) {
+                logger.warn("Contract not found: $contractAddress on network: $network, redirecting to landing page")
+                call.respondRedirect("/")
+                return@get
+            }
+            
+            // Check if ingestion metadata exists for this contract
+            val hasMetadata = ingestionMetadataRepository.hasAnyMetadataForContract(contract.id!!)
+            if (!hasMetadata) {
+                logger.info("No ingestion metadata found for contract: $contractAddress on network: $network, showing processing page")
+                call.respond(ThymeleafContent("contract-processing.html", mapOf(
+                    "title" to "Processing Smart Contract",
+                    "network" to network,
+                    "contract" to contractAddress
+                )))
+                return@get
+            }
+            
+            // Contract exists and has metadata, show the analytics page
+            call.respond(ThymeleafContent("contract-analytics.html", mapOf(
+                "title" to "Contract Analytics",
+                "network" to network,
+                "contract" to contractAddress
+            )))
         }
 
         // API endpoints
