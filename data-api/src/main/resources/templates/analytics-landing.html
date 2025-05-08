@@ -878,12 +878,15 @@
             })
             .then(response => {
                 if (response.ok) {
-                    // If response is HTML, it will be the contract-processing.html page
-                    return response.text().then(text => {
-                        // Replace the current page content with the received HTML
-                        document.open();
-                        document.write(text);
-                        document.close();
+                    // Parse the JSON response to get the location
+                    return response.json().then(data => {
+                        if (data && data.location) {
+                            // Redirect to the location provided by the server
+                            window.location.href = data.location;
+                        } else {
+                            // If no location is provided, stay on the success screen
+                            console.log('No redirect location provided in response');
+                        }
                     });
                 } else {
                     // Handle error response

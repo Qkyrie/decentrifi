@@ -103,7 +103,7 @@ fun Application.configureRouting(
 
                 call.respond(
                     HttpStatusCode.OK,
-                    mapOf("location" to "/{$contractSubmission.network}/{$contractSubmission.contractAddress}")
+                    mapOf("location" to "/{${contractSubmission.network}/{${contractSubmission.contractAddress}")
                 )
             } catch (e: Exception) {
                 logger.error("Failed to process contract submission", e)
