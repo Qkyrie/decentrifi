@@ -15,7 +15,6 @@ import kotlin.time.ExperimentalTime
  */
 @ExperimentalTime
 class ContractsRepository {
-    private val logger = LoggerFactory.getLogger(this::class.java)
 
     /**
      * Insert a new contract
