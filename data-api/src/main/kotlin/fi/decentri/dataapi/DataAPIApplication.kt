@@ -2,6 +2,8 @@ package fi.decentri.dataapi
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.dataapi.config.AppConfig
+import fi.decentri.dataapi.model.ContractSubmission
+import fi.decentri.dataapi.repository.ContractsRepository
 import fi.decentri.dataapi.repository.RawInvocationsRepository
 import fi.decentri.dataapi.repository.RawLogsRepository
 import fi.decentri.dataapi.service.EventService
@@ -27,9 +29,11 @@ import io.ktor.server.routing.*
 import io.ktor.server.thymeleaf.*
 import org.slf4j.LoggerFactory
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
+import kotlin.time.ExperimentalTime
 
 val logger = LoggerFactory.getLogger("fi.decentri.dataapi.Application")
 
+@ExperimentalTime
 fun main() {
     logger.info("Starting data API application")
 
@@ -51,6 +55,7 @@ fun main() {
     val rawInvocationsRepository = RawInvocationsRepository()
     val waitlistRepository = WaitlistRepository()
     val rawLogsRepository = RawLogsRepository()
+    val contractsRepository = ContractsRepository()
 
     // Initialize services
     val gasUsageService = GasUsageService(rawInvocationsRepository)
@@ -58,16 +63,18 @@ fun main() {
 
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
-        configureRouting(gasUsageService, eventService, waitlistRepository)
+        configureRouting(gasUsageService, eventService, waitlistRepository, contractsRepository)
         configureSerialization()
         configureTemplating()
     }.start(wait = true)
 }
 
+@ExperimentalTime
 fun Application.configureRouting(
     gasUsageService: GasUsageService,
     eventService: EventService,
-    waitlistRepository: WaitlistRepository
+    waitlistRepository: WaitlistRepository,
+    contractsRepository: ContractsRepository
 ) {
     routing {
 
@@ -79,6 +86,29 @@ fun Application.configureRouting(
 
         get("/") {
             call.respond(ThymeleafContent("analytics-landing.html", mapOf("title" to "Data Ingestion Service")))
+        }
+
+        post("/contract/submit") {
+            try {
+                val contractSubmission = call.receive<ContractSubmission>()
+                logger.info("Received contract submission for address: ${contractSubmission.contractAddress} on network: ${contractSubmission.network}")
+
+                // Save contract to database
+                val id = contractsRepository.insert(
+                    address = contractSubmission.contractAddress,
+                    abi = contractSubmission.abi,
+                    network = contractSubmission.network
+                )
+                logger.info("Saved contract to database with ID: $id")
+
+                call.respond(
+                    HttpStatusCode.OK,
+                    mapOf("location" to "/{$contractSubmission.network}/{$contractSubmission.contractAddress}")
+                )
+            } catch (e: Exception) {
+                logger.error("Failed to process contract submission", e)
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid contract submission"))
+            }
         }
 
         post("/waitlist") {

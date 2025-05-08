@@ -712,7 +712,7 @@
                                 <h3 class="success-title">Analysis Started!</h3>
                                 <p>We're analyzing your contract on Ethereum. This may take a few moments.</p>
                                 <div class="button-row" style="justify-content: center; margin-top: 40px;">
-                                    <a href="/ethereum/0x0" class="btn btn-primary" id="btn-view-results">View Results</a>
+                                    <button class="btn btn-primary" id="btn-view-results">View Results</button>
                                 </div>
                             </div>
                         </div>
@@ -859,6 +859,45 @@
                 return;
             }
             
+            // Get the form data
+            const contractAddress = contractAddressInput.value.trim();
+            const network = document.querySelector('.chain-option.selected').getAttribute('data-chain') || 'ethereum';
+            const abi = contractAbiInput.value.trim();
+            
+            // Submit the contract data to the backend
+            fetch('/contract/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contractAddress: contractAddress,
+                    network: network,
+                    abi: abi
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    // If response is HTML, it will be the contract-processing.html page
+                    return response.text().then(text => {
+                        // Replace the current page content with the received HTML
+                        document.open();
+                        document.write(text);
+                        document.close();
+                    });
+                } else {
+                    // Handle error response
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Failed to submit contract');
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting contract:', error);
+                alert('Failed to submit contract: ' + error.message);
+            });
+            
+            // Show loading state
             step3.classList.remove('active');
             successStep.classList.add('active');
             
@@ -885,10 +924,13 @@
             this.style.borderColor = '';
         });
 
-        // View results button (just for demo)
+        // View results button
         btnViewResults.addEventListener('click', function() {
-            // In the future, this would redirect to the actual analytics page
-            console.log('View results clicked');
+            const network = document.querySelector('.chain-option.selected').getAttribute('data-chain') || 'ethereum';
+            const contractAddress = contractAddressInput.value.trim();
+            
+            // Redirect to the analytics page for the contract
+            window.location.href = `/${network}/${contractAddress}`;
         });
     </script>
 </body>
