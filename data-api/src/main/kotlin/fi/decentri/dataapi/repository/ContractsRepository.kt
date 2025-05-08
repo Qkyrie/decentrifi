@@ -21,6 +21,13 @@ class ContractsRepository {
      */
     suspend fun insert(address: String, abi: String, network: String): Int {
         return dbQuery {
+            // Check if the contract already exists
+            val existingContract = findByAddressAndNetwork(address, network)
+            if (existingContract != null) {
+                // If it exists, return the existing contract ID
+                return@dbQuery existingContract.id!!
+            }
+
             Contracts.insert {
                 it[this.address] = address
                 it[this.abi] = abi

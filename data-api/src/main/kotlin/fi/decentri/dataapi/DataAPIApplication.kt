@@ -66,7 +66,13 @@ fun main() {
 
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
-        configureRouting(gasUsageService, eventService, waitlistRepository, contractsRepository, ingestionMetadataRepository)
+        configureRouting(
+            gasUsageService,
+            eventService,
+            waitlistRepository,
+            contractsRepository,
+            ingestionMetadataRepository
+        )
         configureSerialization()
         configureTemplating()
     }.start(wait = true)
@@ -99,9 +105,9 @@ fun Application.configureRouting(
 
                 // Save contract to database
                 val id = contractsRepository.insert(
-                    address = contractSubmission.contractAddress,
+                    address = contractSubmission.contractAddress.lowercase(),
                     abi = contractSubmission.abi,
-                    network = contractSubmission.network
+                    network = contractSubmission.network.lowercase()
                 )
                 logger.info("Saved contract to database with ID: $id")
 
@@ -140,7 +146,7 @@ fun Application.configureRouting(
                 HttpStatusCode.BadRequest,
                 "Missing contract parameter"
             )
-            
+
             // Check if the contract/network combination exists in our database
             val contract = contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
             if (contract == null) {
@@ -148,25 +154,33 @@ fun Application.configureRouting(
                 call.respondRedirect("/")
                 return@get
             }
-            
+
             // Check if ingestion metadata exists for this contract
             val hasMetadata = ingestionMetadataRepository.hasAnyMetadataForContract(contract.id!!)
             if (!hasMetadata) {
                 logger.info("No ingestion metadata found for contract: $contractAddress on network: $network, showing processing page")
-                call.respond(ThymeleafContent("contract-processing.html", mapOf(
-                    "title" to "Processing Smart Contract",
-                    "network" to network,
-                    "contract" to contractAddress
-                )))
+                call.respond(
+                    ThymeleafContent(
+                        "contract-processing.html", mapOf(
+                            "title" to "Processing Smart Contract",
+                            "network" to network,
+                            "contract" to contractAddress
+                        )
+                    )
+                )
                 return@get
             }
-            
+
             // Contract exists and has metadata, show the analytics page
-            call.respond(ThymeleafContent("contract-analytics.html", mapOf(
-                "title" to "Contract Analytics",
-                "network" to network,
-                "contract" to contractAddress
-            )))
+            call.respond(
+                ThymeleafContent(
+                    "contract-analytics.html", mapOf(
+                        "title" to "Contract Analytics",
+                        "network" to network,
+                        "contract" to contractAddress
+                    )
+                )
+            )
         }
 
         // API endpoints
