@@ -462,8 +462,8 @@
             // Start animation loop
             animate();
             
-            // Simulate processing
-            simulateProcessing();
+            // Check for metadata and process
+            checkMetadataAndProcess();
         }
         
         // Create particle system
@@ -599,13 +599,27 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
         
-        // Simulate the processing stages
-        function simulateProcessing() {
+        // Check for metadata and monitor progress
+        function checkMetadataAndProcess() {
             const progressBar = document.getElementById('progress-bar');
             const progressLabel = document.getElementById('progress-label');
             
+            // Extract network and contract information from URL
+            const path = window.location.pathname;
+            const pathParts = path.split('/').filter(part => part.length > 0);
+            let network = '';
+            let contract = '';
+            
+            if (pathParts.length >= 2) {
+                network = pathParts[0];
+                contract = pathParts[1];
+            }
+            
+            // Start with validation step
+            progressBar.style.width = `0%`;
+            progressLabel.textContent = `Validating... 0%`;
+            
             // Simulate validation step (completes in ~3 seconds)
-            // For validation, we show a determinate progress bar
             let validationProgress = 0;
             const validationInterval = setInterval(() => {
                 validationProgress += 3;
@@ -623,32 +637,82 @@
                     // Switch to indeterminate progress for event import
                     progressBar.style.width = '';
                     progressBar.classList.add('indeterminate');
-                    progressLabel.textContent = 'Importing events... (time remaining unknown)';
+                    progressLabel.textContent = 'Checking for metadata... (this may take some time)';
                     
                     // Start events import
                     document.getElementById('events-step').classList.add('active');
                     document.getElementById('events-status').textContent = 'In progress...';
                     
-                    // For demo purposes only - simulate events import completion
-                    // In a real implementation, this would be based on server-side events/progress
-                    setTimeout(() => {
-                        eventsImportComplete = true;
-                        document.getElementById('events-step').classList.add('completed');
-                        document.getElementById('events-status').textContent = 'Complete';
-                        
-                        // Return to determinate progress at 100%
-                        progressBar.classList.remove('indeterminate');
-                        progressBar.style.width = '100%';
-                        progressLabel.textContent = 'Complete!';
-                        
-                        // Redirect to analytics page in 2 seconds
-                        setTimeout(() => {
-                            // Using a relative path to make it work in any environment
-                            window.location.href = 'contract-analytics.html';
-                        }, 2000);
-                    }, 10000);
+                    // Start checking for metadata
+                    checkForMetadata(network, contract);
                 }
             }, 100);
+        }
+        
+        // Function to periodically check if metadata exists for the contract
+        function checkForMetadata(network, contract) {
+            // Create the check URL for the new status endpoint
+            const statusUrl = `/${network}/${contract}/status`;
+            let checkInterval;
+            let checkCount = 0;
+            const MAX_CHECKS = 60; // Maximum number of checks (10 minutes at 10-second intervals)
+            
+            // Function to perform a single metadata check
+            function performMetadataCheck() {
+                checkCount++;
+                
+                fetch(statusUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // Check the status from our new endpoint
+                    if (data.status === "done") {
+                        // Stop checking - metadata exists
+                        clearInterval(checkInterval);
+                        
+                        // Update UI to show completion
+                        const progressBar = document.getElementById('progress-bar');
+                        const progressLabel = document.getElementById('progress-label');
+                        document.getElementById('events-step').classList.add('completed');
+                        document.getElementById('events-status').textContent = 'Complete';
+                        progressBar.classList.remove('indeterminate');
+                        progressBar.style.width = '100%';
+                        progressLabel.textContent = 'Complete! Redirecting...';
+                        
+                        // Redirect to the analytics page
+                        setTimeout(() => {
+                            window.location.href = `/${network}/${contract}`;
+                        }, 1000);
+                    } else if (data.status === "unknown") {
+                        // Contract not found - probably an error
+                        clearInterval(checkInterval);
+                        const progressLabel = document.getElementById('progress-label');
+                        document.getElementById('events-step').classList.add('active');
+                        document.getElementById('events-status').textContent = 'Error';
+                        progressLabel.textContent = 'Contract not found or error occurred.';
+                    } else if (checkCount >= MAX_CHECKS) {
+                        // If we've reached the maximum number of checks, stop checking
+                        clearInterval(checkInterval);
+                        const progressLabel = document.getElementById('progress-label');
+                        progressLabel.textContent = 'Still processing. Please check back later.';
+                    }
+                    // If status is "processing", continue checking
+                })
+                .catch(error => {
+                    console.error('Error checking contract status:', error);
+                    // On error, log it but continue checking
+                    if (checkCount >= MAX_CHECKS) {
+                        clearInterval(checkInterval);
+                        const progressLabel = document.getElementById('progress-label');
+                        progressLabel.textContent = 'Error checking status. Please refresh the page.';
+                    }
+                });
+            }
+            
+            // Start checking for metadata every 10 seconds
+            checkInterval = setInterval(performMetadataCheck, 10000);
+            
+            // Perform first check immediately
+            performMetadataCheck();
         }
         
         // Initialize scene when page loads

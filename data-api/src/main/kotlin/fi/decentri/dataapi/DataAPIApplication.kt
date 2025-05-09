@@ -184,6 +184,42 @@ fun Application.configureRouting(
         }
 
         // API endpoints
+        // Status endpoint to check if contract has metadata
+        get("/{network}/{contract}/status") {
+            try {
+                val network = call.parameters["network"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("status" to "unknown", "message" to "Missing network parameter")
+                )
+                val contractAddress = call.parameters["contract"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("status" to "unknown", "message" to "Missing contract parameter")
+                )
+
+                // Check if the contract/network combination exists in our database
+                val contract = contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
+                if (contract == null) {
+                    logger.warn("Contract not found: $contractAddress on network: $network")
+                    call.respond(mapOf("status" to "unknown"))
+                    return@get
+                }
+
+                // Check if ingestion metadata exists for this contract
+                val hasMetadata = ingestionMetadataRepository.hasAnyMetadataForContract(contract.id!!)
+                if (!hasMetadata) {
+                    logger.info("No ingestion metadata found for contract: $contractAddress on network: $network")
+                    call.respond(mapOf("status" to "processing"))
+                    return@get
+                }
+
+                // Contract exists and has metadata
+                call.respond(mapOf("status" to "done"))
+            } catch (e: Exception) {
+                logger.error("Error checking contract status", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("status" to "unknown", "error" to e.message))
+            }
+        }
+
         route("/data") {
             get("/{network}/{contract}/gas-used/daily") {
                 try {

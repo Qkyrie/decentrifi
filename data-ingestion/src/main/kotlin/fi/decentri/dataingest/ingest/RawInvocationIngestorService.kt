@@ -2,6 +2,8 @@
 
 package fi.decentri.dataingest.ingest
 
+import arrow.core.Either
+import arrow.core.getOrElse
 import arrow.fx.coroutines.parMap
 import com.fasterxml.jackson.databind.JsonNode
 import fi.decentri.block.BlockService
@@ -139,7 +141,12 @@ class RawInvocationIngestorService(
                     // Get the sender address
                     val from = trace.get("action")?.get("from")?.asText() ?: return@parMap null
 
-                    val gasUsed = Numeric.decodeQuantity(trace.get("result").get("gasUsed").textValue())
+                    val gasUsed = Either.catch {
+                        Numeric.decodeQuantity(trace.get("result").get("gasUsed").textValue())
+                    }.mapLeft {
+                        logger.error("Error decoding gasUsed: ${it.message}", it)
+                        BigInteger.ZERO
+                    }.getOrElse { BigInteger.ZERO }
 
                     // Get the block to extract timestamp
                     val block = blockService.getBlockByNumber(BigInteger(trace.get("blockNumber").asText()))
