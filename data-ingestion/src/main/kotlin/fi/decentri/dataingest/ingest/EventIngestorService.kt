@@ -93,15 +93,10 @@ class EventIngestorService(
                         contract.abi
                     )
 
-
                     lastProcessedBlock = toBlock
 
-                    // Update the last processed block
-                    metadataRepository.updateMetadataForContractId(
-                        contract.id,
-                        MetadataType.LAST_PROCESSED_BLOCK_EVENTS,
-                        toBlock.toString()
-                    )
+                    updateLastBlock(contract, toBlock)
+                    updateLastTimestamp(contract)
 
                     // Calculate and log progress
                     val progressPercentage =
@@ -114,14 +109,23 @@ class EventIngestorService(
             }
         }
 
-        // Save the last run timestamp
+        logger.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
+    }
+
+    private suspend fun updateLastTimestamp(contract: Contract) {
         metadataRepository.updateMetadataForContractId(
-            contract.id,
+            contract.id!!,
             MetadataType.EVENTS_LAST_RUN_TIMESTAMP,
             Instant.now().toString()
         )
+    }
 
-        logger.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
+    private suspend fun updateLastBlock(contract: Contract, toBlock: Long) {
+        metadataRepository.updateMetadataForContractId(
+            contract.id!!,
+            MetadataType.LAST_PROCESSED_BLOCK_EVENTS,
+            toBlock.toString()
+        )
     }
 
     /**
