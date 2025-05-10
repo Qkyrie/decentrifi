@@ -146,6 +146,27 @@ The project is organized as a multi-module Maven application:
 
 The `data-ingestion` module can be configured to ingest data from different blockchain contracts by adjusting settings in the application.conf file.
 
+### Ingestion Modes
+
+The data ingestion module supports multiple operation modes:
+
+1. **Auto Mode (Default)**: Automatically processes all contracts registered in the system
+   ```bash
+   # Run in auto mode (default if no mode specified)
+   java -jar data-ingestion.jar --mode=auto
+   ```
+
+2. **Contract Mode**: Processes a specific contract on a specific network
+   ```bash
+   # Process a single contract on a specific network
+   java -jar data-ingestion.jar --mode=contract --contract 0x1234abcd... --network ethereum-mainnet
+   ```
+
+3. **Kubernetes Job Launcher**: The data-api module provides a RESTful interface to launch contract-specific ingestion jobs on Kubernetes
+   - Triggers Kubernetes jobs with contract mode parameters
+   - Useful for on-demand processing of specific contracts
+   - Automatically triggered when a new contract is submitted through the web interface
+
 ### Trace Filter Functionality
 
 The application utilizes `trace_filter` to capture all transactions (including internal ones) that interact with the target contract. This provides several benefits over the traditional event-based approach:

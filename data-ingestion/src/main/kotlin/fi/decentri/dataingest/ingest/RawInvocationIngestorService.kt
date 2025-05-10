@@ -75,11 +75,15 @@ class RawInvocationIngestorService(
                     )
                     lastProcessedBlock = toBlock
 
+                    // Update the last processed block number
                     metadataRepository.updateMetadataForContractId(
                         contract.id,
                         MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS,
                         toBlock.toString()
                     )
+
+                    // Update the last run timestamp
+                    updateLastRunTimestamp(contract)
 
                     // Calculate and log progress
                     val progressPercentage =
@@ -96,8 +100,16 @@ class RawInvocationIngestorService(
     }
 
     /**
-     * Process a range of blocks using trace_filter to capture all transactions including internal ones
+     * Update the timestamp of when this contract was last processed
      */
+    private suspend fun updateLastRunTimestamp(contract: Contract) {
+        metadataRepository.updateMetadataForContractId(
+            contract.id!!,
+            MetadataType.RAW_INVOCATIONS_LAST_RUN_TIMESTAMP,
+            Instant.now().toString()
+        )
+    }
+
     private suspend fun processBlockRangeWithTraceFilter(
         network: String, fromBlock: Long, toBlock: Long, toAddress: String
     ) {

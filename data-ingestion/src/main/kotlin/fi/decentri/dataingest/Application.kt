@@ -96,7 +96,10 @@ class IngestCommand : CliktCommand(
             when (mode) {
                 "auto" -> {
                     // Auto mode: Ingest data for all contracts
-                    logger.info("Running in AUTO mode - processing all contracts")
+                    // In auto mode, the BlockchainIngestor will skip contracts that
+                    // have been processed within the last 30 minutes to avoid duplicating
+                    // work when manual ingestion jobs have been run
+                    logger.info("Running in AUTO mode - processing all contracts (30-minute cooldown applied)")
                     val job = blockchainIngestor.startIngestion()
                     job.join() // Wait for the job to complete
                     logger.info("Ingestion job completed successfully")
