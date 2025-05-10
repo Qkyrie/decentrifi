@@ -4,7 +4,7 @@
 
 # decentrifi
 
-[![Build Status](https://github.com/qkyrie/decentrifi/actions/workflows/build-main.yml/badge.svg)](https://github.com/qkyrie/decentrifi/actions/workflows/build-main.yml)
+[![Build Status](https://github.com/Qkyrie/decentrifi/actions/workflows/build-main.yml/badge.svg)](https://github.com/Qkyrie/decentrifi/actions/workflows/build-main.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **decentrifi** is a lightweight, end-to-end analytics platform for smart contracts on the Ethereum blockchain and other EVM-compatible chains.
@@ -55,6 +55,7 @@ The project is organized as a multi-module Maven application:
   - REST endpoints for accessing metrics
   - Interactive charts
   - Analytics dashboard for contract metrics
+  - Kubernetes job launcher for manual data ingestion of specific contracts
 - **db**: Shared database module containing connection logic and models
 
 ## Technology Stack
@@ -70,7 +71,7 @@ The project is organized as a multi-module Maven application:
 ## How to Build
 
 ### Prerequisites
-- Java 21 or higher
+- Java 21
 - Maven 3.8+
 - Docker and Docker Compose
 - PostgreSQL with TimescaleDB extension
@@ -80,7 +81,7 @@ The project is organized as a multi-module Maven application:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/decentrifi.git
+   git clone https://github.com/Qkyrie/decentrifi.git
    cd decentrifi
    ```
 
