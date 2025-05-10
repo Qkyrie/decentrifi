@@ -1,10 +1,11 @@
 package fi.decentri.block
 
+import fi.decentri.dataingest.config.Web3jManager
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
-import org.web3j.protocol.Web3j
+import org.slf4j.LoggerFactory
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.methods.response.EthBlock
@@ -15,11 +16,8 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.time.Duration.Companion.minutes
 
-class BlockService(private val web3j: Web3j) {
-
-    val blockTimes = mapOf(
-        "ethereum" to 12,
-    )
+class BlockService(private val web3jManager: Web3jManager) {
+    private val logger = LoggerFactory.getLogger(BlockService::class.java)
 
     /**
      * Returns the block number closest to the specified time.
@@ -30,9 +28,11 @@ class BlockService(private val web3j: Web3j) {
      * @param network The blockchain network (defaults to "ethereum")
      * @return The estimated block number closest to the target time
      */
-    fun getBlockClosestTo(targetTime: LocalDateTime, network: String = "ethereum"): Long {
+    suspend fun getBlockClosestTo(targetTime: LocalDateTime, network: String = "ethereum"): Long {
+        val web3 = web3jManager.web3(network) ?: throw IllegalArgumentException("Network '$network' is not configured")
+        
         // Get the current block (latest)
-        val latestBlock = web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false)
+        val latestBlock = web3.web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false)
             .send().block
 
         // Convert current block timestamp to LocalDateTime
@@ -46,8 +46,9 @@ class BlockService(private val web3j: Web3j) {
         // Calculate time difference between target time and current block time
         val timeDifference = Duration.between(targetTime, currentBlockTime)
 
-        // Get the average block time for the network (defaults to 12s for ethereum)
-        val avgBlockTime = blockTimes[network] ?: 12 // seconds
+        // Get the average block time for the network
+        val networkConfig = web3jManager.getNetworkConfig(network)
+        val avgBlockTime = networkConfig?.blockTime ?: 12 // seconds
 
         // Calculate estimated number of blocks between the times
         val blockDifference = timeDifference.seconds / avgBlockTime
@@ -56,21 +57,38 @@ class BlockService(private val web3j: Web3j) {
         val targetBlockNumber = currentBlockNumber - blockDifference
 
         // Ensure we don't return a negative block number
-        return minOf(currentBlockNumber, targetBlockNumber)
+        return maxOf(0, minOf(currentBlockNumber, targetBlockNumber))
     }
 
-    fun getLatestBlock(): Long {
-        return web3j.ethBlockNumber().send().blockNumber.longValueExact()
+    /**
+     * Gets the latest block number for the specified network.
+     * 
+     * @param network The blockchain network (defaults to "ethereum")
+     * @return The latest block number
+     */
+    suspend fun getLatestBlock(network: String = "ethereum"): Long {
+        val web3j = web3jManager.web3(network) ?: throw IllegalArgumentException("Network '$network' is not configured")
+        return web3j.web3j.ethBlockNumber().send().blockNumber.longValueExact()
     }
 
-    val blockCache = Cache.Builder<BigInteger, EthBlock.Block>()
+    // Cache block data to avoid redundant calls
+    private val blockCache = Cache.Builder<Pair<String, BigInteger>, EthBlock.Block>()
         .expireAfterWrite(5.minutes)
         .build()
 
-    suspend fun getBlockByNumber(number: BigInteger): EthBlock.Block {
+    /**
+     * Gets a block by its number from the specified network.
+     * 
+     * @param number The block number
+     * @param network The blockchain network (defaults to "ethereum")
+     * @return The block data
+     */
+    suspend fun getBlockByNumber(number: BigInteger, network: String = "ethereum"): EthBlock.Block {
+        val web3j = web3jManager.web3(network) ?: throw IllegalArgumentException("Network '$network' is not configured")
+        
         return withContext(Dispatchers.IO) {
-            blockCache.get(number) {
-                web3j.ethGetBlockByNumber(
+            blockCache.get(Pair(network, number)) {
+                web3j.web3j.ethGetBlockByNumber(
                     DefaultBlockParameter.valueOf(number), false
                 ).sendAsync().await().block
             }

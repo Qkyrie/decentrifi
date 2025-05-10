@@ -7,7 +7,7 @@ import arrow.core.getOrElse
 import arrow.fx.coroutines.parMap
 import com.fasterxml.jackson.databind.JsonNode
 import fi.decentri.block.BlockService
-import fi.decentri.dataingest.config.EthereumConfig
+import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
@@ -15,12 +15,10 @@ import fi.decentri.dataingest.repository.RawInvocationData
 import fi.decentri.dataingest.repository.RawInvocationsRepository
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
-import org.web3j.protocol.Web3j
-import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.Request
 import org.web3j.protocol.core.Response
-import org.web3j.protocol.http.HttpService
 import org.web3j.utils.Numeric
+import java.lang.IllegalArgumentException
 import java.math.BigInteger
 import java.time.Instant
 import java.time.LocalDateTime
@@ -31,23 +29,27 @@ import kotlin.time.ExperimentalTime
  * Service responsible for blockchain raw invocation data ingestion
  */
 class RawInvocationIngestorService(
-    private val config: EthereumConfig, private val web3j: Web3j
+    private val web3jManager: Web3jManager,
 ) {
 
-    private val blockService = BlockService(web3j)
     private val logger = LoggerFactory.getLogger(this::class.java)
     private val metadataRepository = IngestionMetadataRepository()
     private val rawInvocationsRepository = RawInvocationsRepository()
+    private val blockService: BlockService = BlockService(Web3jManager.getInstance())
 
     suspend fun ingest(contract: Contract) {
+        val config = web3jManager.getNetworkConfig(contract.chain) ?: throw IllegalArgumentException(
+            "Network configuration not found for network: ${contract.chain}"
+        )
         logger.info("Starting trace_filter data ingestion for contract $contract")
         // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = blockService.getLatestBlock()
+        val targetLatestBlock = blockService.getLatestBlock(contract.chain)
 
         val startBlock =
             metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, contract.id!!)
                 ?.toLongOrNull() ?: blockService.getBlockClosestTo(
-                LocalDateTime.now().minusHours(25)
+                LocalDateTime.now().minusHours(25),
+                contract.chain
             )
 
         logger.info("Starting ingestion from block $startBlock to target latest block $targetLatestBlock")
@@ -109,7 +111,7 @@ class RawInvocationIngestorService(
 
         try {
             // Execute trace_filter RPC call
-            val traceFilterResponse = executeTraceFilter(traceFilterParams)
+            val traceFilterResponse = executeTraceFilter(traceFilterParams, web3jManager.web3(network)!!)
             val traces = traceFilterResponse.result
 
             if (traces.isEmpty()) {
@@ -149,7 +151,7 @@ class RawInvocationIngestorService(
                     }.getOrElse { BigInteger.ZERO }
 
                     // Get the block to extract timestamp
-                    val block = blockService.getBlockByNumber(BigInteger(trace.get("blockNumber").asText()))
+                    val block = blockService.getBlockByNumber(BigInteger(trace.get("blockNumber").asText()), network)
 
                     // Create invocation data
                     RawInvocationData(
@@ -185,9 +187,12 @@ class RawInvocationIngestorService(
      * Execute trace_filter RPC call
      * The trace_filter method is an Ethereum JSON-RPC API endpoint that returns transaction traces
      */
-    private fun executeTraceFilter(params: Map<String, Any>): TraceFilterResponse {
+    private fun executeTraceFilter(params: Map<String, Any>, web3: Web3jManager.Web3): TraceFilterResponse {
         val request = Request<Any, TraceFilterResponse>(
-            "trace_filter", listOf(params), HttpService(config.rpcUrl), TraceFilterResponse::class.java
+            "trace_filter",
+            listOf(params),
+            web3.httpService,
+            TraceFilterResponse::class.java
         )
 
         return request.send()

@@ -1,10 +1,13 @@
-    package fi.decentri.dataingest
+package fi.decentri.dataingest
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
+import com.typesafe.config.ConfigFactory
 import fi.decentri.abi.AbiService
+import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.AppConfig
+import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.ingest.EventIngestorService
 import fi.decentri.dataingest.ingest.RawInvocationIngestorService
 import fi.decentri.dataingest.model.Contract
@@ -13,17 +16,11 @@ import fi.decentri.dataingest.service.BlockchainIngestor
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.db.DatabaseFactory
 import kotlinx.coroutines.*
-import okhttp3.OkHttpClient
 import org.slf4j.LoggerFactory
-import org.web3j.protocol.Web3j
-import org.web3j.protocol.http.HttpService
-import java.util.concurrent.Executors
 import kotlin.system.exitProcess
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
-import kotlin.time.toJavaDuration
 
-    val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
+val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
 
 /**
  * Command-line arguments parser for the data ingestion application.
@@ -58,25 +55,32 @@ class IngestCommand : CliktCommand(
         // Initialize database
         DatabaseFactory.init(appConfig.database)
 
+        // Initialize Web3j manager
+        val web3jManager = Web3jManager.init(ConfigFactory.load())
+
         // Create necessary services
         val contractsRepository = ContractsRepository()
         val abiService = AbiService()
         val contractsService = ContractsService(contractsRepository, abiService)
+        val blockService = BlockService(web3jManager)
 
-        // Web3j – supply your own scheduled executor so you can shut it down
-        val scheduler = Executors.newScheduledThreadPool(4)
-        val web3j = Web3j.build(
-            HttpService(
-                appConfig.ethereum.rpcUrl,
-                OkHttpClient.Builder()
-                    .connectTimeout(20.seconds.toJavaDuration())
-                    .build()
-            ), 2_000L, scheduler
-        )
+        // Use network parameter or default to ethereum
+        val networkToUse = network ?: "ethereum"
 
-        // Create ingestor services
-        val rawInvocationIngestorService = RawInvocationIngestorService(appConfig.ethereum, web3j)
-        val eventIngestorService = EventIngestorService(appConfig.ethereum, web3j)
+        // Verify the network is configured
+        if (!web3jManager.getNetworkNames().contains(networkToUse)) {
+            logger.error("Network '$networkToUse' is not configured in application.conf")
+            exitProcess(1)
+        }
+
+        // Get Web3j instance for the specified network
+        val web3j = web3jManager.web3(networkToUse) ?: run {
+            logger.error("Failed to create Web3j instance for network: $networkToUse")
+            exitProcess(1)
+        }
+
+        val rawInvocationIngestorService = RawInvocationIngestorService(Web3jManager.getInstance())
+        val eventIngestorService = EventIngestorService(Web3jManager.getInstance())
 
         val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -97,6 +101,7 @@ class IngestCommand : CliktCommand(
                     job.join() // Wait for the job to complete
                     logger.info("Ingestion job completed successfully")
                 }
+
                 "contract" -> {
                     // Contract mode: Ingest data for a specific contract
                     if (contractAddress == null || network == null) {
@@ -122,6 +127,7 @@ class IngestCommand : CliktCommand(
                     job.join() // Wait for the job to complete
                     logger.info("Contract-specific ingestion job completed successfully")
                 }
+
                 else -> {
                     logger.error("Invalid mode: $mode. Valid options are 'auto' or 'contract'")
                     exitProcess(1)
@@ -132,8 +138,7 @@ class IngestCommand : CliktCommand(
         } finally {
             // Shutdown resources
             applicationScope.cancel()
-            web3j.shutdown()
-            scheduler.shutdown()
+            web3jManager.shutdown()
             logger.info("Application shutdown complete")
         }
     }

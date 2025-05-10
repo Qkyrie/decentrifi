@@ -11,8 +11,7 @@ import java.io.File
 class AppConfig private constructor(config: Config) {
     val server = ServerConfig(config.getConfig("server"))
     val database = DatabaseConfigImpl(config.getConfig("database"))
-    val ethereum = EthereumConfig(config.getConfig("ethereum"))
-    
+
     companion object {
         fun load(): AppConfig {
             // Load configuration in the following order of priority:
@@ -49,11 +48,4 @@ class DatabaseConfigImpl(config: Config) : DatabaseConfig {
     override val username: String = config.getString("username")
     override val password: String = config.getString("password")
     override val maxPoolSize: Int = config.getInt("maxPoolSize")
-}
-
-class EthereumConfig(config: Config) {
-    val rpcUrl: String = config.getString("rpcUrl")
-    val batchSize: Int = config.getInt("batchSize")
-    val eventBatchSize: Int = config.getInt("eventBatchSize")
-    val pollingInterval: Long = config.getLong("pollingInterval")
 }

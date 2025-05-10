@@ -3,13 +3,12 @@
 package fi.decentri.dataingest.ingest
 
 import arrow.fx.coroutines.parMap
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.abi.AbiEvent
 import fi.decentri.abi.AbiService
 import fi.decentri.abi.DecodedLog
 import fi.decentri.abi.LogDecoder
 import fi.decentri.block.BlockService
-import fi.decentri.dataingest.config.EthereumConfig
+import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.dataingest.repository.EventLogData
@@ -18,7 +17,6 @@ import fi.decentri.dataingest.repository.IngestionMetadataRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import org.slf4j.LoggerFactory
-import org.web3j.protocol.Web3j
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.methods.request.EthFilter
 import org.web3j.protocol.core.methods.response.EthLog
@@ -34,20 +32,21 @@ import kotlin.time.measureTime
  * Service responsible for blockchain event logs ingestion
  */
 class EventIngestorService(
-    private val config: EthereumConfig,
-    private val web3j: Web3j
+    private val web3jManager: Web3jManager
 ) {
-    private val blockService = BlockService(web3j)
     private val logger = LoggerFactory.getLogger(this::class.java)
     private val metadataRepository = IngestionMetadataRepository()
     private val eventRepository = EventRepository()
     private val abiService = AbiService()
+    private val blockService: BlockService = BlockService(Web3jManager.getInstance())
 
     /**
      * Ingest events for a contract
      */
     suspend fun ingest(contract: Contract) {
         logger.info("Starting event log ingestion for contract ${contract.address}")
+
+        val config = web3jManager.getNetworkConfig(contract.chain) ?: throw IllegalArgumentException()
 
         // Parse ABI to extract events
         val (_, events) = abiService.parseABI(contract.abi)
@@ -57,13 +56,15 @@ class EventIngestorService(
         }
 
         // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = blockService.getLatestBlock()
+        val targetLatestBlock = blockService.getLatestBlock(contract.chain)
 
         // Get the last processed block or start from 24 hours ago
         val startBlock =
-            metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, contract.id!!)?.toLongOrNull()
+            metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, contract.id!!)
+                ?.toLongOrNull()
                 ?: blockService.getBlockClosestTo(
-                    LocalDateTime.now().minusHours(24)
+                    LocalDateTime.now().minusHours(24),
+                    contract.chain
                 )
 
         logger.info("Starting event ingestion from block $startBlock to target latest block $targetLatestBlock")
@@ -119,7 +120,7 @@ class EventIngestorService(
             MetadataType.EVENTS_LAST_RUN_TIMESTAMP,
             Instant.now().toString()
         )
-        
+
         logger.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
     }
 
@@ -144,7 +145,8 @@ class EventIngestorService(
             )
 
             // Get logs for the filter
-            val logs = web3j.ethGetLogs(filter).sendAsync().await().logs as List<EthLog.LogObject>
+            val logs =
+                web3jManager.web3(network)!!.web3j.ethGetLogs(filter).sendAsync().await().logs as List<EthLog.LogObject>
 
             if (logs.isEmpty()) {
                 logger.debug("No event logs found for the contract in blocks $fromBlock to $toBlock")
@@ -194,7 +196,7 @@ class EventIngestorService(
         val data = log.data ?: "0x"
 
         // Get the block to extract timestamp
-        val block = blockService.getBlockByNumber(log.blockNumber)
+        val block = blockService.getBlockByNumber(log.blockNumber, network)
         val blockTimestamp = Instant.ofEpochSecond(block.timestamp.longValueExact())
 
         // Get the topic0 (event signature)

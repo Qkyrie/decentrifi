@@ -20,7 +20,7 @@ import kotlin.time.toJavaDuration
 class Web3jManager private constructor(config: Config) {
     private val logger = LoggerFactory.getLogger(Web3jManager::class.java)
     private val networks = ConcurrentHashMap<String, NetworkConfig>()
-    private val web3jInstances = ConcurrentHashMap<String, Web3j>()
+    private val web3jInstances = ConcurrentHashMap<String, Web3>()
     private val mutex = Mutex()
     private val scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(4)
     
@@ -68,13 +68,7 @@ class Web3jManager private constructor(config: Config) {
         }
     }
     
-    /**
-     * Gets or creates a Web3j instance for the specified network.
-     * 
-     * @param network The network name (e.g., "ethereum", "polygon", "arbitrum")
-     * @return The Web3j instance for the requested network, or null if the network is not configured
-     */
-    suspend fun web3j(network: String): Web3j? {
+    suspend fun web3(network: String): Web3? {
         // Return existing instance if available
         if (web3jInstances.containsKey(network)) {
             return web3jInstances[network]
@@ -99,10 +93,14 @@ class Web3jManager private constructor(config: Config) {
                         .build()
                 )
                 
-                val web3j = Web3j.build(httpService, 2_000L, scheduler)
-                web3jInstances[network] = web3j
+                val web3 = Web3(
+                    Web3j.build(httpService, 2_000L, scheduler),
+                    networkConfig,
+                    httpService
+                )
+                web3jInstances[network] = web3
                 logger.info("Created Web3j instance for network: $network")
-                web3j
+                web3
             } catch (e: Exception) {
                 logger.error("Failed to create Web3j instance for network '$network': ${e.message}", e)
                 null
@@ -133,7 +131,7 @@ class Web3jManager private constructor(config: Config) {
      * Shuts down all Web3j instances and releases resources.
      */
     fun shutdown() {
-        web3jInstances.values.forEach { it.shutdown() }
+        web3jInstances.values.forEach { it.web3j.shutdown() }
         web3jInstances.clear()
         scheduler.shutdown()
         logger.info("Shut down all Web3j instances")
@@ -178,5 +176,11 @@ class Web3jManager private constructor(config: Config) {
         val eventBatchSize: Int,
         val pollingInterval: Long,
         val blockTime: Int // Average block time in seconds
+    )
+
+    data class Web3(
+        val web3j: Web3j,
+        val networkConfig: NetworkConfig,
+        val httpService: HttpService
     )
 }
