@@ -9,28 +9,30 @@ class IngestionLauncher(
 ) {
     private val client = clientProvider()
 
-    fun launchManualRun(): String {
-        // 1) Fetch the existing CronJob to reuse its Job template
+    fun launchManualRun(contract: String): String {
         val cj = client.batch().v1().cronjobs()
             .inNamespace(namespace)
-            .withName("data-ingestion")
-            .get() ?: error("CronJob 'ingestion' not found")
+            .withName("ingestion")
+            .get() ?: error("CronJob not found")
 
-        // 2) Build a one‑off Job
+        // Clone the template and inject args
+        val jobSpec = cj.spec.jobTemplate.spec
+        val container = jobSpec.template.spec.containers[0]      // assume one container
+        container.args = listOf("--contract", contract)
+
         val job = JobBuilder()
             .withNewMetadata()
-                .withGenerateName("ingestion-manual-")         // server will append a random suffix
-                .withNamespace(namespace)
+            .withGenerateName("ingestion-manual-")
+            .withNamespace(namespace)
             .endMetadata()
-            .withSpec(cj.spec.jobTemplate.spec)                // re‑use template exactly
+            .withSpec(jobSpec)
             .build()
 
-        // 3) Create it
         val created = client.batch().v1().jobs()
             .inNamespace(namespace)
             .resource(job)
             .create()
 
-        return created.metadata.name // return Job’s final name for the caller / logs
+        return created.metadata.name
     }
 }

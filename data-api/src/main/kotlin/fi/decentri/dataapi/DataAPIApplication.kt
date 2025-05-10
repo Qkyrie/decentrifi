@@ -38,11 +38,6 @@ val logger = LoggerFactory.getLogger("fi.decentri.dataapi.Application")
 
 @ExperimentalTime
 fun main() {
-
-    val ingestionLauncher = IngestionLauncher()
-    logger.info("launching ingestions")
-    ingestionLauncher.launchManualRun()
-
     logger.info("Starting data API application")
 
     // Load configuration
