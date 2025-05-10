@@ -41,6 +41,7 @@ resource "kubernetes_deployment" "app_deployment" {
         labels = local.common_labels
       }
       spec {
+        service_account_name = "ingestion-trigger-sa"
         container {
           image             = "ghcr.io/${var.github_repo}/${var.app_name}:latest"
           name              = var.app_name
