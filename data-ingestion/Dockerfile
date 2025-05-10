@@ -25,4 +25,8 @@ FROM amazoncorretto:21-alpine
 WORKDIR /app
 COPY --from=build /app/data-ingestion/target/app.jar /app/app.jar
 COPY data-ingestion/src/main/resources/application.conf /app/application.conf
-CMD ["java","-jar","/app/app.jar"]
+# Use ENTRYPOINT for the fixed part and CMD for the default arguments
+# This allows kubernetes to override just the CMD part with its own arguments
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Default to auto mode if no arguments are provided
+CMD ["--mode=auto"]

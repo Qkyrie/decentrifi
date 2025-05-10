@@ -112,6 +112,19 @@ fun Application.configureRouting(
                 )
                 logger.info("Saved contract to database with ID: $id")
 
+                // Launch the ingestion job for this contract
+                try {
+                    val ingestionLauncher = IngestionLauncher()
+                    val jobName = ingestionLauncher.launchManualRun(
+                        contractSubmission.contractAddress.lowercase(),
+                        contractSubmission.network.lowercase()
+                    )
+                    logger.info("Launched ingestion job: $jobName for contract: ${contractSubmission.contractAddress}")
+                } catch (e: Exception) {
+                    logger.error("Failed to launch ingestion job for contract: ${contractSubmission.contractAddress}", e)
+                    // Continue execution, as this is not a critical error for the contract submission
+                }
+
                 call.respond(
                     HttpStatusCode.OK,
                     mapOf("location" to "/${contractSubmission.network}/${contractSubmission.contractAddress}")
@@ -119,6 +132,38 @@ fun Application.configureRouting(
             } catch (e: Exception) {
                 logger.error("Failed to process contract submission", e)
                 call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid contract submission"))
+            }
+        }
+
+        // Manually trigger ingestion for a contract
+        post("/{network}/{contract}/ingest") {
+            try {
+                val network = call.parameters["network"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Missing network parameter")
+                )
+                val contractAddress = call.parameters["contract"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Missing contract parameter")
+                )
+
+                // Check if the contract/network combination exists in our database
+                val contract = contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
+                if (contract == null) {
+                    logger.warn("Contract not found for ingestion: $contractAddress on network: $network")
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Contract not found in database"))
+                    return@post
+                }
+
+                // Launch the ingestion job for this contract
+                val ingestionLauncher = IngestionLauncher()
+                val jobName = ingestionLauncher.launchManualRun(contractAddress.lowercase(), network.lowercase())
+                logger.info("Manually launched ingestion job: $jobName for contract: $contractAddress on network: $network")
+
+                call.respond(HttpStatusCode.OK, mapOf("job" to jobName, "message" to "Ingestion job launched successfully"))
+            } catch (e: Exception) {
+                logger.error("Failed to launch manual ingestion job", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
             }
         }
 

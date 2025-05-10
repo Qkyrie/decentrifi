@@ -9,16 +9,16 @@ class IngestionLauncher(
 ) {
     private val client = clientProvider()
 
-    fun launchManualRun(contract: String): String {
+    fun launchManualRun(contract: String, network: String = "ethereum-mainnet"): String {
         val cj = client.batch().v1().cronjobs()
             .inNamespace(namespace)
-            .withName("ingestion")
+            .withName("data-ingestion")
             .get() ?: error("CronJob not found")
 
         // Clone the template and inject args
         val jobSpec = cj.spec.jobTemplate.spec
         val container = jobSpec.template.spec.containers[0]      // assume one container
-        container.args = listOf("--contract", contract)
+        container.args = listOf("--mode=contract", "--contract", contract, "--network", network)
 
         val job = JobBuilder()
             .withNewMetadata()
