@@ -2,6 +2,7 @@ package fi.decentri.dataapi
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import fi.decentri.dataapi.config.AppConfig
+import fi.decentri.dataapi.k8s.ingestion.IngestionLauncher
 import fi.decentri.dataapi.model.ContractSubmission
 import fi.decentri.dataapi.model.MetadataType
 import fi.decentri.dataapi.repository.ContractsRepository
@@ -37,6 +38,11 @@ val logger = LoggerFactory.getLogger("fi.decentri.dataapi.Application")
 
 @ExperimentalTime
 fun main() {
+
+    val ingestionLauncher = IngestionLauncher()
+    logger.info("launching ingestions")
+    ingestionLauncher.launchManualRun()
+
     logger.info("Starting data API application")
 
     // Load configuration
@@ -197,7 +203,8 @@ fun Application.configureRouting(
                 )
 
                 // Check if the contract/network combination exists in our database
-                val contract = contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
+                val contract =
+                    contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
                 if (contract == null) {
                     logger.warn("Contract not found: $contractAddress on network: $network")
                     call.respond(mapOf("status" to "unknown"))
