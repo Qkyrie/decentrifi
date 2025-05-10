@@ -93,10 +93,11 @@ class EventIngestorService(
                         contract.abi
                     )
 
-                    lastProcessedBlock = toBlock
 
                     updateLastBlock(contract, toBlock)
                     updateLastTimestamp(contract)
+
+                    lastProcessedBlock = toBlock
 
                     // Calculate and log progress
                     val progressPercentage =
