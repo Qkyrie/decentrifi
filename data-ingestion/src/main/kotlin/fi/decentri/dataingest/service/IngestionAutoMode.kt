@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import kotlin.time.ExperimentalTime
 
-class BlockchainIngestor(
+class IngestionAutoMode(
     private val contractsService: ContractsService,
     private val rawInvocationIngestorService: RawInvocationIngestorService,
     private val eventIngestorService: EventIngestorService,
@@ -20,7 +20,7 @@ class BlockchainIngestor(
 ) {
 
     private val scope = parentScope + SupervisorJob(parentScope.coroutineContext[Job])
-    private val logger = LoggerFactory.getLogger(BlockchainIngestor::class.java)
+    private val logger = LoggerFactory.getLogger(IngestionAutoMode::class.java)
     private val metadataRepository = IngestionMetadataRepository()
 
     /**

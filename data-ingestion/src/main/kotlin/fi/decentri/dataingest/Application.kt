@@ -5,14 +5,13 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.typesafe.config.ConfigFactory
 import fi.decentri.abi.AbiService
-import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.ingest.EventIngestorService
 import fi.decentri.dataingest.ingest.RawInvocationIngestorService
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.repository.ContractsRepository
-import fi.decentri.dataingest.service.BlockchainIngestor
+import fi.decentri.dataingest.service.IngestionAutoMode
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.db.DatabaseFactory
 import kotlinx.coroutines.*
@@ -62,7 +61,6 @@ class IngestCommand : CliktCommand(
         val contractsRepository = ContractsRepository()
         val abiService = AbiService()
         val contractsService = ContractsService(contractsRepository, abiService)
-        val blockService = BlockService(web3jManager)
 
         // Use network parameter or default to ethereum
         val networkToUse = network ?: "ethereum"
@@ -85,7 +83,7 @@ class IngestCommand : CliktCommand(
         val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
         // Create the blockchain ingestion service
-        val blockchainIngestor = BlockchainIngestor(
+        val ingestionAutoMode = IngestionAutoMode(
             contractsService,
             rawInvocationIngestorService,
             eventIngestorService,
@@ -100,7 +98,7 @@ class IngestCommand : CliktCommand(
                     // have been processed within the last 30 minutes to avoid duplicating
                     // work when manual ingestion jobs have been run
                     logger.info("Running in AUTO mode - processing all contracts (30-minute cooldown applied)")
-                    val job = blockchainIngestor.startIngestion()
+                    val job = ingestionAutoMode.startIngestion()
                     job.join() // Wait for the job to complete
                     logger.info("Ingestion job completed successfully")
                 }
