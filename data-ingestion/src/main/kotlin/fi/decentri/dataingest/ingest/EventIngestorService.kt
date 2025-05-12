@@ -121,22 +121,6 @@ class EventIngestorService(
         )
     }
 
-    private suspend fun updateLastTimestamp(contract: Contract) {
-        metadataRepository.updateMetadataForContractId(
-            contract.id!!,
-            MetadataType.EVENTS_LAST_RUN_TIMESTAMP,
-            Instant.now().toString()
-        )
-    }
-
-    private suspend fun updateLastBlock(contract: Contract, toBlock: Long) {
-        metadataRepository.updateMetadataForContractId(
-            contract.id!!,
-            MetadataType.LAST_PROCESSED_BLOCK_EVENTS,
-            toBlock.toString()
-        )
-    }
-
     /**
      * Process logs within a block range
      */
