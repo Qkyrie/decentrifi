@@ -1,4 +1,4 @@
-package fi.decentri.dataingest.repository
+package fi.decentri.infrastructure.repository.ingestion
 
 import fi.decentri.application.ports.RawInvocationsPort
 import fi.decentri.db.DatabaseFactory.dbQuery

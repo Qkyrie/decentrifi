@@ -11,10 +11,10 @@ import fi.decentri.application.usecases.EventIngestorUseCase
 import fi.decentri.application.usecases.IngestRawInvocationsUseCase
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.model.Contract
-import fi.decentri.dataingest.repository.ContractsRepository
-import fi.decentri.dataingest.repository.EventRepository
-import fi.decentri.dataingest.repository.IngestionMetadataRepository
-import fi.decentri.dataingest.repository.RawInvocationRepository
+import fi.decentri.infrastructure.repository.contract.ContractsRepository
+import fi.decentri.infrastructure.repository.ingestion.EventRepository
+import fi.decentri.infrastructure.repository.ingestion.IngestionMetadataRepository
+import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.dataingest.service.IngestionAutoMode
 import fi.decentri.db.DatabaseFactory

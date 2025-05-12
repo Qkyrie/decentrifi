@@ -6,7 +6,7 @@ import fi.decentri.application.usecases.EventIngestorUseCase
 import fi.decentri.application.usecases.IngestRawInvocationsUseCase
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
-import fi.decentri.dataingest.repository.IngestionMetadataRepository
+import fi.decentri.infrastructure.repository.ingestion.IngestionMetadataRepository
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -19,8 +19,11 @@ class IngestionAutoMode(
     parentScope: CoroutineScope  // inject an application/lifecycle scope
 ) {
 
+    companion object {
+        private val logger = LoggerFactory.getLogger(IngestionAutoMode::class.java)
+    }
+
     private val scope = parentScope + SupervisorJob(parentScope.coroutineContext[Job])
-    private val logger = LoggerFactory.getLogger(IngestionAutoMode::class.java)
     private val metadataRepository = IngestionMetadataRepository()
 
     /**
@@ -111,7 +114,7 @@ class IngestionAutoMode(
                 if (timeSinceLastRun < MetadataType.AUTO_MODE_COOLDOWN) {
                     logger.info(
                         "Contract ${contract.address} was processed ${timeSinceLastRun.toMinutes()} minutes ago, " +
-                        "which is less than the cooldown period of ${MetadataType.AUTO_MODE_COOLDOWN.toMinutes()} minutes"
+                                "which is less than the cooldown period of ${MetadataType.AUTO_MODE_COOLDOWN.toMinutes()} minutes"
                     )
                     return false
                 }
@@ -130,7 +133,7 @@ class IngestionAutoMode(
                 if (timeSinceLastRun < MetadataType.AUTO_MODE_COOLDOWN) {
                     logger.info(
                         "Contract ${contract.address} events were processed ${timeSinceLastRun.toMinutes()} minutes ago, " +
-                        "which is less than the cooldown period of ${MetadataType.AUTO_MODE_COOLDOWN.toMinutes()} minutes"
+                                "which is less than the cooldown period of ${MetadataType.AUTO_MODE_COOLDOWN.toMinutes()} minutes"
                     )
                     return false
                 }

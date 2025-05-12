@@ -1,13 +1,11 @@
-package fi.decentri.dataingest.repository
+package fi.decentri.infrastructure.repository.ingestion
 
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.event.EventDefinitions
 import fi.decentri.db.event.RawLogs
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.*
-import org.postgresql.util.PGobject
 import org.slf4j.LoggerFactory
 import java.time.Instant
 

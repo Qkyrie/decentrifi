@@ -2,10 +2,8 @@ package fi.decentri.dataingest.service
 
 import fi.decentri.abi.AbiService
 import fi.decentri.dataingest.model.Contract
-import fi.decentri.dataingest.repository.ContractsRepository
+import fi.decentri.infrastructure.repository.contract.ContractsRepository
 import org.slf4j.LoggerFactory
-import java.time.Clock
-import java.time.Instant
 import kotlin.time.ExperimentalTime
 
 /**

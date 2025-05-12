@@ -1,22 +1,19 @@
-package fi.decentri.dataingest.repository
+package fi.decentri.infrastructure.repository.contract
 
 import fi.decentri.dataingest.model.Contract
+import fi.decentri.db.DatabaseFactory
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.contract.Contracts
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.slf4j.LoggerFactory
-import java.time.Instant
 import kotlin.time.ExperimentalTime
-import kotlin.time.toJavaInstant
-import kotlin.time.toKotlinInstant
 
 /**
  * Repository for managing contract data including ABI and address
  */
 @ExperimentalTime
 class ContractsRepository {
-    private val logger = LoggerFactory.getLogger(this::class.java)
 
     /**
      * Insert a new contract
@@ -77,7 +74,7 @@ class ContractsRepository {
      */
     suspend fun findByChain(chain: String): List<Contract> {
         return dbQuery {
-            Contracts.select { Contracts.chain eq chain }
+            Contracts.selectAll().where { Contracts.chain eq chain }
                 .map { toContract(it) }
         }
     }

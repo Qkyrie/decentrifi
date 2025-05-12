@@ -3,18 +3,15 @@
 package fi.decentri.application.usecases
 
 import arrow.fx.coroutines.parMap
-import fi.decentri.abi.AbiService
 import fi.decentri.abi.LogDecoder.decode
 import fi.decentri.application.ports.AbiPort
 import fi.decentri.application.ports.BlockPort
 import fi.decentri.application.ports.IngestionMetadataPort
-import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
-import fi.decentri.dataingest.repository.EventLogData
-import fi.decentri.dataingest.repository.EventRepository
-import fi.decentri.dataingest.repository.IngestionMetadataRepository
+import fi.decentri.infrastructure.repository.ingestion.EventLogData
+import fi.decentri.infrastructure.repository.ingestion.EventRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import org.slf4j.LoggerFactory

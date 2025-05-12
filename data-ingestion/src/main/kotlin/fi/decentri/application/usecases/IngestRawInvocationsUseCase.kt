@@ -11,8 +11,8 @@ import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
-import fi.decentri.dataingest.repository.RawInvocationData
-import fi.decentri.dataingest.repository.RawInvocationRepository
+import fi.decentri.infrastructure.repository.ingestion.RawInvocationData
+import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.core.Request
