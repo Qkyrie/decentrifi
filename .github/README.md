@@ -20,14 +20,17 @@ decentrifi provides comprehensive analytics and insights for smart contracts, st
     - Function call counts by selector
     - Gas usage distribution
     - Active wallet counts
+- **Data Aggregator**: New Go-based service for efficient data aggregation and processing
 
 ### Web Application
 - REST API serving analytics data
 - Interactive visualizations featuring:
     - Gas usage metrics
     - Daily active wallet metrics
+    - Live user count with auto-refresh (users active in the last 30 minutes)
 - RESTful API endpoints for all metrics
 - Responsive design with date range filtering
+- Modularized routing logic for better maintainability
 
 ### Key Features
 - Support for EVM-compatible chains
@@ -36,6 +39,7 @@ decentrifi provides comprehensive analytics and insights for smart contracts, st
 - Kubernetes-based deployment
 - Contract management system to store and manage ABIs and addresses across different chains
 - Waitlist functionality for early access users
+- Explicit network configuration (no default fallbacks)
 
 ## Project Structure
 
@@ -56,24 +60,30 @@ The project is organized as a multi-module Maven application:
   - Interactive charts
   - Analytics dashboard for contract metrics
   - Kubernetes job launcher for manual data ingestion of specific contracts
+  - Modular route structure for better code organization
 - **db**: Shared database module containing connection logic and models
+- **data-aggregator**: New Go-based service for efficient data processing and analytics aggregation
 
 ## Technology Stack
 
-- **Backend**: Kotlin, Ktor, Exposed ORM, PostgreSQL, TimescaleDB
+- **Backend**: 
+  - Kotlin, Ktor, Exposed ORM, PostgreSQL, TimescaleDB
+  - Go for the data-aggregator service
 - **Blockchain Integration**: Web3j with multi-network support
 - **Command-line Parsing**: Clikt for robust CLI argument handling
 - **Frontend**: Thymeleaf, HTML/CSS/JS
-- **Deployment**: Docker, Kubernetes
+- **Deployment**: Docker, Kubernetes, GitHub Container Registry
 - **Functional Programming**: Arrow
 - **Dependency Injection**: Koin
 - **Connection Pooling**: HikariCP
+- **CI/CD**: GitHub Actions workflows for both Kotlin and Go services
 
 ## How to Build
 
 ### Prerequisites
 - Java 21
 - Maven 3.8+
+- Go 1.21+ (for data-aggregator service)
 - Docker and Docker Compose
 - PostgreSQL with TimescaleDB extension
 - Git
@@ -128,6 +138,8 @@ The project is organized as a multi-module Maven application:
    }
    ```
 
+   Note: As of recent updates, explicit network configuration is required - there are no default fallbacks to Ethereum.
+
 5. **Run the application**
 
    Using Docker Compose:
@@ -141,15 +153,24 @@ The project is organized as a multi-module Maven application:
    # Run the data ingestion module
    cd data-ingestion
    mvn exec:java -Dexec.mainClass="fi.decentri.dataingest.ApplicationKt"
+   
+   # Run the data-aggregator service (Go)
+   cd services/data-aggregator
+   go run main.go
    ```
 
 ### Building for Production
 
 1. **Create production Docker images**
    ```bash
+   # For Kotlin services
    mvn clean package
    docker build -t decentrifi/data-ingestion:latest -f data-ingestion/Dockerfile data-ingestion
    docker build -t decentrifi/data-api:latest -f data-api/Dockerfile data-api
+   
+   # For Go data-aggregator service
+   cd services/data-aggregator
+   docker build -t decentrifi/data-aggregator:latest .
    ```
 
 2. **Deploy with Kubernetes**
@@ -210,7 +231,7 @@ Note that to use the `trace_filter` functionality, your Ethereum node must suppo
 
 ## ABI Processing
 
-The platform includes functionality to parse smart contract ABI files, which is essential for working with different types of contracts and understanding their interfaces.
+The platform includes functionality to parse smart contract ABI files, which is essential for working with different types of contracts and understanding their interfaces. ABI-related classes are now organized in the `infrastructure.abi` package for better code structure.
 
 ### Using the ABI Service
 
@@ -262,6 +283,7 @@ The platform now includes robust support for multiple blockchain networks throug
 - **Lazy Initialization**: Web3j connections are created on-demand
 - **Network-Specific Settings**: Configure each network with custom batch sizes, polling intervals, and block times
 - **Resource Management**: Automatic cleanup of connections when shutting down
+- **Explicit Network Selection**: No default fallbacks to Ethereum - network must be explicitly specified
 
 Example usage:
 ```kotlin
@@ -275,6 +297,24 @@ val web3j = web3jManager.web3("ethereum-mainnet")
 val networkConfig = web3jManager.getNetworkConfig("polygon-mainnet")
 ```
 
+## Web Application Features
+
+### Route Structure
+
+The web application uses a modular routing approach with separate route modules:
+- `BaseRoutes`: Core routes and common functionality
+- `ContractRoutes`: Contract management endpoints
+- `WaitlistRoutes`: Waitlist registration and management
+- `AnalyticsRoutes`: Data analytics endpoints
+- Centralized `configureRoutesModules` function integrates all route modules
+
+### Live User Count Tracking
+
+The application includes functionality to display and auto-refresh the count of users active in the last 30 minutes:
+- Dedicated API endpoint for fetching live user data
+- Front-end integration with animated updates every 5 seconds
+- Real-time visibility into platform activity
+
 ## Waitlist Functionality
 
 The project includes a waitlist system for early access signups. The waitlist allows potential users to register their interest in the platform before general availability.
@@ -284,7 +324,7 @@ The project includes a waitlist system for early access signups. The waitlist al
 The project includes Terraform configuration to deploy the application to Kubernetes. The configuration can be found in the `infra` directory.
 
 The deployment includes:
-- Deployments for each microservice (data-ingestion, data-api)
+- Deployments for each microservice (data-ingestion, data-api, data-aggregator)
 - Services to expose the microservices
 - ConfigMaps and Secrets for configuration
 - Integration with Cloudflare for DNS and TLS
@@ -295,6 +335,14 @@ cd infra
 terraform init
 terraform apply
 ```
+
+## CI/CD Pipelines
+
+The project uses GitHub Actions for continuous integration and deployment:
+- Separate workflows for Kotlin and Go services
+- Automatic builds and tests on relevant changes
+- Docker image creation and publishing to GitHub Container Registry
+- Environment variables for registry and image name configuration
 
 ## License
 
