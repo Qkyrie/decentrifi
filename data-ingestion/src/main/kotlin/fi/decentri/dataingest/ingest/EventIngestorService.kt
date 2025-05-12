@@ -46,7 +46,8 @@ class EventIngestorService(
     suspend fun ingest(contract: Contract) {
         logger.info("Starting event log ingestion for contract ${contract.address}")
 
-        val config = web3jManager.getNetworkConfig(contract.chain) ?: throw IllegalArgumentException()
+        val (_, _, eventBatchSize, pollingInterval, _) = web3jManager.getNetworkConfig(contract.chain)
+            ?: throw IllegalArgumentException()
 
         // Parse ABI to extract events
         val (_, events) = abiService.parseABI(contract.abi)
@@ -81,7 +82,7 @@ class EventIngestorService(
                     completed = true
                 } else {
                     // Calculate the next batch to process
-                    val toBlock = minOf(lastProcessedBlock + config.eventBatchSize, targetLatestBlock)
+                    val toBlock = minOf(lastProcessedBlock + eventBatchSize, targetLatestBlock)
                     logger.info("Processing event logs for blocks ${lastProcessedBlock + 1} to $toBlock (${toBlock - lastProcessedBlock} blocks)")
 
                     // Process the block range to get events
@@ -106,7 +107,7 @@ class EventIngestorService(
                 }
             } catch (e: Exception) {
                 logger.error("Error during event log ingestion: ${e.message}", e)
-                delay(config.pollingInterval)
+                delay(pollingInterval)
             }
         }
 
