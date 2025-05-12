@@ -1,6 +1,7 @@
 package fi.decentri.dataapi
 
 import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import fi.decentri.dataapi.config.AppConfig
 import fi.decentri.dataapi.k8s.ingestion.IngestionLauncher
 import fi.decentri.dataapi.model.ContractSubmission
@@ -121,7 +122,10 @@ fun Application.configureRouting(
                     )
                     logger.info("Launched ingestion job: $jobName for contract: ${contractSubmission.contractAddress}")
                 } catch (e: Exception) {
-                    logger.error("Failed to launch ingestion job for contract: ${contractSubmission.contractAddress}", e)
+                    logger.error(
+                        "Failed to launch ingestion job for contract: ${contractSubmission.contractAddress}",
+                        e
+                    )
                     // Continue execution, as this is not a critical error for the contract submission
                 }
 
@@ -148,7 +152,8 @@ fun Application.configureRouting(
                 )
 
                 // Check if the contract/network combination exists in our database
-                val contract = contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
+                val contract =
+                    contractsRepository.findByAddressAndNetwork(contractAddress.lowercase(), network.lowercase())
                 if (contract == null) {
                     logger.warn("Contract not found for ingestion: $contractAddress on network: $network")
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Contract not found in database"))
@@ -160,7 +165,10 @@ fun Application.configureRouting(
                 val jobName = ingestionLauncher.launchManualRun(contractAddress.lowercase(), network.lowercase())
                 logger.info("Manually launched ingestion job: $jobName for contract: $contractAddress on network: $network")
 
-                call.respond(HttpStatusCode.OK, mapOf("job" to jobName, "message" to "Ingestion job launched successfully"))
+                call.respond(
+                    HttpStatusCode.OK,
+                    mapOf("job" to jobName, "message" to "Ingestion job launched successfully")
+                )
             } catch (e: Exception) {
                 logger.error("Failed to launch manual ingestion job", e)
                 call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
@@ -377,8 +385,8 @@ fun Application.configureTemplating() {
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
         jackson {
-            // Register JavaTimeModule to handle Java 8 date/time types
             findAndRegisterModules()
+            registerModules(JavaTimeModule())
             enable(SerializationFeature.INDENT_OUTPUT)
             disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
         }
