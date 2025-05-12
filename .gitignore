@@ -26,3 +26,5 @@ logs/
 kubeconfig.yaml
 
 infra/secrets.env
+
+*.iml
