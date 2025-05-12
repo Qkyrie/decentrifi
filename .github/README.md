@@ -61,7 +61,8 @@ The project is organized as a multi-module Maven application:
 ## Technology Stack
 
 - **Backend**: Kotlin, Ktor, Exposed ORM, PostgreSQL, TimescaleDB
-- **Blockchain Integration**: Web3j
+- **Blockchain Integration**: Web3j with multi-network support
+- **Command-line Parsing**: Clikt for robust CLI argument handling
 - **Frontend**: Thymeleaf, HTML/CSS/JS
 - **Deployment**: Docker, Kubernetes
 - **Functional Programming**: Arrow
@@ -109,6 +110,24 @@ The project is organized as a multi-module Maven application:
 
    Edit `data-ingestion/src/main/resources/application.conf` with appropriate database and blockchain connection settings.
 
+   Example multi-network configuration:
+   ```hocon
+   networks {
+     ethereum-mainnet {
+       rpcUrl = "https://mainnet.infura.io/v3/your-api-key"
+       batchSize = 1000
+       pollingInterval = 15000
+       blockTime = 12
+     }
+     polygon-mainnet {
+       rpcUrl = "https://polygon-rpc.com"
+       batchSize = 2000
+       pollingInterval = 5000
+       blockTime = 2
+     }
+   }
+   ```
+
 5. **Run the application**
 
    Using Docker Compose:
@@ -148,24 +167,29 @@ The `data-ingestion` module can be configured to ingest data from different bloc
 
 ### Ingestion Modes
 
-The data ingestion module supports multiple operation modes:
+The data ingestion module supports multiple operation modes with enhanced command-line argument parsing using Clikt:
 
 1. **Auto Mode (Default)**: Automatically processes all contracts registered in the system
    ```bash
    # Run in auto mode (default if no mode specified)
    java -jar data-ingestion.jar --mode=auto
    ```
+   - Features a 30-minute cooldown mechanism to prevent redundant processing of recently ingested contracts
+   - Intelligently skips contracts that have been manually processed recently
 
 2. **Contract Mode**: Processes a specific contract on a specific network
    ```bash
    # Process a single contract on a specific network
    java -jar data-ingestion.jar --mode=contract --contract 0x1234abcd... --network ethereum-mainnet
    ```
+   - Allows targeted data ingestion for specific contracts
+   - Updates timestamp metadata to coordinate with auto mode cooldown
 
 3. **Kubernetes Job Launcher**: The data-api module provides a RESTful interface to launch contract-specific ingestion jobs on Kubernetes
    - Triggers Kubernetes jobs with contract mode parameters
    - Useful for on-demand processing of specific contracts
    - Automatically triggered when a new contract is submitted through the web interface
+   - Creates jobs with proper service account and resource configurations
 
 ### Trace Filter Functionality
 
@@ -224,10 +248,32 @@ The `Contract` entity includes the following properties:
 - `id`: Unique identifier for the contract record
 - `address`: The contract address (e.g., '0x6B17…')
 - `abi`: The contract ABI as a JSON string
-- `chain`: The blockchain network (e.g., 'ethereum-mainnet', 'bsc-mainnet')
+- `chain`: The blockchain network (e.g., 'ethereum-mainnet', 'polygon-mainnet')
 - `name`: Optional name for the contract
 - `createdAt`: When the record was created
 - `updatedAt`: When the record was last updated
+
+### Multi-Network Support
+
+The platform now includes robust support for multiple blockchain networks through the `Web3jManager`:
+
+- **Dynamic Network Configuration**: Configure multiple networks in application.conf
+- **Connection Management**: Efficient management of Web3j instances with connection pooling
+- **Lazy Initialization**: Web3j connections are created on-demand
+- **Network-Specific Settings**: Configure each network with custom batch sizes, polling intervals, and block times
+- **Resource Management**: Automatic cleanup of connections when shutting down
+
+Example usage:
+```kotlin
+// Access the Web3jManager
+val web3jManager = Web3jManager.getInstance()
+
+// Get a Web3j instance for a specific network
+val web3j = web3jManager.web3("ethereum-mainnet")
+
+// Get network-specific configuration
+val networkConfig = web3jManager.getNetworkConfig("polygon-mainnet")
+```
 
 ## Waitlist Functionality
 

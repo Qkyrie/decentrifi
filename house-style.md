@@ -1,10 +1,3 @@
-Een paar seconden nagedacht
-
-
-Here’s a cohesive “house style” framework that should give Decentrifi that sleek, SaaSy-meets-Web3 vibe—think Stripe’s modern minimalism blended with DigitalOcean’s approachable tech feel.
-
----
-
 ## 1. Logo & Symbol
 
 Can be found in the logos/ folder. 
