@@ -7,12 +7,14 @@ import com.typesafe.config.ConfigFactory
 import fi.decentri.abi.AbiService
 import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.dataingest.config.Web3jManager
-import fi.decentri.dataingest.ingest.EventIngestorService
-import fi.decentri.dataingest.ingest.RawInvocationIngestorService
+import fi.decentri.application.usecases.EventIngestorUseCase
+import fi.decentri.application.usecases.IngestRawInvocationsUseCase
+import fi.decentri.block.BlockService
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.repository.ContractsRepository
 import fi.decentri.dataingest.repository.EventRepository
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
+import fi.decentri.dataingest.repository.RawInvocationRepository
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.dataingest.service.IngestionAutoMode
 import fi.decentri.db.DatabaseFactory
@@ -47,108 +49,121 @@ class IngestCommand : CliktCommand(
     )
 
     @OptIn(ExperimentalTime::class)
-    override fun run() = runBlocking {
-        logger.info("Starting data ingestion application in mode: $mode")
+    override fun run() {
+        runBlocking {
+            logger.info("Starting data ingestion application in mode: $mode")
 
-        // Load configuration
-        val appConfig = AppConfig.load()
+            // Load configuration
+            val appConfig = AppConfig.load()
 
-        // Initialize database
-        DatabaseFactory.init(appConfig.database)
+            // Initialize database
+            DatabaseFactory.init(appConfig.database)
 
-        // Initialize Web3j manager
-        val web3jManager = Web3jManager.init(ConfigFactory.load())
+            // Initialize Web3j manager
+            val web3jManager = Web3jManager.init(ConfigFactory.load())
 
-        // Create necessary services
-        val contractsRepository = ContractsRepository()
-        val abiService = AbiService()
-        val contractsService = ContractsService(contractsRepository, abiService)
-        val metadataRepository = IngestionMetadataRepository()
-        val eventRepository = EventRepository()
+            // adapters
+            val contractsRepository = ContractsRepository()
+            val abiPort = AbiService()
+            val contractsService = ContractsService(contractsRepository, abiPort)
+            val metadataRepository = IngestionMetadataRepository()
+            val rawInvocationRepository = RawInvocationRepository()
+            val eventRepository = EventRepository()
+            val blockService = BlockService(Web3jManager.getInstance())
 
-        val rawInvocationIngestorService = RawInvocationIngestorService(Web3jManager.getInstance())
-        val eventIngestorService = EventIngestorService(
-            Web3jManager.getInstance(),
-            metadataRepository,
-            eventRepository
-        )
 
-        val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+            //use cases
+            val ingestRawInvocationsUseCase = IngestRawInvocationsUseCase(
+                Web3jManager.getInstance(),
+                metadataRepository,
+                rawInvocationRepository,
+                blockService
+            )
+            val eventIngestorUseCase = EventIngestorUseCase(
+                Web3jManager.getInstance(),
+                metadataRepository,
+                eventRepository,
+                blockService,
+                abiPort
+            )
 
-        // Create the blockchain ingestion service
-        val ingestionAutoMode = IngestionAutoMode(
-            contractsService,
-            rawInvocationIngestorService,
-            eventIngestorService,
-            applicationScope,
-        )
+            val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-        try {
-            when (mode) {
-                "auto" -> {
-                    // Auto mode: Ingest data for all contracts
-                    // In auto mode, the BlockchainIngestor will skip contracts that
-                    // have been processed within the last 30 minutes to avoid duplicating
-                    // work when manual ingestion jobs have been run
-                    logger.info("Running in AUTO mode - processing all contracts (30-minute cooldown applied)")
-                    val job = ingestionAutoMode.startIngestion()
-                    job.join() // Wait for the job to complete
-                    logger.info("Ingestion job completed successfully")
+            // Create the blockchain ingestion service
+            val ingestionAutoMode = IngestionAutoMode(
+                contractsService,
+                ingestRawInvocationsUseCase,
+                eventIngestorUseCase,
+                applicationScope,
+            )
+
+            try {
+                when (mode) {
+                    "auto" -> {
+                        // Auto mode: Ingest data for all contracts
+                        // In auto mode, the BlockchainIngestor will skip contracts that
+                        // have been processed within the last 30 minutes to avoid duplicating
+                        // work when manual ingestion jobs have been run
+                        logger.info("Running in AUTO mode - processing all contracts (30-minute cooldown applied)")
+                        val job = ingestionAutoMode.startIngestion()
+                        job.join() // Wait for the job to complete
+                        logger.info("Ingestion job completed successfully")
+                    }
+
+                    "contract" -> {
+                        // Use network parameter or default to ethereum
+                        val networkToUse = network ?: "ethereum"
+
+                        // Verify the network is configured
+                        if (!web3jManager.getNetworkNames().contains(networkToUse)) {
+                            logger.error("Network '$networkToUse' is not configured in application.conf")
+                            exitProcess(1)
+                        }
+
+                        // Get Web3j instance for the specified network
+                        val web3j = web3jManager.web3(networkToUse) ?: run {
+                            logger.error("Failed to create Web3j instance for network: $networkToUse")
+                            exitProcess(1)
+                        }
+
+                        // Contract mode: Ingest data for a specific contract
+                        if (contractAddress == null || network == null) {
+                            logger.error("Contract mode requires both --contract and --network parameters")
+                            exitProcess(1)
+                        }
+
+                        logger.info("Running in CONTRACT mode - processing specific contract: $contractAddress on network: $network")
+                        val contract = contractsService.findContractByAddressAndChain(contractAddress!!, network!!)
+
+                        if (contract == null) {
+                            logger.error("Contract not found: address=$contractAddress, network=$network")
+                            exitProcess(1)
+                        }
+
+                        // Run ingestion for the specific contract
+                        val job = ingestForSpecificContract(
+                            contract,
+                            applicationScope,
+                            ingestRawInvocationsUseCase,
+                            eventIngestorUseCase
+                        )
+                        job.join() // Wait for the job to complete
+                        logger.info("Contract-specific ingestion job completed successfully")
+                    }
+
+                    else -> {
+                        logger.error("Invalid mode: $mode. Valid options are 'auto' or 'contract'")
+                        exitProcess(1)
+                    }
                 }
-
-                "contract" -> {
-                    // Use network parameter or default to ethereum
-                    val networkToUse = network ?: "ethereum"
-
-                    // Verify the network is configured
-                    if (!web3jManager.getNetworkNames().contains(networkToUse)) {
-                        logger.error("Network '$networkToUse' is not configured in application.conf")
-                        exitProcess(1)
-                    }
-
-                    // Get Web3j instance for the specified network
-                    val web3j = web3jManager.web3(networkToUse) ?: run {
-                        logger.error("Failed to create Web3j instance for network: $networkToUse")
-                        exitProcess(1)
-                    }
-
-                    // Contract mode: Ingest data for a specific contract
-                    if (contractAddress == null || network == null) {
-                        logger.error("Contract mode requires both --contract and --network parameters")
-                        exitProcess(1)
-                    }
-
-                    logger.info("Running in CONTRACT mode - processing specific contract: $contractAddress on network: $network")
-                    val contract = contractsService.findContractByAddressAndChain(contractAddress!!, network!!)
-
-                    if (contract == null) {
-                        logger.error("Contract not found: address=$contractAddress, network=$network")
-                        exitProcess(1)
-                    }
-
-                    // Run ingestion for the specific contract
-                    val job = ingestForSpecificContract(
-                        contract,
-                        applicationScope,
-                        rawInvocationIngestorService,
-                        eventIngestorService
-                    )
-                    job.join() // Wait for the job to complete
-                    logger.info("Contract-specific ingestion job completed successfully")
-                }
-
-                else -> {
-                    logger.error("Invalid mode: $mode. Valid options are 'auto' or 'contract'")
-                    exitProcess(1)
-                }
+            } catch (e: Exception) {
+                logger.error("Error during ingestion job: ${e.message}", e)
+            } finally {
+                // Shutdown resources
+                applicationScope.cancel()
+                web3jManager.shutdown()
+                logger.info("Application shutdown complete")
             }
-        } catch (e: Exception) {
-            logger.error("Error during ingestion job: ${e.message}", e)
-        } finally {
-            // Shutdown resources
-            applicationScope.cancel()
-            web3jManager.shutdown()
-            logger.info("Application shutdown complete")
         }
     }
 
@@ -159,15 +174,15 @@ class IngestCommand : CliktCommand(
     private suspend fun ingestForSpecificContract(
         contract: Contract,
         scope: CoroutineScope,
-        rawInvocationIngestorService: RawInvocationIngestorService,
-        eventIngestorService: EventIngestorService
+        ingestRawInvocationsUseCase: IngestRawInvocationsUseCase,
+        eventIngestorUseCase: EventIngestorUseCase
     ): Job = scope.launch {
         logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
 
         // Launch raw invocations ingestion
         val rawInvocationsJob = launch {
             try {
-                rawInvocationIngestorService.ingest(contract)
+                ingestRawInvocationsUseCase.invoke(contract)
                 logger.info("Raw invocations ingestion complete for contract ${contract.address}: caught up with the latest block")
             } catch (e: Exception) {
                 logger.error(
@@ -180,7 +195,7 @@ class IngestCommand : CliktCommand(
         // Launch events ingestion
         val eventsJob = launch {
             try {
-                eventIngestorService.ingest(contract)
+                eventIngestorUseCase.ingest(contract)
                 logger.info("Events ingestion complete for contract ${contract.address}: caught up with the latest block")
             } catch (e: Exception) {
                 logger.error(

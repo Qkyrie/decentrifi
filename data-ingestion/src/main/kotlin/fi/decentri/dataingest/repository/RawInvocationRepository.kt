@@ -1,5 +1,6 @@
 package fi.decentri.dataingest.repository
 
+import fi.decentri.application.ports.RawInvocationsPort
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.rawinvocation.RawInvocations
 import org.jetbrains.exposed.sql.batchInsert
@@ -9,7 +10,7 @@ import java.time.Instant
 /**
  * Repository for managing raw contract invocations data
  */
-class RawInvocationsRepository {
+class RawInvocationRepository : RawInvocationsPort {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
     /**

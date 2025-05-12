@@ -1,5 +1,6 @@
 package fi.decentri.dataingest.repository
 
+import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.ingestion.IngestionMetadata
@@ -9,14 +10,14 @@ import org.slf4j.LoggerFactory
 /**
  * Repository for managing ingestion metadata
  */
-class IngestionMetadataRepository {
+class IngestionMetadataRepository : IngestionMetadataPort {
 
     val logger = LoggerFactory.getLogger(this::class.java)
 
     /**
      * Get the last processed block number for a specific contract
      */
-    suspend fun getMetadatForContractId(type: MetadataType, contractId: Int): String? {
+    override suspend fun getMetadatForContractId(type: MetadataType, contractId: Int): String? {
         return dbQuery {
             IngestionMetadata.selectAll()
                 .where { (IngestionMetadata.key eq type.key) and (IngestionMetadata.contractId eq contractId) }
@@ -28,7 +29,7 @@ class IngestionMetadataRepository {
     /**
      * Update the last processed block number for a specific contract
      */
-    suspend fun updateMetadataForContractId(contractId: Int, type: MetadataType, theValue: String) {
+    override suspend fun updateMetadataForContractId(contractId: Int, type: MetadataType, theValue: String) {
         dbQuery {
             val count =
                 IngestionMetadata.update({ (IngestionMetadata.key eq type.key) and (IngestionMetadata.contractId eq contractId) }) {

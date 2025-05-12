@@ -1,11 +1,11 @@
 package fi.decentri.block
 
+import fi.decentri.application.ports.BlockPort
 import fi.decentri.dataingest.config.Web3jManager
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.withContext
-import org.slf4j.LoggerFactory
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.DefaultBlockParameterName
 import org.web3j.protocol.core.methods.response.EthBlock
@@ -16,8 +16,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.time.Duration.Companion.minutes
 
-class BlockService(private val web3jManager: Web3jManager) {
-    private val logger = LoggerFactory.getLogger(BlockService::class.java)
+class BlockService(private val web3jManager: Web3jManager) : BlockPort {
 
     /**
      * Returns the block number closest to the specified time.
@@ -28,9 +27,9 @@ class BlockService(private val web3jManager: Web3jManager) {
      * @param network The blockchain network (defaults to "ethereum")
      * @return The estimated block number closest to the target time
      */
-    suspend fun getBlockClosestTo(targetTime: LocalDateTime, network: String = "ethereum"): Long {
+    override suspend fun getBlockClosestTo(targetTime: LocalDateTime, network: String): Long {
         val web3 = web3jManager.web3(network) ?: throw IllegalArgumentException("Network '$network' is not configured")
-        
+
         // Get the current block (latest)
         val latestBlock = web3.web3j.ethGetBlockByNumber(DefaultBlockParameterName.LATEST, false)
             .send().block
@@ -62,11 +61,11 @@ class BlockService(private val web3jManager: Web3jManager) {
 
     /**
      * Gets the latest block number for the specified network.
-     * 
+     *
      * @param network The blockchain network (defaults to "ethereum")
      * @return The latest block number
      */
-    suspend fun getLatestBlock(network: String = "ethereum"): Long {
+    override suspend fun getLatestBlock(network: String): Long {
         val web3j = web3jManager.web3(network) ?: throw IllegalArgumentException("Network '$network' is not configured")
         return web3j.web3j.ethBlockNumber().send().blockNumber.longValueExact()
     }
@@ -78,14 +77,14 @@ class BlockService(private val web3jManager: Web3jManager) {
 
     /**
      * Gets a block by its number from the specified network.
-     * 
+     *
      * @param number The block number
      * @param network The blockchain network (defaults to "ethereum")
      * @return The block data
      */
-    suspend fun getBlockByNumber(number: BigInteger, network: String = "ethereum"): EthBlock.Block {
+    override suspend fun getBlockByNumber(number: BigInteger, network: String): EthBlock.Block {
         val web3j = web3jManager.web3(network) ?: throw IllegalArgumentException("Network '$network' is not configured")
-        
+
         return withContext(Dispatchers.IO) {
             blockCache.get(Pair(network, number)) {
                 web3j.web3j.ethGetBlockByNumber(

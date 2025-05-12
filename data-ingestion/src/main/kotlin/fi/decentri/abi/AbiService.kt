@@ -1,5 +1,6 @@
 package fi.decentri.abi
 
+import fi.decentri.application.ports.AbiPort
 import org.slf4j.LoggerFactory
 import org.web3j.protocol.ObjectMapperFactory
 import org.web3j.protocol.core.methods.response.AbiDefinition
@@ -8,7 +9,7 @@ import java.io.IOException
 /**
  * Service for handling ABI (Application Binary Interface) related operations
  */
-class AbiService {
+class AbiService : AbiPort {
     private val logger = LoggerFactory.getLogger(this::class.java)
     private val objectMapper = ObjectMapperFactory.getObjectMapper()
 
@@ -18,7 +19,7 @@ class AbiService {
      * @param abiString The ABI JSON string to parse
      * @return A pair containing lists of extracted functions and events
      */
-    fun parseABI(abiString: String): Pair<List<AbiFunction>, List<AbiEvent>> {
+    override fun parseABI(abiString: String): Pair<List<AbiFunction>, List<AbiEvent>> {
         try {
             logger.debug("Parsing ABI string")
 

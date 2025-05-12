@@ -1,10 +1,13 @@
 @file:OptIn(ExperimentalTime::class)
 
-package fi.decentri.dataingest.ingest
+package fi.decentri.application.usecases
 
 import arrow.fx.coroutines.parMap
 import fi.decentri.abi.AbiService
 import fi.decentri.abi.LogDecoder.decode
+import fi.decentri.application.ports.AbiPort
+import fi.decentri.application.ports.BlockPort
+import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
@@ -28,14 +31,14 @@ import kotlin.time.measureTime
 /**
  * Service responsible for blockchain event logs ingestion
  */
-class EventIngestorService(
+class EventIngestorUseCase(
     private val web3jManager: Web3jManager,
-    private val metadataRepository: IngestionMetadataRepository,
-    private val eventRepository: EventRepository
+    private val metadataRepository: IngestionMetadataPort,
+    private val eventRepository: EventRepository,
+    private val blockService: BlockPort,
+    private val abiPort: AbiPort,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
-    private val abiService = AbiService()
-    private val blockService: BlockService = BlockService(Web3jManager.getInstance())
 
     /**
      * Ingest events for a contract
@@ -47,7 +50,7 @@ class EventIngestorService(
             ?: error("unable to get network config for ${contract.chain}")
 
         // Parse ABI to extract events
-        val (_, events) = abiService.parseABI(contract.abi)
+        val (_, events) = abiPort.parseABI(contract.abi)
         if (events.isEmpty()) {
             log.info("No events found in ABI for contract ${contract.address}. Skipping event ingestion.")
             return
@@ -149,7 +152,7 @@ class EventIngestorService(
                         try {
                             processLog(log, network, address, abi)
                         } catch (e: Exception) {
-                            this@EventIngestorService.log.error("Error processing log: ${e.message}", e)
+                            this@EventIngestorUseCase.log.error("Error processing log: ${e.message}", e)
                             null
                         }
                     }.filterNotNull()

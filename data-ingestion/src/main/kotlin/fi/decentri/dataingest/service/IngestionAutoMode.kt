@@ -2,8 +2,8 @@
 
 package fi.decentri.dataingest.service
 
-import fi.decentri.dataingest.ingest.EventIngestorService
-import fi.decentri.dataingest.ingest.RawInvocationIngestorService
+import fi.decentri.application.usecases.EventIngestorUseCase
+import fi.decentri.application.usecases.IngestRawInvocationsUseCase
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.dataingest.repository.IngestionMetadataRepository
@@ -14,8 +14,8 @@ import kotlin.time.ExperimentalTime
 
 class IngestionAutoMode(
     private val contractsService: ContractsService,
-    private val rawInvocationIngestorService: RawInvocationIngestorService,
-    private val eventIngestorService: EventIngestorService,
+    private val ingestRawInvocationsUseCase: IngestRawInvocationsUseCase,
+    private val eventIngestorUseCase: EventIngestorUseCase,
     parentScope: CoroutineScope  // inject an application/lifecycle scope
 ) {
 
@@ -48,7 +48,7 @@ class IngestionAutoMode(
                         // Launch raw invocations ingestion
                         launch {
                             try {
-                                rawInvocationIngestorService.ingest(contract)
+                                ingestRawInvocationsUseCase.invoke(contract)
                                 logger.info("Raw invocations ingestion complete for contract ${contract.address}: caught up with the latest block")
                             } catch (e: Exception) {
                                 logger.error(
@@ -61,7 +61,7 @@ class IngestionAutoMode(
                         // Launch events ingestion
                         launch {
                             try {
-                                eventIngestorService.ingest(contract)
+                                eventIngestorUseCase.ingest(contract)
                                 logger.info("Events ingestion complete for contract ${contract.address}: caught up with the latest block")
                             } catch (e: Exception) {
                                 logger.error(
