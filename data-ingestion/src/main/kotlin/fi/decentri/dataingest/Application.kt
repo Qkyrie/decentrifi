@@ -167,6 +167,7 @@ class IngestCommand : CliktCommand(
                 applicationScope.cancel()
                 web3jManager.shutdown()
                 logger.info("Application shutdown complete")
+                exitProcess(0)
             }
         }
     }
@@ -175,7 +176,7 @@ class IngestCommand : CliktCommand(
      * Run ingestion for a specific contract.
      */
     @OptIn(ExperimentalTime::class)
-    private suspend fun ingestForSpecificContract(
+    private fun ingestForSpecificContract(
         contract: Contract,
         scope: CoroutineScope,
         ingestRawInvocationsUseCase: IngestRawInvocationsUseCase,
