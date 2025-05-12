@@ -3,10 +3,8 @@
 package fi.decentri.dataingest.ingest
 
 import arrow.fx.coroutines.parMap
-import fi.decentri.abi.AbiEvent
 import fi.decentri.abi.AbiService
-import fi.decentri.abi.DecodedLog
-import fi.decentri.abi.LogDecoder
+import fi.decentri.abi.LogDecoder.decode
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
@@ -32,11 +30,11 @@ import kotlin.time.measureTime
  * Service responsible for blockchain event logs ingestion
  */
 class EventIngestorService(
-    private val web3jManager: Web3jManager
+    private val web3jManager: Web3jManager,
+    private val metadataRepository: IngestionMetadataRepository,
+    private val eventRepository: EventRepository
 ) {
-    private val logger = LoggerFactory.getLogger(this::class.java)
-    private val metadataRepository = IngestionMetadataRepository()
-    private val eventRepository = EventRepository()
+    private val log = LoggerFactory.getLogger(this::class.java)
     private val abiService = AbiService()
     private val blockService: BlockService = BlockService(Web3jManager.getInstance())
 
@@ -44,15 +42,15 @@ class EventIngestorService(
      * Ingest events for a contract
      */
     suspend fun ingest(contract: Contract) {
-        logger.info("Starting event log ingestion for contract ${contract.address}")
+        log.info("Starting event log ingestion for contract ${contract.address}")
 
         val (_, _, eventBatchSize, pollingInterval, _) = web3jManager.getNetworkConfig(contract.chain)
-            ?: throw IllegalArgumentException()
+            ?: error("unable to get network config for ${contract.chain}")
 
         // Parse ABI to extract events
         val (_, events) = abiService.parseABI(contract.abi)
         if (events.isEmpty()) {
-            logger.info("No events found in ABI for contract ${contract.address}. Skipping event ingestion.")
+            log.info("No events found in ABI for contract ${contract.address}. Skipping event ingestion.")
             return
         }
 
@@ -68,50 +66,59 @@ class EventIngestorService(
                     contract.chain
                 )
 
-        logger.info("Starting event ingestion from block $startBlock to target latest block $targetLatestBlock")
+        log.info("Starting event ingestion from block $startBlock to target latest block $targetLatestBlock")
 
         var lastProcessedBlock = startBlock
         var completed = false
 
         // Process blocks in batches until we reach the target latest block
         while (!completed) {
-            try {
+
+            kotlin.runCatching {
                 // Check if we've reached the target block
                 if (lastProcessedBlock >= targetLatestBlock) {
-                    logger.info("Reached target latest block $targetLatestBlock. Event ingestion complete.")
+                    log.info("Reached target latest block $targetLatestBlock. Event ingestion complete.")
                     completed = true
                 } else {
                     // Calculate the next batch to process
                     val toBlock = minOf(lastProcessedBlock + eventBatchSize, targetLatestBlock)
-                    logger.info("Processing event logs for blocks ${lastProcessedBlock + 1} to $toBlock (${toBlock - lastProcessedBlock} blocks)")
+                    log.info("Processing event logs for blocks ${lastProcessedBlock + 1} to $toBlock (${toBlock - lastProcessedBlock} blocks)")
 
                     // Process the block range to get events
                     processLogsInBlockRange(
                         contract.chain,
                         lastProcessedBlock + 1,
                         toBlock,
-                        contract.address.lowercase(Locale.getDefault()),
+                        contract.address.lowercase(),
                         contract.abi
                     )
 
-
-                    updateLastBlock(contract, toBlock)
-                    updateLastTimestamp(contract)
+                    contract.updateMetadata(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, toBlock.toString())
+                    contract.updateMetadata(MetadataType.EVENTS_LAST_RUN_TIMESTAMP, Instant.now().toString())
 
                     lastProcessedBlock = toBlock
 
                     // Calculate and log progress
                     val progressPercentage =
                         ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
-                    logger.info("Event ingestion progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
+                    log.info("Event ingestion progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
                 }
-            } catch (e: Exception) {
-                logger.error("Error during event log ingestion: ${e.message}", e)
+            }.onFailure {
+                log.error("Error during event log ingestion: ${it.message}", it)
                 delay(pollingInterval)
             }
         }
 
-        logger.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
+        log.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
+    }
+
+
+    suspend fun Contract.updateMetadata(metadataType: MetadataType, value: String) {
+        metadataRepository.updateMetadataForContractId(
+            this.id!!,
+            metadataType,
+            value
+        )
     }
 
     private suspend fun updateLastTimestamp(contract: Contract) {
@@ -135,54 +142,64 @@ class EventIngestorService(
      */
     private suspend fun processLogsInBlockRange(
         network: String,
-        fromBlock: Long,
-        toBlock: Long,
-        contractAddress: String,
+        from: Long,
+        to: Long,
+        address: String,
         abi: String
     ) {
-        logger.info("Fetching event logs from block $fromBlock to $toBlock for contract $contractAddress")
+        log.info("Fetching event logs from block $from to $to for contract $address")
 
-        try {
-            // Create a filter for the contract address
-            val filter = EthFilter(
-                DefaultBlockParameter.valueOf(BigInteger.valueOf(fromBlock)),
-                DefaultBlockParameter.valueOf(BigInteger.valueOf(toBlock)),
-                contractAddress
-            )
-
-            // Get logs for the filter
-            val logs =
-                web3jManager.web3(network)!!.web3j.ethGetLogs(filter).sendAsync().await().logs as List<EthLog.LogObject>
+        kotlin.runCatching {
+            val logs = fetchLogs(from, to, address, network)
 
             if (logs.isEmpty()) {
-                logger.debug("No event logs found for the contract in blocks $fromBlock to $toBlock")
+                log.debug("No event logs found for the contract in blocks $from to $to")
                 return
             }
 
-            logger.info("Found ${logs.size} event logs for the contract in blocks $fromBlock to $toBlock")
+            log.info("Found ${logs.size} event logs for the contract in blocks $from to $to")
 
             // Process each log to extract event data
             logs.chunked(1500).forEach { chunkedLogs ->
                 val timed = measureTime {
                     val eventLogs = chunkedLogs.parMap(concurrency = 24) { log ->
                         try {
-                            processLog(log, network, contractAddress, abi)
+                            processLog(log, network, address, abi)
                         } catch (e: Exception) {
-                            logger.error("Error processing log: ${e.message}", e)
+                            this@EventIngestorService.log.error("Error processing log: ${e.message}", e)
                             null
                         }
                     }.filterNotNull()
                     if (eventLogs.isNotEmpty()) {
                         eventRepository.batchInsertEvents(eventLogs)
-                        logger.debug("Saved ${eventLogs.size} event logs to database")
+                        log.debug("Saved ${eventLogs.size} event logs to database")
                     }
                 }
-                logger.info("Processed ${chunkedLogs.size} logs in ${timed.inWholeSeconds} seconds")
+                log.info("Processed ${chunkedLogs.size} logs in ${timed.inWholeSeconds} seconds")
             }
-        } catch (e: Exception) {
-            logger.error("Error fetching event logs: ${e.message}", e)
-            throw e
+        }.onFailure {
+            log.error("Error fetching event logs: ${it.message}", it)
+            throw it
         }
+    }
+
+    private suspend fun fetchLogs(
+        fromBlock: Long,
+        toBlock: Long,
+        contractAddress: String,
+        network: String
+    ): List<EthLog.LogObject> {
+        // Create a filter for the contract address
+        val filter = EthFilter(
+            DefaultBlockParameter.valueOf(BigInteger.valueOf(fromBlock)),
+            DefaultBlockParameter.valueOf(BigInteger.valueOf(toBlock)),
+            contractAddress
+        )
+
+        // Get logs for the filter
+        val logs =
+            web3jManager.web3(network)!!.web3j.ethGetLogs(filter).sendAsync().await().logs as List<EthLog.LogObject>
+        return logs
     }
 
     /**
@@ -213,8 +230,8 @@ class EventIngestorService(
         var decoded: Map<String, Any>? = null
 
         if (topic0 != null) {
-            val decodedLog = decodeEventData(log, abi)
-            decoded = decodedLog?.parameters?.takeIf { it.values != null } as Map<String, Any>?
+            val decodedLog = log.decode(abi)
+            decoded = decodedLog?.parameters as Map<String, Any>?
             eventName = decodedLog?.eventName
         }
 
@@ -231,66 +248,5 @@ class EventIngestorService(
             eventName = eventName,
             decoded = decoded
         )
-    }
-
-    /**
-     * Decode event data using the ABI
-     */
-    private fun decodeEventData(
-        log: Log,
-        abi: String,
-    ): DecodedLog? {
-        try {
-            // Use LogDecoder to decode the event data
-            val decoded = LogDecoder.decodeLog(log, abi)
-
-            return decoded ?: run {
-                logger.debug("LogDecoder returned empty map for event, falling back to simple decoding")
-                null
-            }
-
-        } catch (e: Exception) {
-            logger.error("Error decoding event data with LogDecoder: ${e.message}", e)
-            // Fallback to simpler decoding if LogDecoder throws an exception
-            return null
-        }
-    }
-
-    /**
-     * Fallback method for decoding event data using a simpler approach
-     */
-    private fun fallbackDecodeEventData(
-        eventAbi: AbiEvent,
-        topics: List<String>,
-        data: String
-    ): Map<String, Any> {
-        val result = mutableMapOf<String, Any>()
-
-        try {
-            // Create parameter types for indexed and non-indexed parameters
-            val indexedParams = eventAbi.inputs.filter { it.indexed }
-            val nonIndexedParams = eventAbi.inputs.filter { !it.indexed }
-
-            // Decode indexed parameters from topics (skipping the first topic which is the event signature)
-            if (indexedParams.isNotEmpty() && topics.size > 1) {
-                for (i in indexedParams.indices) {
-                    if (i + 1 < topics.size) {
-                        val param = indexedParams[i]
-                        // For simplicity, we'll just store the raw topic value
-                        result[param.name] = topics[i + 1]
-                    }
-                }
-            }
-
-            // Decode non-indexed parameters from data
-            if (nonIndexedParams.isNotEmpty() && data != "0x") {
-                result["_data"] = data
-            }
-
-            return result
-        } catch (e: Exception) {
-            logger.error("Error in fallback decode: ${e.message}", e)
-            return mapOf("_raw" to data)
-        }
     }
 }

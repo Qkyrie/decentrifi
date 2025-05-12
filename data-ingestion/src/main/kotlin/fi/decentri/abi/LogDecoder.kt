@@ -2,6 +2,7 @@ package fi.decentri.abi
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.slf4j.LoggerFactory
 import org.web3j.abi.EventEncoder
 import org.web3j.abi.TypeReference
 import org.web3j.abi.datatypes.*
@@ -17,6 +18,22 @@ data class DecodedLog(
 )
 
 object LogDecoder {
+
+    fun Log.decode(abi: String): DecodedLog? {
+        val logger = LoggerFactory.getLogger(this::class.java)
+        try {
+            // Use LogDecoder to decode the event data
+            val decoded = decodeLog(this, abi)
+            return decoded ?: run {
+                logger.debug("LogDecoder returned empty map for event, falling back to simple decoding")
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Error decoding event data with LogDecoder: ${e.message}", e)
+            // Fallback to simpler decoding if LogDecoder throws an exception
+            return null
+        }
+    }
 
     /**
      * Decode a single log using the contract ABI (supplied as JSON string).

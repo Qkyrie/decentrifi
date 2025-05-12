@@ -11,8 +11,10 @@ import fi.decentri.dataingest.ingest.EventIngestorService
 import fi.decentri.dataingest.ingest.RawInvocationIngestorService
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.repository.ContractsRepository
-import fi.decentri.dataingest.service.IngestionAutoMode
+import fi.decentri.dataingest.repository.EventRepository
+import fi.decentri.dataingest.repository.IngestionMetadataRepository
 import fi.decentri.dataingest.service.ContractsService
+import fi.decentri.dataingest.service.IngestionAutoMode
 import fi.decentri.db.DatabaseFactory
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
@@ -61,24 +63,15 @@ class IngestCommand : CliktCommand(
         val contractsRepository = ContractsRepository()
         val abiService = AbiService()
         val contractsService = ContractsService(contractsRepository, abiService)
-
-        // Use network parameter or default to ethereum
-        val networkToUse = network ?: "ethereum"
-
-        // Verify the network is configured
-        if (!web3jManager.getNetworkNames().contains(networkToUse)) {
-            logger.error("Network '$networkToUse' is not configured in application.conf")
-            exitProcess(1)
-        }
-
-        // Get Web3j instance for the specified network
-        val web3j = web3jManager.web3(networkToUse) ?: run {
-            logger.error("Failed to create Web3j instance for network: $networkToUse")
-            exitProcess(1)
-        }
+        val metadataRepository = IngestionMetadataRepository()
+        val eventRepository = EventRepository()
 
         val rawInvocationIngestorService = RawInvocationIngestorService(Web3jManager.getInstance())
-        val eventIngestorService = EventIngestorService(Web3jManager.getInstance())
+        val eventIngestorService = EventIngestorService(
+            Web3jManager.getInstance(),
+            metadataRepository,
+            eventRepository
+        )
 
         val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -104,6 +97,21 @@ class IngestCommand : CliktCommand(
                 }
 
                 "contract" -> {
+                    // Use network parameter or default to ethereum
+                    val networkToUse = network ?: "ethereum"
+
+                    // Verify the network is configured
+                    if (!web3jManager.getNetworkNames().contains(networkToUse)) {
+                        logger.error("Network '$networkToUse' is not configured in application.conf")
+                        exitProcess(1)
+                    }
+
+                    // Get Web3j instance for the specified network
+                    val web3j = web3jManager.web3(networkToUse) ?: run {
+                        logger.error("Failed to create Web3j instance for network: $networkToUse")
+                        exitProcess(1)
+                    }
+
                     // Contract mode: Ingest data for a specific contract
                     if (contractAddress == null || network == null) {
                         logger.error("Contract mode requires both --contract and --network parameters")
