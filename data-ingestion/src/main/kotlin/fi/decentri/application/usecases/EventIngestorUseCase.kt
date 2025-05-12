@@ -3,7 +3,7 @@
 package fi.decentri.application.usecases
 
 import arrow.fx.coroutines.parMap
-import fi.decentri.abi.LogDecoder.decode
+import fi.decentri.infrastructure.abi.LogDecoder.decode
 import fi.decentri.application.ports.AbiPort
 import fi.decentri.application.ports.BlockPort
 import fi.decentri.application.ports.IngestionMetadataPort

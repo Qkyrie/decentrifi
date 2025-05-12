@@ -1,4 +1,5 @@
-package fi.decentri.abi
+package fi.decentri.infrastructure.abi
+
 /**
  * Data class representing an event in the ABI
  */

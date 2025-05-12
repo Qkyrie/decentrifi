@@ -1,6 +1,6 @@
 package fi.decentri.dataingest
 
-import fi.decentri.abi.AbiService
+import fi.decentri.infrastructure.abi.AbiService
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 class AbiServiceTest {
 
     private val abiService = AbiService()
-    
+
     @Test
     fun `test parseABI with ERC20 ABI`() {
         // ERC-20 ABI sample (simplified)
@@ -76,20 +76,20 @@ class AbiServiceTest {
             }
         ]
         """.trimIndent()
-        
+
         // Parse the ABI
         val (functions, events) = abiService.parseABI(erc20AbiJson)
-        
+
         // Verify functions
         assertEquals(4, functions.size, "Should find 4 functions")
-        
+
         // Check name function
         val nameFunction = functions.find { it.name == "name" }
         assertNotNull(nameFunction, "Should find 'name' function")
         assertEquals(0, nameFunction.inputs.size, "Name function should have no inputs")
         assertEquals(1, nameFunction.outputs.size, "Name function should have one output")
         assertEquals("view", nameFunction.stateMutability, "Name function should be view")
-        
+
         // Check transfer function
         val transferFunction = functions.find { it.name == "transfer" }
         assertNotNull(transferFunction, "Should find 'transfer' function")
@@ -98,10 +98,10 @@ class AbiServiceTest {
         assertEquals("address", transferFunction.inputs[0].type, "First input should be of type 'address'")
         assertEquals("_value", transferFunction.inputs[1].name, "Second input should be '_value'")
         assertEquals("uint256", transferFunction.inputs[1].type, "Second input should be of type 'uint256'")
-        
+
         // Verify events
         assertEquals(2, events.size, "Should find 2 events")
-        
+
         // Check Transfer event
         val transferEvent = events.find { it.name == "Transfer" }
         assertNotNull(transferEvent, "Should find 'Transfer' event")
@@ -118,7 +118,7 @@ class AbiServiceTest {
         assertNotNull(approvalEvent, "Should find 'Approval' event")
         assertEquals(3, approvalEvent.inputs.size, "Approval event should have 3 inputs")
     }
-    
+
     @Test(expected = IllegalArgumentException::class)
     fun `test parseABI with invalid JSON`() {
         val invalidJson = "{ invalid json }"

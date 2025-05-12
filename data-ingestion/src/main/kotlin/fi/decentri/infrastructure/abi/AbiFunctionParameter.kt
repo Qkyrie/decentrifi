@@ -1,4 +1,4 @@
-package fi.decentri.abi
+package fi.decentri.infrastructure.abi
 
 /**
  * Data class representing a parameter for a function or event

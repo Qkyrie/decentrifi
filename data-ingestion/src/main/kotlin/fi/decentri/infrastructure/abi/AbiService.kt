@@ -1,4 +1,4 @@
-package fi.decentri.abi
+package fi.decentri.infrastructure.abi
 
 import fi.decentri.application.ports.AbiPort
 import org.slf4j.LoggerFactory

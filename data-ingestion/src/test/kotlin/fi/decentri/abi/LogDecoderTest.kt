@@ -1,6 +1,6 @@
 package fi.decentri.abi
 
-import fi.decentri.abi.LogDecoder.decodeLog
+import fi.decentri.infrastructure.abi.LogDecoder.decodeLog
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.DisplayName

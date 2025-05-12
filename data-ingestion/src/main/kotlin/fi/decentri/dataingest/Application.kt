@@ -4,26 +4,26 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.typesafe.config.ConfigFactory
-import fi.decentri.abi.AbiService
-import fi.decentri.dataingest.config.AppConfig
-import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.application.usecases.EventIngestorUseCase
 import fi.decentri.application.usecases.IngestRawInvocationsUseCase
 import fi.decentri.block.BlockService
+import fi.decentri.dataingest.config.AppConfig
+import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
+import fi.decentri.dataingest.service.ContractsService
+import fi.decentri.dataingest.service.IngestionAutoMode
+import fi.decentri.db.DatabaseFactory
+import fi.decentri.infrastructure.abi.AbiService
 import fi.decentri.infrastructure.repository.contract.ContractsRepository
 import fi.decentri.infrastructure.repository.ingestion.EventRepository
 import fi.decentri.infrastructure.repository.ingestion.IngestionMetadataRepository
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
-import fi.decentri.dataingest.service.ContractsService
-import fi.decentri.dataingest.service.IngestionAutoMode
-import fi.decentri.db.DatabaseFactory
+import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import kotlin.system.exitProcess
 import kotlin.time.ExperimentalTime
 
-val logger = LoggerFactory.getLogger("fi.decentri.dataingest.Application")
 
 /**
  * Command-line arguments parser for the data ingestion application.
@@ -47,6 +47,10 @@ class IngestCommand : CliktCommand(
         "--network",
         help = "Blockchain network for the contract (required in 'contract' mode)"
     )
+
+    companion object {
+        val logger = LoggerFactory.getLogger(Application::class.java)
+    }
 
     @OptIn(ExperimentalTime::class)
     override fun run() {

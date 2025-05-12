@@ -1,4 +1,4 @@
-package fi.decentri.abi
+package fi.decentri.infrastructure.abi
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
