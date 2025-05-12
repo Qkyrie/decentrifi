@@ -316,6 +316,31 @@ fun Application.configureRouting(
                 }
             }
 
+            get("/{network}/{contract}/active-users-last-30min") {
+                try {
+                    val network = call.parameters["network"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing network parameter"
+                    )
+                    val contract = call.parameters["contract"] ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        "Missing contract parameter"
+                    )
+
+                    logger.info("Fetching active users in last 30 minutes for network=$network, contract=$contract")
+                    // For now, we return a static value of 30
+                    call.respond(mapOf(
+                        "network" to network,
+                        "contract" to contract,
+                        "activeUsers" to 30,
+                        "periodMinutes" to 30
+                    ))
+                } catch (e: Exception) {
+                    logger.error("Error fetching active users data", e)
+                    call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+                }
+            }
+
             get("/{network}/{contract}/events/daily") {
                 try {
                     val filters = call.parseJsonbFilters()

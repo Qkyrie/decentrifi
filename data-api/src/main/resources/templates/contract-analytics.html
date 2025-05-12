@@ -687,6 +687,16 @@
             }
         }
 
+        @keyframes refreshPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); color: #2ecc71; }
+            100% { transform: scale(1); }
+        }
+
+        .refreshed {
+            animation: refreshPulse 0.5s ease;
+        }
+
         /* Hamburger Menu (Mobile) */
         .hamburger {
             display: none;
@@ -771,6 +781,37 @@
                     </p>
                 </div>
 
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="9" cy="7" r="4" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            User Activity
+                        </div>
+                    </div>
+                    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="metric-card">
+                            <div class="metric-title">Total Interactions</div>
+                            <div class="metric-value" id="totalInteractions">0</div>
+                            <div class="metric-change">Number of transactions in 24 hours</div>
+                        </div>
+                        <div class="metric-card unique-addresses-card">
+                            <div class="metric-title">Active Users (24h)</div>
+                            <div class="metric-value" id="uniqueAddressCount">0</div>
+                            <div class="metric-change">Unique addresses in the last 24 hours</div>
+                        </div>
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(46, 204, 113, 0.05), rgba(52, 152, 219, 0.05)); border-left: 3px solid #2ecc71;">
+                            <div class="metric-title">Live Users <span class="live-indicator" style="display: inline-block; width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; margin-left: 4px;"></span></div>
+                            <div class="metric-value" id="liveUserCount">0</div>
+                            <div class="metric-change">Active users in the last 30 minutes</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="segments-panel">
                     <div class="chart-header">
                         <div class="chart-title">
@@ -789,7 +830,7 @@
                     <div class="active-segments" id="activeSegments" style="margin-top: 15px;">
                         <!-- Active segments will be displayed here -->
                     </div>
-                    
+
                     <div class="segments-content" id="filtersContent" style="display: none; transition: all 0.3s ease;">
                         <div class="filter-controls">
                             <div class="event-type-selector">
@@ -816,32 +857,6 @@
                     </div>
                 </div>
 
-
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <circle cx="9" cy="7" r="4" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            User Activity (Last 24 Hours)
-                        </div>
-                    </div>
-                    <div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr);">
-                        <div class="metric-card">
-                            <div class="metric-title">Total Interactions</div>
-                            <div class="metric-value" id="totalInteractions">0</div>
-                            <div class="metric-change">Number of transactions in 24 hours</div>
-                        </div>
-                        <div class="metric-card unique-addresses-card">
-                            <div class="metric-title">Active Users</div>
-                            <div class="metric-value" id="uniqueAddressCount">0</div>
-                            <div class="metric-change">Unique addresses in the last 24 hours</div>
-                        </div>
-                    </div>
-                </div>
 
 
                 <div class="chart-card">
@@ -1082,6 +1097,22 @@
                 return data;
             } catch (error) {
                 console.error("Error fetching unique addresses count:", error);
+                return null;
+            }
+        }
+
+        // Function to fetch active users in the last 30 minutes
+        async function fetchLiveUsersCount(network, contract) {
+            try {
+                const url = `/data/${network}/${contract}/active-users-last-30min`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error fetching live users count:", error);
                 return null;
             }
         }
@@ -1894,31 +1925,56 @@
             });
         });
         
+        // Function to update the live users count with auto-refresh
+        async function updateLiveUsersCount() {
+            const { network, contract } = getNetworkAndContract();
+
+            try {
+                const liveUsersData = await fetchLiveUsersCount(network, contract);
+
+                if (liveUsersData && liveUsersData.activeUsers !== undefined) {
+                    const liveUserCountElement = document.getElementById('liveUserCount');
+                    if (liveUserCountElement) {
+                        liveUserCountElement.textContent = liveUsersData.activeUsers.toLocaleString();
+
+                        // Add a subtle animation to indicate refresh
+                        liveUserCountElement.classList.add('refreshed');
+                        setTimeout(() => {
+                            liveUserCountElement.classList.remove('refreshed');
+                        }, 500);
+                    }
+                }
+            } catch (error) {
+                console.error("Error updating live users count:", error);
+            }
+        }
+
         // Fetch and update all charts and metrics on page load
         async function initializeRealData() {
             const { network, contract } = getNetworkAndContract();
-            
+
             // Contract details section has been removed
-            
+
             // Fetch all data in parallel
-            const [gasData, eventsData, decodedKeys, uniqueAddressesData] = await Promise.all([
+            const [gasData, eventsData, decodedKeys, uniqueAddressesData, liveUsersData] = await Promise.all([
                 fetchDailyGasUsageData(network, contract),
                 fetchEventsData(network, contract),
                 fetchDecodedEventKeys(network, contract),
-                fetchUniqueAddressesCount(network, contract)
+                fetchUniqueAddressesCount(network, contract),
+                fetchLiveUsersCount(network, contract)
             ]);
-            
+
             // Update gas usage chart
             if (gasData) {
                 const processedGasData = processDailyGasData(gasData);
                 gasChart.data.labels = processedGasData.labels;
                 gasChart.data.datasets = processedGasData.datasets;
                 gasChart.update();
-                
+
                 // Update metrics cards with real data
                 updateMetricsCards(gasData);
             }
-            
+
             // Update events chart
             if (eventsData) {
                 const processedEventsData = processEventsData(eventsData);
@@ -1926,7 +1982,7 @@
                 eventsChart.data.datasets = processedEventsData.datasets;
                 eventsChart.update();
             }
-            
+
             // Update unique addresses count if available
             if (uniqueAddressesData) {
                 const uniqueAddressElement = document.getElementById('uniqueAddressCount');
@@ -1934,7 +1990,15 @@
                     uniqueAddressElement.textContent = uniqueAddressesData.uniqueAddressCount.toLocaleString();
                 }
             }
-            
+
+            // Update live users count if available
+            if (liveUsersData) {
+                const liveUserCountElement = document.getElementById('liveUserCount');
+                if (liveUserCountElement) {
+                    liveUserCountElement.textContent = liveUsersData.activeUsers.toLocaleString();
+                }
+            }
+
             // Update event type selector and parameter dropdown with decoded keys
             if (decodedKeys) {
                 updateEventTypeSelector(decodedKeys);
@@ -1944,8 +2008,11 @@
                 // Fallback to basic suggestions if we couldn't fetch decoded keys
                 updateSegmentSuggestions(eventsData);
             }
+
+            // Set up auto-refresh for live users count every 5 seconds
+            setInterval(updateLiveUsersCount, 5000);
         }
-        
+
         // Initialize real data on page load
         initializeRealData();
     </script>
