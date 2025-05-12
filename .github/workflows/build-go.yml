@@ -1,5 +1,10 @@
 name: Build Go Modules
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+
 on:
   push:
     branches: [ "main" ]
@@ -57,7 +62,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ghcr.io/${{ github.repository }}/data-aggregator
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/data-aggregator
         tags: |
           type=sha,format=short
           type=ref,event=branch
