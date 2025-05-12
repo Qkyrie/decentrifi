@@ -1,0 +1,131 @@
+package fi.decentri.dataapi.routes
+
+import fi.decentri.dataapi.parseJsonbFilters
+import fi.decentri.dataapi.service.EventService
+import fi.decentri.dataapi.service.GasUsageService
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("fi.decentri.dataapi.routes.AnalyticsRoutes")
+
+fun Route.analyticsRoutes(
+    gasUsageService: GasUsageService,
+    eventService: EventService
+) {
+    route("/data") {
+        // Gas usage endpoints
+        get("/{network}/{contract}/gas-used/daily") {
+            try {
+                val network = call.parameters["network"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing network parameter"
+                )
+                val contract = call.parameters["contract"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing contract parameter"
+                )
+
+                logger.info("Fetching daily gas usage for network=$network, contract=$contract")
+                val gasUsageData = gasUsageService.getInvocationData(network, contract)
+                call.respond(gasUsageData)
+            } catch (e: Exception) {
+                logger.error("Error fetching gas usage data", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+            }
+        }
+
+        // Unique addresses endpoints
+        get("/{network}/{contract}/unique-addresses") {
+            try {
+                val network = call.parameters["network"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing network parameter"
+                )
+                val contract = call.parameters["contract"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing contract parameter"
+                )
+
+                logger.info("Fetching unique from_addresses count for network=$network, contract=$contract")
+                val uniqueAddressesData = gasUsageService.getUniqueAddressesCount(network, contract)
+                call.respond(uniqueAddressesData)
+            } catch (e: Exception) {
+                logger.error("Error fetching unique addresses data", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+            }
+        }
+
+        // Active users endpoints
+        get("/{network}/{contract}/active-users-last-30min") {
+            try {
+                val network = call.parameters["network"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing network parameter"
+                )
+                val contract = call.parameters["contract"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing contract parameter"
+                )
+
+                logger.info("Fetching active users in last 30 minutes for network=$network, contract=$contract")
+                // For now, we return a static value of 30
+                call.respond(mapOf(
+                    "network" to network,
+                    "contract" to contract,
+                    "activeUsers" to 30,
+                    "periodMinutes" to 30
+                ))
+            } catch (e: Exception) {
+                logger.error("Error fetching active users data", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+            }
+        }
+
+        // Events endpoints
+        get("/{network}/{contract}/events/daily") {
+            try {
+                val filters = call.parseJsonbFilters()
+
+                val network = call.parameters["network"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing network parameter"
+                )
+                val contract = call.parameters["contract"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing contract parameter"
+                )
+
+                logger.info("Fetching hourly event counts for network=$network, contract=$contract")
+                val eventsData = eventService.getHourlyEventCounts(network, contract, filters)
+                call.respond(eventsData)
+            } catch (e: Exception) {
+                logger.error("Error fetching events data", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+            }
+        }
+
+        // Decoded event keys endpoints
+        get("/{network}/{contract}/events/decoded-keys") {
+            try {
+                val network = call.parameters["network"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing network parameter"
+                )
+                val contract = call.parameters["contract"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    "Missing contract parameter"
+                )
+
+                logger.info("Fetching decoded event keys for network=$network, contract=$contract")
+                val decodedKeys = eventService.getDecodedEventKeys(network, contract)
+                call.respond(decodedKeys)
+            } catch (e: Exception) {
+                logger.error("Error fetching decoded event keys", e)
+                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+            }
+        }
+    }
+}
