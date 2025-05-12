@@ -24,7 +24,7 @@ class BlockService(private val web3jManager: Web3jManager) : BlockPort {
      * based on the average block time for the network.
      *
      * @param targetTime The target time to find a block for
-     * @param network The blockchain network (defaults to "ethereum")
+     * @param network The blockchain network
      * @return The estimated block number closest to the target time
      */
     override suspend fun getBlockClosestTo(targetTime: LocalDateTime, network: String): Long {
@@ -62,7 +62,7 @@ class BlockService(private val web3jManager: Web3jManager) : BlockPort {
     /**
      * Gets the latest block number for the specified network.
      *
-     * @param network The blockchain network (defaults to "ethereum")
+     * @param network The blockchain network
      * @return The latest block number
      */
     override suspend fun getLatestBlock(network: String): Long {
@@ -79,7 +79,7 @@ class BlockService(private val web3jManager: Web3jManager) : BlockPort {
      * Gets a block by its number from the specified network.
      *
      * @param number The block number
-     * @param network The blockchain network (defaults to "ethereum")
+     * @param network The blockchain network
      * @return The block data
      */
     override suspend fun getBlockByNumber(number: BigInteger, network: String): EthBlock.Block {

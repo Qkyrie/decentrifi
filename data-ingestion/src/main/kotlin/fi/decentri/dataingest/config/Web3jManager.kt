@@ -27,19 +27,6 @@ class Web3jManager private constructor(config: Config) {
     init {
         // Load network configurations
         try {
-            // Add Ethereum network by default for backward compatibility
-            if (config.hasPath("ethereum")) {
-                val ethConfig = NetworkConfig(
-                    rpcUrl = config.getString("ethereum.rpcUrl"),
-                    batchSize = if (config.hasPath("ethereum.batchSize")) config.getInt("ethereum.batchSize") else 1000,
-                    eventBatchSize = if (config.hasPath("ethereum.eventBatchSize")) config.getInt("ethereum.eventBatchSize") else 2000,
-                    pollingInterval = if (config.hasPath("ethereum.pollingInterval")) config.getLong("ethereum.pollingInterval") else 15000,
-                    blockTime = 12 // Default Ethereum block time in seconds
-                )
-                networks["ethereum"] = ethConfig
-            }
-            
-            // Load networks from the "networks" section if it exists
             if (config.hasPath("networks")) {
                 val networksConfig = config.getConfig("networks")
                 // Get all root keys in the networks config section

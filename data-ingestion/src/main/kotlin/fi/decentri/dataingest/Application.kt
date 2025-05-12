@@ -116,7 +116,7 @@ class IngestCommand : CliktCommand(
 
                     "contract" -> {
                         // Use network parameter or default to ethereum
-                        val networkToUse = network ?: "ethereum"
+                        val networkToUse = network ?: error("Network parameter is required in contract mode")
 
                         // Verify the network is configured
                         if (!web3jManager.getNetworkNames().contains(networkToUse)) {
