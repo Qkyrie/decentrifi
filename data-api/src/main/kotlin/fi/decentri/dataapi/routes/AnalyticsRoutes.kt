@@ -1,6 +1,6 @@
 package fi.decentri.dataapi.routes
 
-import fi.decentri.dataapi.parseJsonbFilters
+import fi.decentri.dataapi.JsonbFilter
 import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
 import io.ktor.http.*
@@ -129,3 +129,12 @@ fun Route.analyticsRoutes(
         }
     }
 }
+
+fun ApplicationCall.parseJsonbFilters(): List<JsonbFilter> =
+    request.queryParameters.getAll("filter")
+        ?.mapNotNull { token ->
+            token.split(":", limit = 2)
+                .takeIf { it.size == 2 }
+                ?.let { (k, v) -> JsonbFilter(k, v) }
+        }
+        ?: emptyList()

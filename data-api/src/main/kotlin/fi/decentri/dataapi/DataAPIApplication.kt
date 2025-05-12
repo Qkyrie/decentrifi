@@ -27,11 +27,11 @@ import org.slf4j.LoggerFactory
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import kotlin.time.ExperimentalTime
 
-val logger = LoggerFactory.getLogger("fi.decentri.dataapi.Application")
 
 @ExperimentalTime
 fun main() {
-    logger.info("Starting data API application")
+    val log = LoggerFactory.getLogger("fi.decentri.dataapi.Application")
+    log.info("Starting data API application")
 
     // Load configuration
     val appConfig = AppConfig.load()
@@ -73,15 +73,6 @@ fun main() {
 }
 
 data class JsonbFilter(val key: String, val value: String)
-
-fun ApplicationCall.parseJsonbFilters(): List<JsonbFilter> =
-    request.queryParameters.getAll("filter")
-        ?.mapNotNull { token ->
-            token.split(":", limit = 2)
-                .takeIf { it.size == 2 }
-                ?.let { (k, v) -> JsonbFilter(k, v) }
-        }
-        ?: emptyList()
 
 fun Application.configureTemplating() {
     install(Thymeleaf) {
