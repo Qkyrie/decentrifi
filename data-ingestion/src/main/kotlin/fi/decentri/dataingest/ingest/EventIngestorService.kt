@@ -113,7 +113,7 @@ class EventIngestorService(
     }
 
 
-    suspend fun Contract.updateMetadata(metadataType: MetadataType, value: String) {
+    private suspend fun Contract.updateMetadata(metadataType: MetadataType, value: String) {
         metadataRepository.updateMetadataForContractId(
             this.id!!,
             metadataType,
