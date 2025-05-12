@@ -73,17 +73,13 @@ class RawInvocationIngestorService(
                     processBlockRangeWithTraceFilter(
                         contract.chain, lastProcessedBlock + 1, toBlock, contract.address.lowercase(Locale.getDefault())
                     )
+
+
+                    contract.updateMetadata(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, toBlock.toString())
+                    contract.updateMetadata(MetadataType.RAW_INVOCATIONS_LAST_RUN_TIMESTAMP, Instant.now().toString())
+
+
                     lastProcessedBlock = toBlock
-
-                    // Update the last processed block number
-                    metadataRepository.updateMetadataForContractId(
-                        contract.id,
-                        MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS,
-                        toBlock.toString()
-                    )
-
-                    // Update the last run timestamp
-                    updateLastRunTimestamp(contract)
 
                     // Calculate and log progress
                     val progressPercentage =
@@ -99,14 +95,11 @@ class RawInvocationIngestorService(
         logger.info("Ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
     }
 
-    /**
-     * Update the timestamp of when this contract was last processed
-     */
-    private suspend fun updateLastRunTimestamp(contract: Contract) {
+    private suspend fun Contract.updateMetadata(metadataType: MetadataType, value: String) {
         metadataRepository.updateMetadataForContractId(
-            contract.id!!,
-            MetadataType.RAW_INVOCATIONS_LAST_RUN_TIMESTAMP,
-            Instant.now().toString()
+            this.id!!,
+            metadataType,
+            value
         )
     }
 
@@ -115,16 +108,9 @@ class RawInvocationIngestorService(
     ) {
         logger.info("Filtering traces from block $fromBlock to $toBlock for contract $toAddress")
 
-        val traceFilterParams = mapOf(
-            "fromBlock" to "0x${fromBlock.toString(16)}",
-            "toBlock" to "0x${toBlock.toString(16)}",
-            "toAddress" to listOf(toAddress)
-        )
 
         try {
-            // Execute trace_filter RPC call
-            val traceFilterResponse = executeTraceFilter(traceFilterParams, web3jManager.web3(network)!!)
-            val traces = traceFilterResponse.result
+            val traces = getTraces(fromBlock, toBlock, toAddress, network)
 
             if (traces.isEmpty()) {
                 logger.debug("No traces found for the contract in blocks $fromBlock to $toBlock")
@@ -193,6 +179,24 @@ class RawInvocationIngestorService(
             logger.error("Error executing trace_filter: ${e.message}", e)
             throw e
         }
+    }
+
+    private suspend fun getTraces(
+        fromBlock: Long,
+        toBlock: Long,
+        toAddress: String,
+        network: String
+    ): List<JsonNode> {
+        val traceFilterParams = mapOf(
+            "fromBlock" to "0x${fromBlock.toString(16)}",
+            "toBlock" to "0x${toBlock.toString(16)}",
+            "toAddress" to listOf(toAddress)
+        )
+
+        // Execute trace_filter RPC call
+        val traceFilterResponse = executeTraceFilter(traceFilterParams, web3jManager.web3(network)!!)
+        val traces = traceFilterResponse.result
+        return traces
     }
 
     /**

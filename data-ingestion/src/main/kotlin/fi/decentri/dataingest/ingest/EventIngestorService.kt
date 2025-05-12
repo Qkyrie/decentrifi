@@ -22,7 +22,6 @@ import org.web3j.protocol.core.methods.response.Log
 import java.math.BigInteger
 import java.time.Instant
 import java.time.LocalDateTime
-import java.util.*
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
