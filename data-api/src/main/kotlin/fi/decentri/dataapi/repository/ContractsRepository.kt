@@ -3,10 +3,7 @@ package fi.decentri.dataapi.repository
 import fi.decentri.dataapi.model.Contract
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.contract.Contracts
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.*
 import org.slf4j.LoggerFactory
 import kotlin.time.ExperimentalTime
 
@@ -17,9 +14,20 @@ import kotlin.time.ExperimentalTime
 class ContractsRepository {
 
     /**
+     * Get a contract by ID
+     */
+    suspend fun getById(id: Int): Contract? {
+        return dbQuery {
+            Contracts.selectAll().where { Contracts.id eq id }
+                .map { toContract(it) }
+                .singleOrNull()
+        }
+    }
+
+    /**
      * Insert a new contract
      */
-    suspend fun insert(address: String, abi: String, network: String): Int {
+    suspend fun insert(address: String, abi: String, network: String, type: String? = null): Int {
         return dbQuery {
             // Check if the contract already exists
             val existingContract = findByAddressAndNetwork(address, network)
@@ -28,11 +36,15 @@ class ContractsRepository {
                 return@dbQuery existingContract.id!!
             }
 
+            // If type is null, default to "generic"
+            val contractType = type ?: "generic"
+
             Contracts.insert {
                 it[this.address] = address
                 it[this.abi] = abi
                 it[chain] = network
                 it[name] = null
+                it[this.type] = contractType
             }[Contracts.id]
         }
     }
@@ -58,6 +70,7 @@ class ContractsRepository {
             abi = row[Contracts.abi],
             chain = row[Contracts.chain],
             name = row[Contracts.name],
+            type = row[Contracts.type] ?: "generic"
         )
     }
 }

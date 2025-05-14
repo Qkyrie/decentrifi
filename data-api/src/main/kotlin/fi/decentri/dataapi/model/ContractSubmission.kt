@@ -6,5 +6,6 @@ package fi.decentri.dataapi.model
 data class ContractSubmission(
     val contractAddress: String,
     val network: String,
-    val abi: String
+    val abi: String,
+    val type: String? = null
 )

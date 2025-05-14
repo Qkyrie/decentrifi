@@ -12,6 +12,7 @@ object Contracts : Table("contracts") {
     val abi = text("abi")
     val chain = varchar("chain", 64)
     val name = varchar("name", 128).nullable()
+    val type = varchar("type", 32).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

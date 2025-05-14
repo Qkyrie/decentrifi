@@ -19,8 +19,8 @@ class ContractsService(
     /**
      * Create a new contract
      */
-    suspend fun createContract(address: String, abi: String, chain: String, name: String? = null): Contract {
-        logger.info("Creating new contract: address=$address, chain=$chain")
+    suspend fun createContract(address: String, abi: String, chain: String, name: String? = null, type: String? = null): Contract {
+        logger.info("Creating new contract: address=$address, chain=$chain, type=${type ?: "generic"}")
 
         // Validate ABI format by parsing it
         try {
@@ -30,17 +30,21 @@ class ContractsService(
             throw IllegalArgumentException("Invalid ABI format: ${e.message}", e)
         }
 
+        // If type is null, default to "generic"
+        val contractType = type ?: "generic"
+
         val contract = Contract(
             address = address,
             abi = abi,
             chain = chain,
             name = name,
+            type = contractType,
             createdAt = kotlin.time.Clock.System.now(),
             updatedAt = kotlin.time.Clock.System.now()
         )
 
         val id = contractsRepository.insert(contract)
-        logger.info("Created contract with ID: $id")
+        logger.info("Created contract with ID: $id, type: $contractType")
 
         return contract.copy(id = id)
     }
@@ -48,7 +52,7 @@ class ContractsService(
     /**
      * Update an existing contract
      */
-    suspend fun updateContract(id: Int, address: String, abi: String, chain: String, name: String? = null): Contract? {
+    suspend fun updateContract(id: Int, address: String, abi: String, chain: String, name: String? = null, type: String? = null): Contract? {
         logger.info("Updating contract ID: $id")
 
         // Validate ABI format by parsing it
@@ -65,11 +69,19 @@ class ContractsService(
             return null
         }
 
+        // Determine the type - keep the existing one if not specified, otherwise use the new one or default to "generic"
+        val contractType = when {
+            type != null -> type
+            existingContract.type != null -> existingContract.type
+            else -> "generic"
+        }
+
         val updatedContract = existingContract.copy(
             address = address,
             abi = abi,
             chain = chain,
             name = name,
+            type = contractType
         )
 
         val success = contractsRepository.update(updatedContract)
@@ -78,7 +90,7 @@ class ContractsService(
             return null
         }
 
-        logger.info("Updated contract with ID: $id")
+        logger.info("Updated contract with ID: $id, type: $contractType")
         return updatedContract
     }
 

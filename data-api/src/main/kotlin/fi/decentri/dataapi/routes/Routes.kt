@@ -2,6 +2,7 @@ package fi.decentri.dataapi.routes
 
 import fi.decentri.dataapi.repository.ContractsRepository
 import fi.decentri.dataapi.repository.IngestionMetadataRepository
+import fi.decentri.dataapi.service.ContractsService
 import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
 import fi.decentri.dataapi.waitlist.WaitlistRepository
@@ -15,14 +16,15 @@ fun Application.configureRoutesModules(
     eventService: EventService,
     waitlistRepository: WaitlistRepository,
     contractsRepository: ContractsRepository,
-    ingestionMetadataRepository: IngestionMetadataRepository
+    ingestionMetadataRepository: IngestionMetadataRepository,
+    contractsService: ContractsService
 ) {
     routing {
         // Base routes like health check, landing page
         baseRoutes()
 
         // Contract-related routes
-        contractRoutes(contractsRepository, ingestionMetadataRepository)
+        contractRoutes(contractsRepository, ingestionMetadataRepository, contractsService)
 
         // Waitlist routes
         waitlistRoutes(waitlistRepository)

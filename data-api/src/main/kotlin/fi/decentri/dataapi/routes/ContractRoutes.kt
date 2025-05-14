@@ -4,6 +4,7 @@ import fi.decentri.dataapi.k8s.ingestion.IngestionLauncher
 import fi.decentri.dataapi.model.ContractSubmission
 import fi.decentri.dataapi.repository.ContractsRepository
 import fi.decentri.dataapi.repository.IngestionMetadataRepository
+import fi.decentri.dataapi.service.ContractsService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -18,7 +19,8 @@ private val logger = LoggerFactory.getLogger("fi.decentri.dataapi.routes.Contrac
 @ExperimentalTime
 fun Route.contractRoutes(
     contractsRepository: ContractsRepository,
-    ingestionMetadataRepository: IngestionMetadataRepository
+    ingestionMetadataRepository: IngestionMetadataRepository,
+    contractsService: ContractsService
 ) {
     // Contract submission endpoint
     post("/contract/submit") {
@@ -30,7 +32,8 @@ fun Route.contractRoutes(
             val id = contractsRepository.insert(
                 address = contractSubmission.contractAddress.lowercase(),
                 abi = contractSubmission.abi,
-                network = contractSubmission.network.lowercase()
+                network = contractSubmission.network.lowercase(),
+                type = contractSubmission.type
             )
             logger.info("Saved contract to database with ID: $id")
 
@@ -38,8 +41,7 @@ fun Route.contractRoutes(
             try {
                 val ingestionLauncher = IngestionLauncher()
                 val jobName = ingestionLauncher.launchManualRun(
-                    contractSubmission.contractAddress.lowercase(),
-                    contractSubmission.network.lowercase()
+                    contractsService.getContract(id)!!
                 )
                 logger.info("Launched ingestion job: $jobName for contract: ${contractSubmission.contractAddress}")
             } catch (e: Exception) {
@@ -83,7 +85,7 @@ fun Route.contractRoutes(
 
             // Launch the ingestion job for this contract
             val ingestionLauncher = IngestionLauncher()
-            val jobName = ingestionLauncher.launchManualRun(contractAddress.lowercase(), network.lowercase())
+            val jobName = ingestionLauncher.launchManualRun(contract)
             logger.info("Manually launched ingestion job: $jobName for contract: $contractAddress on network: $network")
 
             call.respond(

@@ -10,6 +10,7 @@ data class Contract(
     val abi: String,
     val chain: String,
     val name: String? = null,
+    val type: String,
     val createdAt: kotlin.time.Instant = Clock.System.now(),
     val updatedAt: kotlin.time.Instant = Clock.System.now()
 )

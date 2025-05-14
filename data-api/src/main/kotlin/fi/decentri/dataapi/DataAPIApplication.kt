@@ -8,6 +8,7 @@ import fi.decentri.dataapi.repository.IngestionMetadataRepository
 import fi.decentri.dataapi.repository.RawInvocationsRepository
 import fi.decentri.dataapi.repository.RawLogsRepository
 import fi.decentri.dataapi.routes.configureRoutesModules
+import fi.decentri.dataapi.service.ContractsService
 import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
 import fi.decentri.dataapi.waitlist.WaitlistRepository
@@ -53,6 +54,7 @@ fun main() {
     val rawLogsRepository = RawLogsRepository()
     val contractsRepository = ContractsRepository()
     val ingestionMetadataRepository = IngestionMetadataRepository()
+    val contractsService = ContractsService(contractsRepository)
 
     // Initialize services
     val gasUsageService = GasUsageService(rawInvocationsRepository)
@@ -65,7 +67,8 @@ fun main() {
             eventService,
             waitlistRepository,
             contractsRepository,
-            ingestionMetadataRepository
+            ingestionMetadataRepository,
+            contractsService
         )
         configureSerialization()
         configureTemplating()

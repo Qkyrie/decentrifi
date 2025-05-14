@@ -25,6 +25,7 @@ class ContractsRepository {
                 it[abi] = contract.abi
                 it[chain] = contract.chain
                 it[name] = contract.name
+                it[type] = contract.type
             }[Contracts.id]
         }
     }
@@ -43,6 +44,7 @@ class ContractsRepository {
                 it[abi] = contract.abi
                 it[chain] = contract.chain
                 it[name] = contract.name
+                it[type] = contract.type
             }
             rowsUpdated > 0
         }
@@ -120,6 +122,7 @@ class ContractsRepository {
             abi = row[Contracts.abi],
             chain = row[Contracts.chain],
             name = row[Contracts.name],
+            type = row[Contracts.type] ?: "generic"
         )
     }
 }
