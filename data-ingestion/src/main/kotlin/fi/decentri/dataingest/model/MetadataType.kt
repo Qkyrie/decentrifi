@@ -10,17 +10,12 @@ import java.time.Instant
 enum class MetadataType(val key: String) {
     LAST_PROCESSED_BLOCK_RAW_INVOCATIONS("last_processed_block_raw_invocations"),
     LAST_PROCESSED_BLOCK_EVENTS("last_processed_block_events"),
+    LAST_PROCESSED_BLOCK_TRANSFER_EVENTS("last_processed_block_transfer_events"),
     EVENTS_LAST_RUN_TIMESTAMP("events_last_run_timestamp"),
-    RAW_INVOCATIONS_LAST_RUN_TIMESTAMP("raw_invocations_last_run_timestamp");
+    RAW_INVOCATIONS_LAST_RUN_TIMESTAMP("raw_invocations_last_run_timestamp"),
+    TRANSFER_EVENTS_LAST_RUN_TIMESTAMP("transfer_events_last_run_timestamp");
 
     companion object {
-        /**
-         * Get enum value from string key
-         * @param key The string representation of the enum
-         * @return The corresponding enum value or null if not found
-         */
-        fun fromKey(key: String): MetadataType? = values().find { it.key == key }
-
         /**
          * The minimum cooldown period between auto-ingestion runs
          * Used to prevent concurrent processing of the same contract

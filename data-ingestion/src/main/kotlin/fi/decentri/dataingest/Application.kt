@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.typesafe.config.ConfigFactory
 import fi.decentri.application.usecases.EventIngestorUseCase
 import fi.decentri.application.usecases.IngestRawInvocationsUseCase
+import fi.decentri.application.usecases.TokenTransferListenerUseCase
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.dataingest.config.Web3jManager
@@ -18,6 +19,7 @@ import fi.decentri.infrastructure.repository.contract.ContractsRepository
 import fi.decentri.infrastructure.repository.ingestion.EventRepository
 import fi.decentri.infrastructure.repository.ingestion.IngestionMetadataRepository
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
+import fi.decentri.infrastructure.repository.token.TransferEventRepository
 import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
@@ -73,6 +75,7 @@ class IngestCommand : CliktCommand(
             val metadataRepository = IngestionMetadataRepository()
             val rawInvocationRepository = RawInvocationRepository()
             val eventRepository = EventRepository()
+            val transferEventRepository = TransferEventRepository()
             val blockService = BlockService(Web3jManager.getInstance())
 
 
@@ -91,13 +94,22 @@ class IngestCommand : CliktCommand(
                 abiPort
             )
 
+            var tokenTransferListenerUseCase = TokenTransferListenerUseCase(
+                Web3jManager.getInstance(),
+                metadataRepository,
+                transferEventRepository,
+                blockService
+            )
+
             val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-            // Create the blockchain ingestion service
+            logger.info("Token transfer tracking enabled in auto mode")
+
             val ingestionAutoMode = IngestionAutoMode(
                 contractsService,
                 ingestRawInvocationsUseCase,
                 eventIngestorUseCase,
+                tokenTransferListenerUseCase,
                 applicationScope,
             )
 
@@ -144,12 +156,22 @@ class IngestCommand : CliktCommand(
                             exitProcess(1)
                         }
 
+                        // If it's a 'safe' type contract and tokens flag is provided, initialize the token transfer listener
+                        logger.info("Token transfer tracking enabled for Safe contract: ${contract.address}")
+                        tokenTransferListenerUseCase = TokenTransferListenerUseCase(
+                            Web3jManager.getInstance(),
+                            metadataRepository,
+                            transferEventRepository,
+                            blockService
+                        )
+
                         // Run ingestion for the specific contract
                         val job = ingestForSpecificContract(
                             contract,
                             applicationScope,
                             ingestRawInvocationsUseCase,
-                            eventIngestorUseCase
+                            eventIngestorUseCase,
+                            tokenTransferListenerUseCase
                         )
                         job.join() // Wait for the job to complete
                         logger.info("Contract-specific ingestion job completed successfully")
@@ -180,7 +202,8 @@ class IngestCommand : CliktCommand(
         contract: Contract,
         scope: CoroutineScope,
         ingestRawInvocationsUseCase: IngestRawInvocationsUseCase,
-        eventIngestorUseCase: EventIngestorUseCase
+        eventIngestorUseCase: EventIngestorUseCase,
+        tokenTransferListenerUseCase: TokenTransferListenerUseCase
     ): Job = scope.launch {
         logger.info("Starting ingestion for contract: ${contract.address} (${contract.name ?: "unnamed"}) on chain: ${contract.chain}")
 
@@ -210,9 +233,26 @@ class IngestCommand : CliktCommand(
             }
         }
 
-        // Wait for both jobs to complete
+        // Launch token transfer ingestion if needed
+        var tokenTransfersJob: Job? = null
+        if (contract.type == "safe") {
+            tokenTransfersJob = launch {
+                try {
+                    tokenTransferListenerUseCase.listenForTransfers(contract)
+                    logger.info("Token transfer ingestion complete for contract ${contract.address}")
+                } catch (e: Exception) {
+                    logger.error(
+                        "Error during token transfer ingestion for contract ${contract.address} (ID: ${contract.id}): ${e.message}",
+                        e
+                    )
+                }
+            }
+        }
+
+        // Wait for all jobs to complete
         rawInvocationsJob.join()
         eventsJob.join()
+        tokenTransfersJob?.join()
     }
 }
 

@@ -17,6 +17,7 @@ import fi.decentri.db.contract.Contracts
 import fi.decentri.db.event.RawLogs
 import fi.decentri.db.ingestion.IngestionMetadata
 import fi.decentri.db.rawinvocation.RawInvocations
+import fi.decentri.db.token.TransferEvents
 import fi.decentri.db.waitlist.WaitlistEntries
 import io.ktor.serialization.jackson.*
 import io.ktor.server.application.*
@@ -45,7 +46,8 @@ fun main() {
         RawLogs,
         IngestionMetadata,
         Contracts,
-        WaitlistEntries
+        WaitlistEntries,
+        TransferEvents
     )
 
     // Initialize repositories
