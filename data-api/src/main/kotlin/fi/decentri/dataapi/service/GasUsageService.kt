@@ -41,8 +41,8 @@ class GasUsageService(private val rawInvocationsRepository: RawInvocationsReposi
      * Gets the count of unique from_addresses that have interacted with the contract
      * in the last 24 hours
      */
-    suspend fun getUniqueAddressesCount(network: String, contract: String): UniqueAddressesDTO {
-        val uniqueCount = rawInvocationsRepository.getUniqueFromAddressCount24Hours(network, contract)
+    suspend fun getUniqueAddressesCount(network: String, contract: String, since: LocalDateTime): UniqueAddressesDTO {
+        val uniqueCount = rawInvocationsRepository.getUniqueFromAddressCount24Hours(network, contract, since)
         return UniqueAddressesDTO(
             network = network,
             contract = contract,

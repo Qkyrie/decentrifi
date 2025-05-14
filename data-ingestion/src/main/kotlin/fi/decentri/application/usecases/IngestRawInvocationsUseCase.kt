@@ -142,7 +142,7 @@ class IngestRawInvocationsUseCase(
                     val from = trace.get("action")?.get("from")?.asText() ?: return@parMap null
 
                     val gasUsed = Either.catch {
-                        Numeric.decodeQuantity(trace.get("result").get("gasUsed").textValue())
+                        Numeric.decodeQuantity(trace.get("result")?.get("gasUsed")?.textValue()) ?: BigInteger.ZERO
                     }.mapLeft {
                         log.error("Error decoding gasUsed: ${it.message}", it)
                         BigInteger.ZERO

@@ -1096,7 +1096,7 @@
         // Function to fetch unique addresses for a contract on a network
         async function fetchUniqueAddressesCount(network, contract) {
             try {
-                const url = `/data/${network}/${contract}/unique-addresses`;
+                const url = `/data/${network}/${contract}/active-users/1d`;
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1112,7 +1112,7 @@
         // Function to fetch active users in the last 30 minutes
         async function fetchLiveUsersCount(network, contract) {
             try {
-                const url = `/data/${network}/${contract}/active-users-last-30min`;
+                const url = `/data/${network}/${contract}/active-users/30min`;
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);

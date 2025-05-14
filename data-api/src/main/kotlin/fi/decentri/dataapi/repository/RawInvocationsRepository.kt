@@ -47,17 +47,16 @@ class RawInvocationsRepository {
      * Count the number of unique from_addresses for a contract on a network in the last 24 hours
      * Returns the total count of distinct addresses
      */
-    suspend fun getUniqueFromAddressCount24Hours(network: String, contract: String): Long =
+    suspend fun getUniqueFromAddressCount24Hours(network: String, contract: String, since: LocalDateTime): Long =
         dbQuery {
             val now = LocalDateTime.now(ZoneOffset.UTC)
-            val oneDayAgo = now.minusDays(1)
 
             RawInvocations
                 .slice(RawInvocations.fromAddress.countDistinct())
                 .selectAll().where {
                     (RawInvocations.network eq network) and
                             (RawInvocations.contractAddress.lowerCase() eq contract.lowercase()) and
-                            (RawInvocations.blockTimestamp greaterEq oneDayAgo.toInstant(ZoneOffset.UTC))
+                            (RawInvocations.blockTimestamp greaterEq since.toInstant(ZoneOffset.UTC))
                 }
                 .first()[RawInvocations.fromAddress.countDistinct()]
         }

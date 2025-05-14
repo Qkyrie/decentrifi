@@ -8,6 +8,7 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
 
 private val logger = LoggerFactory.getLogger("fi.decentri.dataapi.routes.AnalyticsRoutes")
 
@@ -38,7 +39,7 @@ fun Route.analyticsRoutes(
         }
 
         // Unique addresses endpoints
-        get("/{network}/{contract}/unique-addresses") {
+        get("/{network}/{contract}/active-users/1d") {
             try {
                 val network = call.parameters["network"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -50,7 +51,9 @@ fun Route.analyticsRoutes(
                 )
 
                 logger.info("Fetching unique from_addresses count for network=$network, contract=$contract")
-                val uniqueAddressesData = gasUsageService.getUniqueAddressesCount(network, contract)
+                val uniqueAddressesData = gasUsageService.getUniqueAddressesCount(
+                    network, contract, LocalDateTime.now().minusDays(1)
+                )
                 call.respond(uniqueAddressesData)
             } catch (e: Exception) {
                 logger.error("Error fetching unique addresses data", e)
@@ -59,7 +62,7 @@ fun Route.analyticsRoutes(
         }
 
         // Active users endpoints
-        get("/{network}/{contract}/active-users-last-30min") {
+        get("/{network}/{contract}/active-users/30min") {
             try {
                 val network = call.parameters["network"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -72,12 +75,12 @@ fun Route.analyticsRoutes(
 
                 logger.info("Fetching active users in last 30 minutes for network=$network, contract=$contract")
                 // For now, we return a static value of 30
-                call.respond(mapOf(
-                    "network" to network,
-                    "contract" to contract,
-                    "activeUsers" to 30,
-                    "periodMinutes" to 30
-                ))
+
+                val uniqueAddressesData = gasUsageService.getUniqueAddressesCount(
+                    network, contract, LocalDateTime.now().minusMinutes(30)
+                )
+
+                call.respond(uniqueAddressesData)
             } catch (e: Exception) {
                 logger.error("Error fetching active users data", e)
                 call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
