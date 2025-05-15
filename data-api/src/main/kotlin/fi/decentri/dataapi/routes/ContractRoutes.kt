@@ -133,16 +133,30 @@ fun Route.contractRoutes(
             return@get
         }
 
-        // Contract exists and has metadata, show the analytics page
-        call.respond(
-            ThymeleafContent(
-                "contract-analytics.html", mapOf(
-                    "title" to "Contract Analytics",
-                    "network" to network,
-                    "contract" to contractAddress
+        when (contract.type.lowercase()) {
+            "safe" -> {
+                call.respond(
+                    ThymeleafContent(
+                        "safe-analytics.html", mapOf(
+                            "title" to "Safe Analytics",
+                            "network" to network,
+                            "contract" to contractAddress
+                        )
+                    )
                 )
-            )
-        )
+            }
+            else -> {
+                call.respond(
+                    ThymeleafContent(
+                        "contract-analytics.html", mapOf(
+                            "title" to "Contract Analytics",
+                            "network" to network,
+                            "contract" to contractAddress
+                        )
+                    )
+                )
+            }
+        }
     }
 
     // Status endpoint to check if contract has metadata
