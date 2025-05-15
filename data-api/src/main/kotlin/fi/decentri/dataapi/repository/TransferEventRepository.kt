@@ -51,7 +51,7 @@ class TransferEventRepository {
     suspend fun getDailyTokenFlows(
         network: String,
         contract: String,
-        daysToLookBack: Int = 30
+        daysToLookBack: Int
     ): Map<TokenAddress, List<DailyTokenFlow>> {
         val startDate = LocalDateTime.now().minusDays(daysToLookBack.toLong()).toInstant(ZoneOffset.UTC)
 
