@@ -536,16 +536,19 @@
             background: var(--light-bg);
             overflow: hidden;
             border: 1px solid rgba(42, 46, 61, 0.1);
+            min-width: 240px;
+            z-index: 5;
         }
 
         .time-option {
-            padding: 6px 12px;
+            padding: 8px 12px;
             font-size: 13px;
             color: rgba(42, 46, 61, 0.7);
             cursor: pointer;
             transition: all 0.2s ease;
             text-align: center;
             flex: 1;
+            font-weight: 500;
         }
 
         .time-option:not(:last-child) {
@@ -560,7 +563,7 @@
         .time-option.active {
             background: var(--primary-blue);
             color: white;
-            font-weight: 500;
+            font-weight: 600;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
@@ -753,6 +756,22 @@
                 gap: 15px;
                 align-items: flex-start;
             }
+            
+            .time-selector {
+                width: 100%;
+                min-width: unset;
+            }
+            
+            .chart-controls {
+                width: 100%;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .filter-select {
+                width: 100%;
+                margin-right: 0;
+            }
         }
     </style>
 </head>
@@ -880,18 +899,10 @@
                                 <option value="">Select Token</option>
                                 <!-- Token options will be dynamically loaded -->
                             </select>
-                            <button class="chart-button">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                Export
-                            </button>
-                            <div class="time-selector">
-                                <div class="time-option" data-days="7">Last Week</div>
-                                <div class="time-option active" data-days="31">Last Month</div>
-                                <div class="time-option" data-days="365">Last Year</div>
+                            <div class="time-selector" style="display: flex; min-width: 240px;">
+                                <div class="time-option" data-days="7" style="cursor: pointer; padding: 8px 12px;">Last Week</div>
+                                <div class="time-option active" data-days="31" style="cursor: pointer; padding: 8px 12px;">Last Month</div>
+                                <div class="time-option" data-days="365" style="cursor: pointer; padding: 8px 12px;">Last Year</div>
                             </div>
                         </div>
                     </div>
