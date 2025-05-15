@@ -24,12 +24,17 @@ class TokenFlowService(
      * Gets daily token flow data for a specific contract on a given network
      * Data is extracted from the TransferEvents table for the past X days
      * Ensures that every day in the requested period has a data point
+     * 
+     * @param network The blockchain network name
+     * @param safe The contract address
+     * @param daysSince Number of days to look back (default 365 days)
+     * @return List of TokenFlowsDTO for each token associated with the contract
      */
-    suspend fun getTokenFlows(network: String, safe: String, daysToLookBack: Int = 365): List<TokenFlowsDTO> {
+    suspend fun getTokenFlows(network: String, safe: String, daysSince: Int = 365): List<TokenFlowsDTO> {
 
         // Fetch token flows from the repository 
         val dailyFlows =
-            transferEventRepository.getDailyTokenFlows(network.lowercase(), safe.lowercase(), daysToLookBack)
+            transferEventRepository.getDailyTokenFlows(network.lowercase(), safe.lowercase(), daysSince)
 
         return dailyFlows.map { (tokenName, dailyFlows) ->
             val token = tokenService.getToken(network, tokenName.name)
@@ -45,7 +50,7 @@ class TokenFlowService(
             }
 
             // Generate all days in the period
-            val startInstant = getStartOfDayInstant(Instant.now().minus(daysToLookBack.toLong(), ChronoUnit.DAYS))
+            val startInstant = getStartOfDayInstant(Instant.now().minus(daysSince.toLong(), ChronoUnit.DAYS))
             val endInstant = getStartOfDayInstant(Instant.now())
 
             // Create a complete list of data points with zeros for missing days
@@ -65,11 +70,18 @@ class TokenFlowService(
             val totalOutflow = completeDataPoints.sumOf { it.outflow }
             val netFlow = totalInflow - totalOutflow
 
+            // Determine the appropriate period string based on daysSince
+            val period = when {
+                daysSince <= 30 -> "daily"
+                daysSince <= 90 -> "weekly"
+                else -> "monthly"
+            }
+
             TokenFlowsDTO(
                 network = network,
-                period = "daily",
-                tokenSymbol = token!!.name,
-                tokenDecimals = token.decimals,
+                period = period,
+                tokenSymbol = token?.name ?: "TOKEN",
+                tokenDecimals = token?.decimals ?: 18,
                 dataPoints = completeDataPoints.toList(),
                 totalInflow = totalInflow,
                 totalOutflow = totalOutflow,

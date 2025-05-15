@@ -535,6 +535,7 @@
             border-radius: 6px;
             background: var(--light-bg);
             overflow: hidden;
+            border: 1px solid rgba(42, 46, 61, 0.1);
         }
 
         .time-option {
@@ -542,11 +543,23 @@
             font-size: 13px;
             color: rgba(42, 46, 61, 0.7);
             cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            flex: 1;
+        }
+
+        .time-option:not(:last-child) {
+            border-right: 1px solid rgba(42, 46, 61, 0.1);
+        }
+
+        .time-option:hover:not(.active) {
+            background: rgba(52, 109, 241, 0.05);
+            color: var(--primary-blue);
         }
 
         .time-option.active {
-            background: white;
-            color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
             font-weight: 500;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
@@ -876,7 +889,9 @@
                                 Export
                             </button>
                             <div class="time-selector">
-                                <div class="time-option active">Last 30 Days</div>
+                                <div class="time-option" data-days="7">Last Week</div>
+                                <div class="time-option active" data-days="31">Last Month</div>
+                                <div class="time-option" data-days="365">Last Year</div>
                             </div>
                         </div>
                     </div>
@@ -1236,9 +1251,9 @@
         }
 
         // Function to fetch token flows data from the API
-        async function fetchTokenFlowsData(network, contract) {
+        async function fetchTokenFlowsData(network, contract, daysSince = 31) {
             try {
-                const url = `/data/${network}/${contract}/token-flows/monthly`;
+                const url = `/data/${network}/${contract}/token-flows?daysSince=${daysSince}`;
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1445,6 +1460,78 @@
             });
         }
 
+        // Initialize time selector for token flows
+        const timeSelector = document.querySelector('.time-selector');
+        let selectedDaysSince = 31; // Default to last month
+        
+        if (timeSelector) {
+            timeSelector.querySelectorAll('.time-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove active class from all options
+                    timeSelector.querySelectorAll('.time-option').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked option
+                    this.classList.add('active');
+                    
+                    // Get selected days
+                    selectedDaysSince = parseInt(this.getAttribute('data-days'));
+                    
+                    // Update the chart title to reflect the selected time period
+                    const timeframeText = selectedDaysSince <= 7 ? 'Last Week' : 
+                                           selectedDaysSince <= 31 ? 'Last Month' : 'Last Year';
+                    
+                    // Update chart title if it exists
+                    // Find the Token Flows chart title (adjust the selector if needed)
+                const chartTitle = document.querySelector('.chart-card:nth-of-type(4) .chart-title');
+                    if (chartTitle && allTokenFlowsData.length > 0) {
+                        const tokenData = allTokenFlowsData[selectedTokenIndex] || allTokenFlowsData[0];
+                        chartTitle.innerHTML = `
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 6V12L16 14" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Token Flows: ${tokenData.tokenSymbol} (${timeframeText})
+                        `;
+                    }
+                    
+                    // Update metrics text to reflect the selected time period
+                    const inflowMetric = document.querySelector('.chart-card:nth-of-type(3) .metrics-grid .metric-card:nth-of-type(1) .metric-change');
+                    const outflowMetric = document.querySelector('.chart-card:nth-of-type(3) .metrics-grid .metric-card:nth-of-type(2) .metric-change');
+                    const netFlowMetric = document.querySelector('.chart-card:nth-of-type(3) .metrics-grid .metric-card:nth-of-type(3) .metric-change');
+                    
+                    if (inflowMetric) {
+                        inflowMetric.textContent = `Tokens received in the ${timeframeText.toLowerCase()}`;
+                    }
+                    if (outflowMetric) {
+                        outflowMetric.textContent = `Tokens sent in the ${timeframeText.toLowerCase()}`;
+                    }
+                    if (netFlowMetric) {
+                        netFlowMetric.textContent = `Total balance change over ${timeframeText.toLowerCase()}`;
+                    }
+                    
+                    // Refetch data with the new time period
+                    const { network, contract } = getNetworkAndContract();
+                    fetchTokenFlowsData(network, contract, selectedDaysSince).then(data => {
+                        if (data && data.length > 0) {
+                            // Update global data cache
+                            allTokenFlowsData = data;
+                            
+                            // Process and display the token flow data
+                            const processedTokenFlowsData = processTokenFlowsData(data);
+                            tokenFlowsChart.data.labels = processedTokenFlowsData.labels;
+                            tokenFlowsChart.data.datasets = processedTokenFlowsData.datasets;
+                            tokenFlowsChart.update();
+                            
+                            // Update metrics
+                            updateTokenFlowMetrics(data);
+                        }
+                    });
+                });
+            });
+        }
+        
         // Initialize token flows chart
         const tokenFlowsCtx = document.getElementById('tokenFlowsChart').getContext('2d');
         let tokenFlowsChart = new Chart(tokenFlowsCtx, {
@@ -1550,7 +1637,7 @@
             // Fetch data in parallel
             const [uniqueAddressesData, tokenFlowsData] = await Promise.all([
                 fetchUniqueAddressesCount(network, contract),
-                fetchTokenFlowsData(network, contract)
+                fetchTokenFlowsData(network, contract, selectedDaysSince)
             ]);
             
             // Update unique addresses count
@@ -1565,6 +1652,26 @@
             if (tokenFlowsData && tokenFlowsData.length > 0) {
                 // Populate token selector dropdown
                 populateTokenSelector(tokenFlowsData);
+                
+                // Update chart title to reflect the selected time period
+                const timeframeText = selectedDaysSince <= 7 ? 'Last Week' : 
+                                     selectedDaysSince <= 31 ? 'Last Month' : 'Last Year';
+                
+                // Update metrics text to reflect the selected time period
+                // Find the Token Flows metrics (adjust the selectors if needed)
+                const inflowMetric = document.querySelector('.chart-card:nth-of-type(4) .metrics-grid .metric-card:nth-of-type(1) .metric-change');
+                const outflowMetric = document.querySelector('.chart-card:nth-of-type(4) .metrics-grid .metric-card:nth-of-type(2) .metric-change');
+                const netFlowMetric = document.querySelector('.chart-card:nth-of-type(4) .metrics-grid .metric-card:nth-of-type(3) .metric-change');
+                
+                if (inflowMetric) {
+                    inflowMetric.textContent = `Tokens received in the ${timeframeText.toLowerCase()}`;
+                }
+                if (outflowMetric) {
+                    outflowMetric.textContent = `Tokens sent in the ${timeframeText.toLowerCase()}`;
+                }
+                if (netFlowMetric) {
+                    netFlowMetric.textContent = `Total balance change over ${timeframeText.toLowerCase()}`;
+                }
                 
                 // Process and display the token flow data
                 const processedTokenFlowsData = processTokenFlowsData(tokenFlowsData);
@@ -1585,7 +1692,7 @@
             const [uniqueAddressesData, liveUsersData, tokenFlowsData] = await Promise.all([
                 fetchUniqueAddressesCount(network, contract),
                 fetchLiveUsersCount(network, contract),
-                fetchTokenFlowsData(network, contract)
+                fetchTokenFlowsData(network, contract, selectedDaysSince)
             ]);
 
             // Update unique addresses count if available
