@@ -25,6 +25,7 @@
         <module>data-api</module>
         <module>db</module>
         <module>web3</module>
+        <module>chainlayer</module>
     </modules>
 
 
