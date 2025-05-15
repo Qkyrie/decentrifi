@@ -3,8 +3,8 @@
 package fi.decentri.application.usecases
 
 import arrow.fx.coroutines.parMap
-import fi.decentri.TypeUtils.Companion.address
-import fi.decentri.TypeUtils.Companion.uint256
+import fi.decentri.evm.TypeUtils.Companion.address
+import fi.decentri.evm.TypeUtils.Companion.uint256
 import fi.decentri.application.ports.BlockPort
 import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
@@ -16,7 +16,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
 import org.slf4j.LoggerFactory
 import org.web3j.abi.EventEncoder
-import org.web3j.abi.FunctionEncoder
 import org.web3j.abi.datatypes.Event
 import org.web3j.protocol.core.DefaultBlockParameter
 import org.web3j.protocol.core.methods.request.EthFilter

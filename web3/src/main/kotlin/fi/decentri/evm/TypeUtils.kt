@@ -1,4 +1,4 @@
-package fi.decentri
+package fi.decentri.evm
 
 
 import org.web3j.abi.TypeReference

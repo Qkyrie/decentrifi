@@ -966,6 +966,11 @@
                             Token Flows (Last 30 Days)
                         </div>
                         <div class="chart-controls">
+                            <!-- Token selector dropdown -->
+                            <select id="tokenSelector" class="filter-select" style="min-width: 150px; margin-right: 10px;">
+                                <option value="">Select Token</option>
+                                <!-- Token options will be dynamically loaded -->
+                            </select>
                             <button class="chart-button">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2076,16 +2081,22 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                return data;
+                return data; // This is now an array of TokenFlowsDTO objects
             } catch (error) {
                 console.error("Error fetching token flows data:", error);
                 return null;
             }
         }
 
+        // Global variable to store all token flow data
+        let allTokenFlowsData = [];
+        // Current selected token index
+        let selectedTokenIndex = 0;
+
         // Process token flows data for the chart
-        function processTokenFlowsData(apiData) {
-            if (!apiData || !apiData.dataPoints || apiData.dataPoints.length === 0) {
+        function processTokenFlowsData(tokenFlowsDataArray) {
+            // If no data, return empty chart data
+            if (!tokenFlowsDataArray || tokenFlowsDataArray.length === 0) {
                 return {
                     labels: Array(30).fill('').map((_, i) => `Day ${i + 1}`),
                     datasets: [
@@ -2124,8 +2135,27 @@
                 };
             }
 
+            // Store all token flows data
+            allTokenFlowsData = tokenFlowsDataArray;
+            
+            // Use the selected token data or fallback to the first one
+            const tokenData = tokenFlowsDataArray[selectedTokenIndex] || tokenFlowsDataArray[0];
+            
+            // Update chart title with token symbol
+            const chartTitle = document.querySelector('.chart-card:nth-of-type(4) .chart-title'); // 4th chart card
+            if (chartTitle) {
+                const titleText = chartTitle.innerText.split('(')[0]; // Keep base title
+                chartTitle.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 6V12L16 14" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Token Flows: ${tokenData.tokenSymbol} (Last 30 Days)
+                `;
+            }
+
             // Format dates for the x-axis labels
-            const labels = apiData.dataPoints.map(point => {
+            const labels = tokenData.dataPoints.map(point => {
                 // Convert the ISO timestamp to a Date object
                 const date = new Date(point.timestamp);
                 // Format the date as MM/DD
@@ -2133,15 +2163,15 @@
             });
 
             // Extract data for each dataset
-            const inflowData = apiData.dataPoints.map(point => point.inflow);
-            const outflowData = apiData.dataPoints.map(point => point.outflow);
-            const netFlowData = apiData.dataPoints.map(point => point.netFlow);
+            const inflowData = tokenData.dataPoints.map(point => point.inflow);
+            const outflowData = tokenData.dataPoints.map(point => point.outflow);
+            const netFlowData = tokenData.dataPoints.map(point => point.netFlow);
 
             return {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Inflow',
+                        label: `${tokenData.tokenSymbol} Inflow`,
                         data: inflowData,
                         backgroundColor: 'rgba(46, 204, 113, 0.5)',
                         borderColor: '#2ecc71',
@@ -2150,7 +2180,7 @@
                         order: 1
                     },
                     {
-                        label: 'Outflow',
+                        label: `${tokenData.tokenSymbol} Outflow`,
                         data: outflowData,
                         backgroundColor: 'rgba(231, 76, 60, 0.5)',
                         borderColor: '#e74c3c',
@@ -2159,7 +2189,7 @@
                         order: 2
                     },
                     {
-                        label: 'Net Flow',
+                        label: `${tokenData.tokenSymbol} Net Flow`,
                         data: netFlowData,
                         borderColor: '#9b59b6',
                         backgroundColor: 'rgba(155, 89, 182, 0.2)',
@@ -2175,31 +2205,81 @@
             };
         }
 
-        // Update token flow metrics
-        function updateTokenFlowMetrics(data) {
-            if (!data) return;
+        // Update token flow metrics based on selected token
+        function updateTokenFlowMetrics(tokenFlowsDataArray) {
+            if (!tokenFlowsDataArray || tokenFlowsDataArray.length === 0) return;
+            
+            // Use the token at the selected index or fallback to first token
+            const data = tokenFlowsDataArray[selectedTokenIndex] || tokenFlowsDataArray[0];
 
             // Format large numbers with commas and fixed decimal places
             const formatNumber = (num) => {
                 return parseFloat(num.toFixed(2)).toLocaleString();
             };
 
-            document.getElementById('totalInflow').textContent = formatNumber(data.totalInflow);
-            document.getElementById('totalOutflow').textContent = formatNumber(data.totalOutflow);
+            // Update metric values and add token symbol
+            const totalInflowElement = document.getElementById('totalInflow');
+            const totalOutflowElement = document.getElementById('totalOutflow');
+            const netFlowElement = document.getElementById('netFlow');
+            
+            // Update inflow with token symbol
+            totalInflowElement.textContent = `${formatNumber(data.totalInflow)} ${data.tokenSymbol}`;
+            
+            // Update outflow with token symbol
+            totalOutflowElement.textContent = `${formatNumber(data.totalOutflow)} ${data.tokenSymbol}`;
             
             // For net flow, we want to show a plus sign for positive values
-            const netFlowElement = document.getElementById('netFlow');
             const netFlowValue = data.netFlow;
             if (netFlowValue > 0) {
-                netFlowElement.textContent = '+' + formatNumber(netFlowValue);
+                netFlowElement.textContent = `+${formatNumber(netFlowValue)} ${data.tokenSymbol}`;
                 netFlowElement.style.color = '#2ecc71'; // Green for positive
             } else if (netFlowValue < 0) {
-                netFlowElement.textContent = formatNumber(netFlowValue); // Negative sign is included
+                netFlowElement.textContent = `${formatNumber(netFlowValue)} ${data.tokenSymbol}`; // Negative sign is included
                 netFlowElement.style.color = '#e74c3c'; // Red for negative
             } else {
-                netFlowElement.textContent = '0';
+                netFlowElement.textContent = `0 ${data.tokenSymbol}`;
                 netFlowElement.style.color = ''; // Default color for zero
             }
+        }
+        
+        // Function to populate the token selector dropdown
+        function populateTokenSelector(tokenFlowsDataArray) {
+            if (!tokenFlowsDataArray || tokenFlowsDataArray.length === 0) return;
+            
+            const tokenSelector = document.getElementById('tokenSelector');
+            if (!tokenSelector) return;
+            
+            // Clear existing options (except the first placeholder)
+            while (tokenSelector.options.length > 1) {
+                tokenSelector.remove(1);
+            }
+            
+            // Add options for each token
+            tokenFlowsDataArray.forEach((tokenData, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = tokenData.tokenSymbol;
+                tokenSelector.appendChild(option);
+            });
+            
+            // Select the first token by default
+            if (tokenFlowsDataArray.length > 0) {
+                tokenSelector.value = 0;
+            }
+            
+            // Add event listener to handle token selection
+            tokenSelector.addEventListener('change', function() {
+                selectedTokenIndex = parseInt(this.value) || 0;
+                
+                // Update chart with selected token
+                const processedData = processTokenFlowsData(allTokenFlowsData);
+                tokenFlowsChart.data.labels = processedData.labels;
+                tokenFlowsChart.data.datasets = processedData.datasets;
+                tokenFlowsChart.update();
+                
+                // Update metrics with selected token
+                updateTokenFlowMetrics(allTokenFlowsData);
+            });
         }
 
         // Initialize token flows chart
@@ -2337,7 +2417,11 @@
             }
 
             // Update token flows chart
-            if (tokenFlowsData) {
+            if (tokenFlowsData && tokenFlowsData.length > 0) {
+                // Populate token selector dropdown
+                populateTokenSelector(tokenFlowsData);
+                
+                // Process and display the token flow data
                 const processedTokenFlowsData = processTokenFlowsData(tokenFlowsData);
                 tokenFlowsChart.data.labels = processedTokenFlowsData.labels;
                 tokenFlowsChart.data.datasets = processedTokenFlowsData.datasets;
@@ -2405,7 +2489,11 @@
             }
 
             // Update token flows chart
-            if (tokenFlowsData) {
+            if (tokenFlowsData && tokenFlowsData.length > 0) {
+                // Populate token selector dropdown
+                populateTokenSelector(tokenFlowsData);
+                
+                // Process and display the token flow data
                 const processedTokenFlowsData = processTokenFlowsData(tokenFlowsData);
                 tokenFlowsChart.data.labels = processedTokenFlowsData.labels;
                 tokenFlowsChart.data.datasets = processedTokenFlowsData.datasets;

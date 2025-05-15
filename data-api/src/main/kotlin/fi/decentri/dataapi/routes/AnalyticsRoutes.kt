@@ -137,7 +137,7 @@ fun Route.analyticsRoutes(
                 call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
             }
         }
-        
+
         // Token flows endpoint
         get("/{network}/{contract}/token-flows/monthly") {
             try {
@@ -151,17 +151,11 @@ fun Route.analyticsRoutes(
                 )
 
                 logger.info("Fetching token flows for network=$network, contract=$contract")
-                
+
                 // Get from repository or fallback to sample data if TransferEventRepository throws
                 val transferEventRepository = TransferEventRepository()
                 val tokenFlowService = TokenFlowService(transferEventRepository)
-                val tokenFlowsData = try {
-                    tokenFlowService.getTokenFlows(network, contract)
-                } catch (e: Exception) {
-                    logger.warn("Error fetching token flows from database, using sample data instead", e)
-                    generateSampleTokenFlowData(network, contract)
-                }
-                
+                val tokenFlowsData = tokenFlowService.getTokenFlows(network, contract)
                 call.respond(tokenFlowsData)
             } catch (e: Exception) {
                 logger.error("Error fetching token flows data", e)
@@ -169,53 +163,4 @@ fun Route.analyticsRoutes(
             }
         }
     }
-}
-
-/**
- * Generate sample token flow data for fallback when database data isn't available
- * This is used to provide realistic-looking sample data for testing or when the database is empty
- */
-private fun generateSampleTokenFlowData(network: String, contract: String): TokenFlowsDTO {
-    val now = LocalDateTime.now(ZoneOffset.UTC).withHour(0).withMinute(0).withSecond(0).withNano(0)
-    val dataPoints = mutableListOf<TokenFlowPoint>()
-    
-    // Create a data point for each day in the last 30 days
-    for (i in 29 downTo 0) {
-        val timestamp = now.minusDays(i.toLong())
-        
-        // Generate random inflow and outflow data with some realistic patterns
-        // Inflows are generally higher on weekdays, outflows higher on weekends
-        val isWeekend = timestamp.dayOfWeek.value > 5
-        val baseFactor = if (isWeekend) 0.7 else 1.3
-        
-        // Add some randomness but try to keep a trend
-        val trendFactor = 1.0 + (i % 7) * 0.05
-        val volatilityFactor = 0.5 + Random.nextDouble()
-        
-        val inflow = baseFactor * 1000 * trendFactor * volatilityFactor
-        val outflow = baseFactor * 800 * volatilityFactor
-        
-        dataPoints.add(
-            TokenFlowPoint(
-                timestamp = timestamp.toInstant(ZoneOffset.UTC),
-                inflow = inflow,
-                outflow = outflow,
-                netFlow = inflow - outflow
-            )
-        )
-    }
-    
-    // Calculate totals
-    val totalInflow = dataPoints.sumOf { it.inflow }
-    val totalOutflow = dataPoints.sumOf { it.outflow }
-    val netFlow = totalInflow - totalOutflow
-    
-    return TokenFlowsDTO(
-        network = network,
-        contract = contract,
-        dataPoints = dataPoints,
-        totalInflow = totalInflow,
-        totalOutflow = totalOutflow,
-        netFlow = netFlow
-    )
 }

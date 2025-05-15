@@ -4,6 +4,7 @@ import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.token.TransferEvents
 import org.jetbrains.exposed.sql.*
 import java.math.BigDecimal
+import java.math.BigInteger
 import java.time.*
 import kotlin.time.ExperimentalTime
 
@@ -20,7 +21,7 @@ class TransferEventRepository {
         val timestamp: Instant,
         val fromAddress: String,
         val toAddress: String,
-        val amount: BigDecimal
+        val amount: BigInteger
     )
 
     /**
@@ -28,10 +29,10 @@ class TransferEventRepository {
      */
     data class DailyTokenFlow(
         val date: Instant,
-        val inflow: Double,
-        val outflow: Double
+        val inflow: BigInteger,
+        val outflow: BigInteger
     ) {
-        val netFlow: Double
+        val netFlow: BigInteger
             get() = inflow - outflow
     }
 
@@ -47,7 +48,11 @@ class TransferEventRepository {
      * Retrieves all transfer events for a contract within a time period,
      * then transforms them using a functional approach to calculate daily flows
      */
-    suspend fun getDailyTokenFlows(network: String, contract: String, daysToLookBack: Int = 30): List<DailyTokenFlow> {
+    suspend fun getDailyTokenFlows(
+        network: String,
+        contract: String,
+        daysToLookBack: Int = 30
+    ): Map<TokenName, List<DailyTokenFlow>> {
         val startDate = LocalDateTime.now().minusDays(daysToLookBack.toLong()).toInstant(ZoneOffset.UTC)
 
         // Fetch all transfer events in a single query
@@ -73,43 +78,53 @@ class TransferEventRepository {
                         timestamp = row[TransferEvents.blockTimestamp],
                         fromAddress = row[TransferEvents.fromAddress],
                         toAddress = row[TransferEvents.toAddress],
-                        amount = row[TransferEvents.amount]
+                        amount = row[TransferEvents.amount].toBigInteger()
                     )
                 }
         }
     }
 
+    @JvmInline
+    value class TokenName(val name: String)
+
     /**
      * Transform the transfer events into daily flows using a functional approach
      */
-    private fun calculateDailyFlows(transfers: List<TransferData>, contract: String): List<DailyTokenFlow> {
+    private fun calculateDailyFlows(
+        transfers: List<TransferData>,
+        contract: String
+    ): Map<TokenName, List<DailyTokenFlow>> {
         // Helper function to get start of day for a timestamp
         fun getStartOfDay(instant: Instant): Instant {
             val localDate = instant.atZone(ZoneOffset.UTC).toLocalDate()
             return localDate.atStartOfDay(ZoneOffset.UTC).toInstant()
         }
 
+        val perToken = transfers.groupBy { it.toAddress }
+
         // Group transfers by day
-        return transfers
-            .groupBy { getStartOfDay(it.timestamp) }
-            .map { (dayStart, dayTransfers) ->
-                // Calculate inflows - when tokens are sent TO the contract
-                val inflows = dayTransfers
-                    .filter { it.toAddress == contract }
-                    .sumOf { it.amount.toDouble() }
+        return perToken.map { (token, transfersForToken) ->
+            TokenName(token) to transfersForToken.groupBy { getStartOfDay(it.timestamp) }
+                .map { (dayStart, dayTransfers) ->
+                    // Calculate inflows - when tokens are sent TO the contract
+                    val inflows = dayTransfers
+                        .filter { it.toAddress == contract }
+                        .sumOf { it.amount }
 
-                // Calculate outflows - when tokens are sent FROM the contract
-                val outflows = dayTransfers
-                    .filter { it.fromAddress == contract }
-                    .sumOf { it.amount.toDouble() }
+                    // Calculate outflows - when tokens are sent FROM the contract
+                    val outflows = dayTransfers
+                        .filter { it.fromAddress == contract }
+                        .sumOf { it.amount }
 
-                DailyTokenFlow(
-                    date = dayStart,
-                    inflow = inflows,
-                    outflow = outflows
-                )
-            }
-            .sortedBy { it.date }
+                    DailyTokenFlow(
+                        date = dayStart,
+                        inflow = inflows,
+                        outflow = outflows
+                    )
+                }
+                .sortedBy { it.date }
+        }.toMap()
+
     }
 
     /**

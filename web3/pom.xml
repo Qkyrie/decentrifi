@@ -13,57 +13,30 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>data-api</artifactId>
+    <artifactId>web3</artifactId>
 
     <properties>
         <java.version>21</java.version>
         <kotlin.version>2.1.20</kotlin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <gson.version>2.10.1</gson.version>
-
     </properties>
 
     <dependencies>
-        <!-- Internal dependencies -->
         <dependency>
-            <groupId>fi.decentri</groupId>
-            <artifactId>db</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>fi.decentri</groupId>
-            <artifactId>web3</artifactId>
-            <version>${project.version}</version>
+            <groupId>io.arrow-kt</groupId>
+            <artifactId>arrow-core</artifactId>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/io.fabric8/kubernetes-client -->
         <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-client</artifactId>
-            <version>7.2.0</version>
+            <groupId>io.arrow-kt</groupId>
+            <artifactId>arrow-fx-coroutines</artifactId>
         </dependency>
-        
-        <!-- Ktor -->
+        <!-- Web3j for Ethereum integration -->
         <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-core-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-netty-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-content-negotiation-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-serialization-jackson-jvm</artifactId>
-            <version>${ktor.version}</version>
+            <groupId>org.web3j</groupId>
+            <artifactId>core</artifactId>
+            <version>${web3j.version}</version>
         </dependency>
         <dependency>
             <groupId>io.ktor</groupId>
@@ -80,48 +53,52 @@
             <artifactId>ktor-client-content-negotiation-jvm</artifactId>
             <version>${ktor.version}</version>
         </dependency>
-        
         <!-- Kotlin Coroutines -->
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
             <version>${coroutines.version}</version>
         </dependency>
-        
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.11.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.michael-bull.kotlin-retry</groupId>
+            <artifactId>kotlin-retry</artifactId>
+            <version>1.0.9</version>
+        </dependency>
         <!-- Logging -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
         </dependency>
-        
+
+        <!-- Kotlin -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-reflect</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-thymeleaf-jvm</artifactId>
-            <version>${ktor.version}</version>
-        </dependency>
-        
+
         <!-- Testing -->
         <dependency>
-            <groupId>io.ktor</groupId>
-            <artifactId>ktor-server-test-host-jvm</artifactId>
-            <version>${ktor.version}</version>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-test</artifactId>
+            <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -151,32 +128,6 @@
                 <configuration>
                     <jvmTarget>21</jvmTarget>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.7.0</version>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <configuration>
-                            <archive>
-                                <manifest>
-                                    <mainClass>fi.decentri.dataapi.DataAPIApplicationKt</mainClass>
-                                </manifest>
-                            </archive>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                            <finalName>app</finalName>
-                            <appendAssemblyId>false</appendAssemblyId>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

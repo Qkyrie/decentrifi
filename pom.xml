@@ -24,6 +24,7 @@
         <module>data-ingestion</module>
         <module>data-api</module>
         <module>db</module>
+        <module>web3</module>
     </modules>
 
 
