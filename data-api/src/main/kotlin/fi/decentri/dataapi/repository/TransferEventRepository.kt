@@ -1,0 +1,136 @@
+package fi.decentri.dataapi.repository
+
+import fi.decentri.db.DatabaseFactory.dbQuery
+import fi.decentri.db.token.TransferEvents
+import org.jetbrains.exposed.sql.*
+import java.math.BigDecimal
+import java.time.*
+import kotlin.time.ExperimentalTime
+
+/**
+ * Repository for accessing token transfer events
+ */
+@ExperimentalTime
+class TransferEventRepository {
+
+    /**
+     * Model for transfer event data retrieved from the database
+     */
+    data class TransferData(
+        val timestamp: Instant,
+        val fromAddress: String,
+        val toAddress: String,
+        val amount: BigDecimal
+    )
+
+    /**
+     * Data class to hold daily token flow data
+     */
+    data class DailyTokenFlow(
+        val date: Instant,
+        val inflow: Double,
+        val outflow: Double
+    ) {
+        val netFlow: Double
+            get() = inflow - outflow
+    }
+
+    /**
+     * Data class to hold token metadata
+     */
+    data class TokenMetadata(
+        val symbol: String,
+        val decimals: Int
+    )
+
+    /**
+     * Retrieves all transfer events for a contract within a time period,
+     * then transforms them using a functional approach to calculate daily flows
+     */
+    suspend fun getDailyTokenFlows(network: String, contract: String, daysToLookBack: Int = 30): List<DailyTokenFlow> {
+        val startDate = LocalDateTime.now().minusDays(daysToLookBack.toLong()).toInstant(ZoneOffset.UTC)
+
+        // Fetch all transfer events in a single query
+        val transferEvents = fetchAllTransfers(network, contract, startDate)
+
+        // Group by day and aggregate using functional operations
+        return calculateDailyFlows(transferEvents, contract)
+    }
+
+    /**
+     * Fetches all transfer events for a contract after a certain date
+     */
+    private suspend fun fetchAllTransfers(network: String, contract: String, startDate: Instant): List<TransferData> {
+        return dbQuery {
+            TransferEvents
+                .selectAll().where {
+                    (TransferEvents.network eq network) and
+                            ((TransferEvents.fromAddress eq contract.lowercase()) or (TransferEvents.toAddress eq contract.lowercase())) and
+                            (TransferEvents.blockTimestamp greaterEq startDate)
+                }
+                .map { row ->
+                    TransferData(
+                        timestamp = row[TransferEvents.blockTimestamp],
+                        fromAddress = row[TransferEvents.fromAddress],
+                        toAddress = row[TransferEvents.toAddress],
+                        amount = row[TransferEvents.amount]
+                    )
+                }
+        }
+    }
+
+    /**
+     * Transform the transfer events into daily flows using a functional approach
+     */
+    private fun calculateDailyFlows(transfers: List<TransferData>, contract: String): List<DailyTokenFlow> {
+        // Helper function to get start of day for a timestamp
+        fun getStartOfDay(instant: Instant): Instant {
+            val localDate = instant.atZone(ZoneOffset.UTC).toLocalDate()
+            return localDate.atStartOfDay(ZoneOffset.UTC).toInstant()
+        }
+
+        // Group transfers by day
+        return transfers
+            .groupBy { getStartOfDay(it.timestamp) }
+            .map { (dayStart, dayTransfers) ->
+                // Calculate inflows - when tokens are sent TO the contract
+                val inflows = dayTransfers
+                    .filter { it.toAddress == contract }
+                    .sumOf { it.amount.toDouble() }
+
+                // Calculate outflows - when tokens are sent FROM the contract
+                val outflows = dayTransfers
+                    .filter { it.fromAddress == contract }
+                    .sumOf { it.amount.toDouble() }
+
+                DailyTokenFlow(
+                    date = dayStart,
+                    inflow = inflows,
+                    outflow = outflows
+                )
+            }
+            .sortedBy { it.date }
+    }
+
+    /**
+     * Get token symbol and decimals for a specific contract
+     */
+    suspend fun getTokenMetadata(network: String, contract: String): TokenMetadata? {
+        return dbQuery {
+            TransferEvents
+                .select(TransferEvents.tokenSymbol, TransferEvents.tokenDecimals)
+                .where {
+                    (TransferEvents.network eq network) and
+                            (TransferEvents.contractAddress eq contract)
+                }
+                .limit(1)
+                .singleOrNull()
+                ?.let {
+                    TokenMetadata(
+                        symbol = it[TransferEvents.tokenSymbol] ?: "TOKEN",
+                        decimals = it[TransferEvents.tokenDecimals] ?: 18
+                    )
+                }
+        }
+    }
+}

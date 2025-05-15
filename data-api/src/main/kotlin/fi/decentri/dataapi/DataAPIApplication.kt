@@ -77,7 +77,6 @@ fun main() {
     }.start(wait = true)
 }
 
-data class JsonbFilter(val key: String, val value: String)
 
 fun Application.configureTemplating() {
     install(Thymeleaf) {

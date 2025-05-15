@@ -54,7 +54,7 @@ class ContractsRepository {
      */
     suspend fun findByAddressAndNetwork(address: String, network: String): Contract? {
         return dbQuery {
-            Contracts.select { (Contracts.address eq address) and (Contracts.chain eq network) }
+            Contracts.selectAll().where { (Contracts.address eq address.lowercase()) and (Contracts.chain eq network) }
                 .map { toContract(it) }
                 .singleOrNull()
         }

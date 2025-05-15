@@ -955,6 +955,52 @@
                     </div>
                 </div>
                 
+                <!-- Token Flows Chart Card -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 6V12L16 14" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Token Flows (Last 30 Days)
+                        </div>
+                        <div class="chart-controls">
+                            <button class="chart-button">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Export
+                            </button>
+                            <div class="time-selector">
+                                <div class="time-option active">Last 30 Days</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="tokenFlowsChart"></canvas>
+                    </div>
+                    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 20px;">
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(46, 204, 113, 0.05), rgba(52, 152, 219, 0.05)); border-left: 3px solid #2ecc71;">
+                            <div class="metric-title">Total Inflow</div>
+                            <div class="metric-value" id="totalInflow">0</div>
+                            <div class="metric-change">Tokens received in the last 30 days</div>
+                        </div>
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(231, 76, 60, 0.05), rgba(241, 196, 15, 0.05)); border-left: 3px solid #e74c3c;">
+                            <div class="metric-title">Total Outflow</div>
+                            <div class="metric-value" id="totalOutflow">0</div>
+                            <div class="metric-change">Tokens sent in the last 30 days</div>
+                        </div>
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(155, 89, 182, 0.05), rgba(52, 152, 219, 0.05)); border-left: 3px solid #9b59b6;">
+                            <div class="metric-title">Net Flow</div>
+                            <div class="metric-value" id="netFlow">0</div>
+                            <div class="metric-change">Total balance change over 30 days</div>
+                        </div>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </section>
@@ -2019,6 +2065,355 @@
 
             // Set up auto-refresh for live users count every 5 seconds
             setInterval(updateLiveUsersCount, 5000);
+        }
+
+        // Function to fetch token flows data from the API
+        async function fetchTokenFlowsData(network, contract) {
+            try {
+                const url = `/data/${network}/${contract}/token-flows/monthly`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error fetching token flows data:", error);
+                return null;
+            }
+        }
+
+        // Process token flows data for the chart
+        function processTokenFlowsData(apiData) {
+            if (!apiData || !apiData.dataPoints || apiData.dataPoints.length === 0) {
+                return {
+                    labels: Array(30).fill('').map((_, i) => `Day ${i + 1}`),
+                    datasets: [
+                        {
+                            label: 'Inflow',
+                            data: Array(30).fill(0),
+                            backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                            borderColor: '#2ecc71',
+                            borderWidth: 1,
+                            type: 'bar',
+                            order: 1
+                        },
+                        {
+                            label: 'Outflow',
+                            data: Array(30).fill(0),
+                            backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            type: 'bar',
+                            order: 2
+                        },
+                        {
+                            label: 'Net Flow',
+                            data: Array(30).fill(0),
+                            borderColor: '#9b59b6',
+                            backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                            borderWidth: 2,
+                            type: 'line',
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#9b59b6',
+                            order: 0
+                        }
+                    ]
+                };
+            }
+
+            // Format dates for the x-axis labels
+            const labels = apiData.dataPoints.map(point => {
+                // Convert the ISO timestamp to a Date object
+                const date = new Date(point.timestamp);
+                // Format the date as MM/DD
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+            });
+
+            // Extract data for each dataset
+            const inflowData = apiData.dataPoints.map(point => point.inflow);
+            const outflowData = apiData.dataPoints.map(point => point.outflow);
+            const netFlowData = apiData.dataPoints.map(point => point.netFlow);
+
+            return {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Inflow',
+                        data: inflowData,
+                        backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                        borderColor: '#2ecc71',
+                        borderWidth: 1,
+                        type: 'bar',
+                        order: 1
+                    },
+                    {
+                        label: 'Outflow',
+                        data: outflowData,
+                        backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                        borderColor: '#e74c3c',
+                        borderWidth: 1,
+                        type: 'bar',
+                        order: 2
+                    },
+                    {
+                        label: 'Net Flow',
+                        data: netFlowData,
+                        borderColor: '#9b59b6',
+                        backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#9b59b6',
+                        order: 0
+                    }
+                ]
+            };
+        }
+
+        // Update token flow metrics
+        function updateTokenFlowMetrics(data) {
+            if (!data) return;
+
+            // Format large numbers with commas and fixed decimal places
+            const formatNumber = (num) => {
+                return parseFloat(num.toFixed(2)).toLocaleString();
+            };
+
+            document.getElementById('totalInflow').textContent = formatNumber(data.totalInflow);
+            document.getElementById('totalOutflow').textContent = formatNumber(data.totalOutflow);
+            
+            // For net flow, we want to show a plus sign for positive values
+            const netFlowElement = document.getElementById('netFlow');
+            const netFlowValue = data.netFlow;
+            if (netFlowValue > 0) {
+                netFlowElement.textContent = '+' + formatNumber(netFlowValue);
+                netFlowElement.style.color = '#2ecc71'; // Green for positive
+            } else if (netFlowValue < 0) {
+                netFlowElement.textContent = formatNumber(netFlowValue); // Negative sign is included
+                netFlowElement.style.color = '#e74c3c'; // Red for negative
+            } else {
+                netFlowElement.textContent = '0';
+                netFlowElement.style.color = ''; // Default color for zero
+            }
+        }
+
+        // Initialize token flows chart
+        const tokenFlowsCtx = document.getElementById('tokenFlowsChart').getContext('2d');
+        let tokenFlowsChart = new Chart(tokenFlowsCtx, {
+            type: 'bar',
+            data: {
+                labels: Array(30).fill('').map((_, i) => `Day ${i + 1}`),
+                datasets: [
+                    {
+                        label: 'Inflow',
+                        data: Array(30).fill(0),
+                        backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                        borderColor: '#2ecc71',
+                        borderWidth: 1,
+                        order: 1
+                    },
+                    {
+                        label: 'Outflow',
+                        data: Array(30).fill(0),
+                        backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                        borderColor: '#e74c3c',
+                        borderWidth: 1,
+                        order: 2
+                    },
+                    {
+                        label: 'Net Flow',
+                        data: Array(30).fill(0),
+                        borderColor: '#9b59b6',
+                        backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                        borderWidth: 2,
+                        type: 'line',
+                        fill: false,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#9b59b6',
+                        order: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += parseFloat(context.parsed.y.toFixed(2)).toLocaleString();
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date (MM/DD)'
+                        },
+                        grid: {
+                            color: 'rgba(225, 228, 232, 0.3)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Token Amount'
+                        },
+                        grid: {
+                            color: 'rgba(225, 228, 232, 0.3)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update the initializeRealData function to also fetch token flows
+        async function initializeRealData() {
+            const { network, contract } = getNetworkAndContract();
+
+            // Fetch all data in parallel - now including token flows
+            const [gasData, eventsData, decodedKeys, uniqueAddressesData, liveUsersData, tokenFlowsData] = await Promise.all([
+                fetchDailyGasUsageData(network, contract),
+                fetchEventsData(network, contract),
+                fetchDecodedEventKeys(network, contract),
+                fetchUniqueAddressesCount(network, contract),
+                fetchLiveUsersCount(network, contract),
+                fetchTokenFlowsData(network, contract)
+            ]);
+
+            // Update gas usage chart
+            if (gasData) {
+                const processedGasData = processDailyGasData(gasData);
+                gasChart.data.labels = processedGasData.labels;
+                gasChart.data.datasets = processedGasData.datasets;
+                gasChart.update();
+
+                // Update metrics cards with real data
+                updateMetricsCards(gasData);
+            }
+
+            // Update events chart
+            if (eventsData) {
+                const processedEventsData = processEventsData(eventsData);
+                eventsChart.data.labels = processedEventsData.labels;
+                eventsChart.data.datasets = processedEventsData.datasets;
+                eventsChart.update();
+            }
+
+            // Update unique addresses count if available
+            if (uniqueAddressesData) {
+                const uniqueAddressElement = document.getElementById('uniqueAddressCount');
+                if (uniqueAddressElement) {
+                    uniqueAddressElement.textContent = uniqueAddressesData.uniqueAddressCount.toLocaleString();
+                }
+            }
+
+            // Update live users count if available
+            if (liveUsersData) {
+                const liveUserCountElement = document.getElementById('liveUserCount');
+                if (liveUserCountElement) {
+                    liveUserCountElement.textContent = liveUsersData.activeUsers.toLocaleString();
+                }
+            }
+
+            // Update token flows chart
+            if (tokenFlowsData) {
+                const processedTokenFlowsData = processTokenFlowsData(tokenFlowsData);
+                tokenFlowsChart.data.labels = processedTokenFlowsData.labels;
+                tokenFlowsChart.data.datasets = processedTokenFlowsData.datasets;
+                tokenFlowsChart.update();
+
+                // Update token flow metrics
+                updateTokenFlowMetrics(tokenFlowsData);
+            }
+
+            // Update event type selector and parameter dropdown with decoded keys
+            if (decodedKeys) {
+                updateEventTypeSelector(decodedKeys);
+                // Initialize segment suggestions with the decoded keys
+                updateSegmentSuggestions(eventsData);
+            } else {
+                // Fallback to basic suggestions if we couldn't fetch decoded keys
+                updateSegmentSuggestions(eventsData);
+            }
+
+            // Set up auto-refresh for live users count every 5 seconds
+            setInterval(updateLiveUsersCount, 5000);
+        }
+
+        // Update reloadChartsWithFilters function to include token flows
+        async function reloadChartsWithFilters() {
+            const filters = getActiveFilters();
+            const { network, contract } = getNetworkAndContract();
+            
+            // Fetch all data in parallel with filters
+            const [gasData, eventsData, uniqueAddressesData, tokenFlowsData] = await Promise.all([
+                fetchDailyGasUsageData(network, contract, filters),
+                fetchEventsData(network, contract, filters),
+                fetchUniqueAddressesCount(network, contract), // Note: unique addresses endpoint doesn't support filters yet
+                fetchTokenFlowsData(network, contract) // Note: token flows endpoint doesn't support filters yet
+            ]);
+            
+            // Update gas usage chart
+            if (gasData) {
+                const processedGasData = processDailyGasData(gasData);
+                gasChart.data.labels = processedGasData.labels;
+                gasChart.data.datasets = processedGasData.datasets;
+                gasChart.update();
+                
+                // Update metrics cards with real data
+                updateMetricsCards(gasData);
+            }
+            
+            // Update events chart
+            if (eventsData) {
+                const processedEventsData = processEventsData(eventsData);
+                eventsChart.data.labels = processedEventsData.labels;
+                eventsChart.data.datasets = processedEventsData.datasets;
+                eventsChart.update();
+                
+                // Update segment suggestions from event data
+                updateSegmentSuggestions(eventsData);
+            }
+            
+            // Update unique addresses count
+            if (uniqueAddressesData) {
+                const uniqueAddressElement = document.getElementById('uniqueAddressCount');
+                if (uniqueAddressElement) {
+                    uniqueAddressElement.textContent = uniqueAddressesData.uniqueAddressCount.toLocaleString();
+                }
+            }
+
+            // Update token flows chart
+            if (tokenFlowsData) {
+                const processedTokenFlowsData = processTokenFlowsData(tokenFlowsData);
+                tokenFlowsChart.data.labels = processedTokenFlowsData.labels;
+                tokenFlowsChart.data.datasets = processedTokenFlowsData.datasets;
+                tokenFlowsChart.update();
+
+                // Update token flow metrics
+                updateTokenFlowMetrics(tokenFlowsData);
+            }
         }
 
         // Initialize real data on page load

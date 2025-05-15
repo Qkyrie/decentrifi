@@ -1,9 +1,9 @@
 package fi.decentri.dataapi.service
 
-import fi.decentri.dataapi.JsonbFilter
 import fi.decentri.dataapi.model.*
-import fi.decentri.dataapi.repository.RawLogsRepository
 import fi.decentri.dataapi.repository.RawLogEntry
+import fi.decentri.dataapi.repository.RawLogsRepository
+import fi.decentri.dataapi.routes.JsonbFilter
 import kotlinx.serialization.json.*
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -44,7 +44,7 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
             for (hourOffset in 23 downTo 0) {
                 hourSlots.add(now.minus(hourOffset.toLong(), ChronoUnit.HOURS).truncatedTo(ChronoUnit.HOURS))
             }
-            
+
             // Create a map to hold the count for each hour slot
             val hourlyCounts = mutableMapOf<Instant, Int>()
 
@@ -88,9 +88,9 @@ class EventService(private val rawLogsRepository: RawLogsRepository) {
      */
     suspend fun getDecodedEventKeys(network: String, contract: String): DecodedKeysResponseDTO {
         logger.info("Getting decoded event keys for network=$network, contract=$contract")
-        
+
         val eventKeys = rawLogsRepository.getDecodedEventKeys(network, contract)
-        
+
         return DecodedKeysResponseDTO(
             network = network,
             contract = contract,

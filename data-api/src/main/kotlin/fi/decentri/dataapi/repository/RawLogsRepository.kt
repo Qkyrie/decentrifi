@@ -1,11 +1,10 @@
 package fi.decentri.dataapi.repository
 
-import fi.decentri.dataapi.JsonbFilter
+import fi.decentri.dataapi.routes.JsonbFilter
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.event.RawLogs
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
@@ -83,14 +82,14 @@ class RawLogsRepository {
     /**
      * Get all unique event names and their decoded parameter keys for a specific contract
      */
-    suspend fun getDecodedEventKeys(network: String, contractAddress: String): Map<String, List<String>> = 
+    suspend fun getDecodedEventKeys(network: String, contractAddress: String): Map<String, List<String>> =
         dbQuery {
             logger.info("Getting decoded event keys for network=$network, contract=$contractAddress")
-            
+
             val predicate: Op<Boolean> =
                 (RawLogs.network eq network.lowercase()) and
-                (RawLogs.contractAddress eq contractAddress.lowercase())
-            
+                        (RawLogs.contractAddress eq contractAddress.lowercase())
+
             // Find distinct event names first
             val events = RawLogs
                 .slice(RawLogs.eventName)
@@ -99,12 +98,12 @@ class RawLogsRepository {
                 .mapNotNull { it[RawLogs.eventName] }
                 .filterNot { it.isNullOrEmpty() }
                 .toSet()
-            
+
             logger.info("Found ${events.size} distinct event types")
-            
+
             // Find a sample of each event to extract keys
             val result = mutableMapOf<String, List<String>>()
-            
+
             events.forEach { eventName ->
                 // Get a sample of this event type to extract keys
                 val sampleEvent = RawLogs
@@ -124,7 +123,7 @@ class RawLogsRepository {
                         )
                     }
                     .firstOrNull()
-                
+
                 if (sampleEvent != null) {
                     // Extract keys from the sample event
                     try {
@@ -137,7 +136,7 @@ class RawLogsRepository {
                     }
                 }
             }
-            
+
             result
         }
 }
