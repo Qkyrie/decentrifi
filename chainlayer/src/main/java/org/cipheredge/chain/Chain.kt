@@ -28,14 +28,6 @@ enum class Chain(
         chainId = 8453,
         secondsBetweenBlocks = 2.0,
         multicallAddress = "0xcA11bde05977b3631167028862bE2a173976CA11"
-    ),
-
-    POLYGON(
-        slug = "polygon",
-        chainId = 137,
-        secondsBetweenBlocks = 2.0,
-        multicallAddress = "0xcA11bde05977b3631167028862bE2a173976CA11",
-        alternativeNames = listOf("matic")
     );
 
     companion object {
@@ -47,7 +39,6 @@ enum class Chain(
             return fromStringOrNull(str) != null
         }
 
-        @OptIn(ExperimentalStdlibApi::class)
         fun fromChainId(chainId: Int): Chain? {
             return entries.firstOrNull {
                 it.chainId == chainId
@@ -58,7 +49,6 @@ enum class Chain(
             return fromStringOrNull(str) ?: throw IllegalArgumentException("Unsupported chain: $str")
         }
 
-        @OptIn(ExperimentalStdlibApi::class)
         fun fromStringOrNull(str: String?): Chain? {
 
             if (str == null) return null
