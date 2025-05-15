@@ -61,20 +61,28 @@ The project is organized as a multi-module Maven application:
   - Analytics dashboard for contract metrics
   - Kubernetes job launcher for manual data ingestion of specific contracts
   - Modular route structure for better code organization
+- **chainlayer**: Spring Boot-based blockchain interaction API
+  - REST endpoints for direct blockchain interaction
+  - Contract state reading via `/contract/read` endpoint
+  - Native token balance checking
+  - Event log retrieval and filtering
+  - Tuple decoding for complex data structures
+  - Proxy contract implementation resolution
+  - Currently supports BASE chain with extensibility for other EVM chains
 - **db**: Shared database module containing connection logic and models
 - **data-aggregator**: New Go-based service for efficient data processing and analytics aggregation
 
 ## Technology Stack
 
 - **Backend**: 
-  - Kotlin, Ktor, Exposed ORM, PostgreSQL, TimescaleDB
+  - Kotlin, Ktor, Spring Boot, Exposed ORM, PostgreSQL, TimescaleDB
   - Go for the data-aggregator service
 - **Blockchain Integration**: Web3j with multi-network support
 - **Command-line Parsing**: Clikt for robust CLI argument handling
 - **Frontend**: Thymeleaf, HTML/CSS/JS
 - **Deployment**: Docker, Kubernetes, GitHub Container Registry
 - **Functional Programming**: Arrow
-- **Dependency Injection**: Koin
+- **Dependency Injection**: Koin, Spring for chainlayer
 - **Connection Pooling**: HikariCP
 - **CI/CD**: GitHub Actions workflows for both Kotlin and Go services
 
@@ -153,6 +161,10 @@ The project is organized as a multi-module Maven application:
    # Run the data ingestion module
    cd data-ingestion
    mvn exec:java -Dexec.mainClass="fi.decentri.dataingest.ApplicationKt"
+   
+   # Run the chainlayer service
+   cd chainlayer
+   mvn spring-boot:run
    
    # Run the data-aggregator service (Go)
    cd services/data-aggregator
