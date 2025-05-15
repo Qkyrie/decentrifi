@@ -5,7 +5,7 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-SJ1471PPQX"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decentrifi - Smart Contract Gas Analytics</title>
+    <title>Decentrifi - Smart Contract Analytics</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -775,9 +775,9 @@
         <div class="container">
             <div class="dashboard-content">
                 <div class="dashboard-header">
-                    <h1>Smart Contract Gas Analytics</h1>
+                    <h1>Smart Contract Analytics</h1>
                     <p class="dashboard-subtitle">
-                        Detailed gas usage metrics for your smart contract. Analyze trends, identify optimization opportunities, and reduce costs.
+                        Detailed metrics for your smart contract. Analyze trends, identify optimization opportunities, and track token flows.
                     </p>
                 </div>
 
@@ -840,120 +840,16 @@
                     </div>
 
                     <div class="segments-content" id="filtersContent" style="display: none; transition: all 0.3s ease;">
-                        <div class="filter-controls">
-                            <div class="event-type-selector">
-                                <select id="eventTypeSelect" class="filter-select">
-                                    <option value="">Select Event Type</option>
-                                    <!-- Event types will be loaded here -->
-                                </select>
-                            </div>
-                            <div class="parameter-selector">
-                                <select id="parameterSelect" class="filter-select" disabled>
-                                    <option value="">Select Parameter</option>
-                                    <!-- Parameters will be loaded here -->
-                                </select>
-                            </div>
-                        </div>
+                        <!-- Placeholder for future filters -->
                         <div class="segment-search">
-                            <input type="text" id="segmentSearch" placeholder="Enter value (e.g., 0xabc...)" />
-                            <button id="applySegment" class="segment-button">Apply Filter</button>
-                            <button id="clearSegment" class="segment-button segment-button-outlined">Clear All</button>
-                        </div>
-                        <div class="segment-suggestions" id="segmentSuggestions">
-                            <!-- Suggestions will be shown here -->
+                            <p>Token flow filters coming soon...</p>
                         </div>
                     </div>
                 </div>
 
 
 
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" stroke="#346DF1" stroke-width="2"/>
-                                <path d="M8 10h8" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M8 14h4" stroke="#346DF1" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                            Events Per Hour by Type (T-24h to Now)
-                        </div>
-                        <div class="chart-controls">
-                            <button class="chart-button">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                Export
-                            </button>
-                            <div class="time-selector">
-                                <div class="time-option active">Last 24 Hours</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="eventsChart"></canvas>
-                    </div>
-                </div>
-                
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3 18H13" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M3 6H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M3 12H21" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Gas Usage (T-24h to Now)
-                        </div>
-                        <div class="chart-controls">
-                            <button class="chart-button">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3 16.5L12 21L21 16.5" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 12L12 16.5L21 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M3 7.5L12 12L21 7.5L12 3L3 7.5Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                Export
-                            </button>
-                            <div class="time-selector">
-                                <div class="time-option active">Last 24 Hours</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="gasChart"></canvas>
-                    </div>
-                </div>
 
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M2 17L12 22L22 17" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M2 12L12 17L22 12" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            Gas Metrics (Last 24 Hours)
-                        </div>
-                    </div>
-                    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
-                        <div class="metric-card">
-                            <div class="metric-title">Average Gas Used</div>
-                            <div class="metric-value" id="avgGasUsed">0</div>
-                            <div class="metric-change">Per transaction in the last 24 hours</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-title">Max Gas Used</div>
-                            <div class="metric-value" id="maxGasUsed">0</div>
-                            <div class="metric-change">Highest gas consumption in 24 hours</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-title">Total Gas (millions)</div>
-                            <div class="metric-value" id="totalGasUsed">0</div>
-                            <div class="metric-change">Total gas used in the last 24 hours</div>
-                        </div>
-                    </div>
-                </div>
                 
                 <!-- Token Flows Chart Card -->
                 <div class="chart-card">
@@ -963,7 +859,7 @@
                                 <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 <path d="M12 6V12L16 14" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            Token Flows (Last 30 Days)
+                            Token Flows
                         </div>
                         <div class="chart-controls">
                             <!-- Token selector dropdown -->
@@ -1102,28 +998,6 @@
         const applySegmentBtn = document.getElementById('applySegment');
         const clearSegmentBtn = document.getElementById('clearSegment');
 
-        // Function to fetch real gas usage data from the API
-        async function fetchDailyGasUsageData(network, contract, filters = []) {
-            try {
-                let url = `/data/${network}/${contract}/gas-used/daily`;
-                
-                // Add filters as query parameters if they exist
-                if (filters.length > 0) {
-                    const filterParams = filters.map(f => `filter=${encodeURIComponent(f.key + ':' + f.value)}`).join('&');
-                    url += `?${filterParams}`;
-                }
-                
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error("Error fetching gas usage data:", error);
-                return null;
-            }
-        }
 
         // Function to extract network and contract address from URL
         function getNetworkAndContract() {
@@ -1176,402 +1050,12 @@
             }
         }
 
-        // Process real data for daily chart
-        function processDailyGasData(apiData) {
-            // Generate labels for the last 24 hours (T-24h to now) in local browser time
-            const now = new Date();
-            const hourLabels = Array.from({length: 24}, (_, i) => {
-                const hourAgo = new Date(now);
-                hourAgo.setHours(now.getHours() - (23 - i)); // 23 hours ago to now
-                return `${hourAgo.getHours()}:00`;
-            });
-            
-            if (!apiData || !apiData.dataPoints) {
-                return {
-                    labels: hourLabels,
-                    datasets: [
-                        {
-                            label: 'Gas Used',
-                            data: Array(24).fill(0), // Empty data if API fails
-                            borderColor: '#346DF1',
-                            backgroundColor: 'rgba(52, 109, 241, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true
-                        }
-                    ]
-                };
-            }
 
-            // Extract data points from API response
-            const dataPoints = apiData.dataPoints;
-            
-            // Create an array of 24 elements with zeros
-            const gasUsedValues = Array(24).fill(0);
-            
-            // Get current time for comparing timestamps
-            const currentTime = now.getTime();
-            
-            // Create an array of all hour slots from 24 hours ago to now, in UTC
-            const hourSlots = [];
-            const nowUtc = new Date(Date.now());
-            
-            for (let i = 23; i >= 0; i--) {
-                const slotTime = new Date(nowUtc);
-                slotTime.setHours(nowUtc.getHours() - i);
-                slotTime.setMinutes(0, 0, 0);
-                hourSlots.push(slotTime);
-            }
-            
-            // Map the data points to the appropriate position in our timeline
-            dataPoints.forEach(point => {
-                // Parse the timestamp from the backend (already in ISO-8601 format)
-                // Note: Backend sends UTC timestamps
-                const date = new Date(point.timestamp);
 
-                // Find which hour slot this timestamp belongs to
-                for (let i = 0; i < hourSlots.length; i++) {
-                    const slot = hourSlots[i];
-                    // If timestamps are in the same hour
-                    if (slot.getUTCFullYear() === date.getUTCFullYear() &&
-                        slot.getUTCMonth() === date.getUTCMonth() &&
-                        slot.getUTCDate() === date.getUTCDate() &&
-                        slot.getUTCHours() === date.getUTCHours()) {
-                        // Assign gas used value to correct index
-                        gasUsedValues[i] = point.gasUsed;
-                        break;
-                    }
-                }
-            });
-            
-            return {
-                labels: hourLabels,
-                datasets: [
-                    {
-                        label: 'Gas Used',
-                        data: gasUsedValues,
-                        borderColor: '#346DF1',
-                        backgroundColor: 'rgba(52, 109, 241, 0.1)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: true
-                    }
-                ]
-            };
-        }
-
-        // Initialize with empty data for daily view (will be replaced with real data)
-        // Generate labels for the last 24 hours
-        const gasChartNow = new Date();
-        const gasChartLabels = Array.from({length: 24}, (_, i) => {
-            const hourAgo = new Date(gasChartNow);
-            hourAgo.setHours(gasChartNow.getHours() - (23 - i)); // 23 hours ago to now
-            return `${hourAgo.getHours()}:00`;
-        });
         
-        let chartData = {
-            labels: gasChartLabels,
-            datasets: [
-                {
-                    label: 'Gas Used',
-                    data: Array(24).fill(0), // Start with zeros
-                    borderColor: '#346DF1',
-                    backgroundColor: 'rgba(52, 109, 241, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
-        };
-
-        // Initialize chart options
-        const chartOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'Gas Used'
-                    },
-                    grid: {
-                        color: 'rgba(225, 228, 232, 0.3)',
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Last 24 Hours'
-                    },
-                    grid: {
-                        color: 'rgba(225, 228, 232, 0.3)',
-                    }
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            },
-            animations: {
-                tension: {
-                    duration: 1000,
-                    easing: 'linear'
-                }
-            }
-        };
-
-        // Create the chart with initial data
-        const ctx = document.getElementById('gasChart').getContext('2d');
-        let gasChart = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: chartOptions
-        });
-
-        // Update metrics cards with real data
-        function updateMetricsCards(data) {
-            if (!data || !data.dataPoints || data.dataPoints.length === 0) return;
-            
-            // Calculate average gas used
-            const totalGasUsed = data.dataPoints.reduce((sum, point) => sum + point.gasUsed, 0);
-            const avgGasUsed = Math.round(totalGasUsed / data.dataPoints.length);
-            
-            // Find max gas used
-            const maxGasUsed = Math.max(...data.dataPoints.map(point => point.gasUsed));
-            
-            // Calculate total gas used
-            const totalGas = data.dataPoints.reduce((sum, point) => sum + point.gasUsed, 0);
-            
-            // Count transactions
-            const txCount = data.txCount;
-            
-            // Update the metrics by ID instead of relying on element order
-            const avgGasUsedElement = document.getElementById('avgGasUsed');
-            const maxGasUsedElement = document.getElementById('maxGasUsed');
-            const totalGasElement = document.getElementById('totalGasUsed');
-            const totalInteractionsElement = document.getElementById('totalInteractions');
-            
-            // Update gas metrics
-            if (avgGasUsedElement) {
-                avgGasUsedElement.textContent = avgGasUsed.toLocaleString();
-            }
-            
-            if (maxGasUsedElement) {
-                maxGasUsedElement.textContent = maxGasUsed.toLocaleString();
-            }
-            
-            if (totalGasElement) {
-                totalGasElement.textContent = (totalGas / 1000000).toFixed(2).toLocaleString();
-            }
-            
-            // Update interaction metrics
-            if (totalInteractionsElement) {
-                totalInteractionsElement.textContent = txCount.toLocaleString();
-            }
-        }
+        // Events data functions have been removed
         
-        // Function to fetch events data from the API with optional filters
-        async function fetchEventsData(network, contract, filters = []) {
-            try {
-                let url = `/data/${network}/${contract}/events/daily`;
-                
-                // Add filters as query parameters if they exist
-                if (filters.length > 0) {
-                    const filterParams = filters.map(f => `filter=${encodeURIComponent(f.key + ':' + f.value)}`).join('&');
-                    url += `?${filterParams}`;
-                }
-                
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error("Error fetching events data:", error);
-                return null;
-            }
-        }
-        
-        // Process events data for stacked bar chart by hour and type
-        function processEventsData(apiData) {
-            // Create hour labels for the last 24 hours (from now backwards)
-            const now = new Date();
-            const hourLabels = Array.from({length: 24}, (_, i) => {
-                const hourAgo = new Date(now);
-                hourAgo.setHours(now.getHours() - (23 - i)); // 23 hours ago to now
-                return `${hourAgo.getHours()}:00`;
-            });
-            
-            // Check if we have valid data from the API
-            if (!apiData || !apiData.eventTypes || apiData.eventTypes.length === 0) {
-                return {
-                    labels: hourLabels,
-                    datasets: [
-                        {
-                            label: 'No Events',
-                            data: Array(24).fill(0),
-                            backgroundColor: 'rgba(52, 109, 241, 0.7)',
-                            borderColor: '#346DF1',
-                            borderWidth: 1
-                        }
-                    ]
-                };
-            }
-            
-            // Generate a color palette for our event types
-            const colorPalette = [
-                'rgba(52, 109, 241, 0.8)',    // Blue
-                'rgba(34, 209, 198, 0.8)',    // Teal
-                'rgba(230, 100, 80, 0.8)',    // Red/Orange
-                'rgba(143, 97, 227, 0.8)',    // Purple
-                'rgba(241, 196, 15, 0.8)',    // Yellow
-                'rgba(46, 204, 113, 0.8)',    // Green
-                'rgba(231, 76, 60, 0.8)',     // Red
-                'rgba(155, 89, 182, 0.8)',    // Violet
-                'rgba(52, 152, 219, 0.8)',    // Light Blue
-                'rgba(243, 156, 18, 0.8)'     // Orange
-            ];
-            
-            // If we have more event types than colors, we'll cycle through them
-            const getColor = (index) => {
-                return colorPalette[index % colorPalette.length];
-            };
-            
-            // Create a dataset for each event type from the backend data
-            const datasets = apiData.eventTypes.map((eventType, index) => {
-                // Convert the hourly counts to an array of 24 values (from T-24h to now)
-                const hourlyData = Array(24).fill(0);
-                
-                // Get the current date for comparison
-                const now = new Date();
-                
-                // Fill in the data from the API, mapping the timestamps to our T-24h to now timeline
-                eventType.hourlyCounts.forEach(hourCount => {
-                    // New structure uses timestamp instead of hour
-                    if (hourCount.timestamp) {
-                        // Create a date from the timestamp
-                        const eventTime = new Date(hourCount.timestamp);
-                        
-                        // Calculate hours from now
-                        const hourDiff = Math.floor((now - eventTime) / (60 * 60 * 1000));
-                        
-                        // Only include data from the last 24 hours
-                        if (hourDiff >= 0 && hourDiff < 24) {
-                            const timelineIndex = 23 - hourDiff;
-                            hourlyData[timelineIndex] = hourCount.count;
-                        }
-                    }
-                });
-                
-                return {
-                    label: eventType.eventName,
-                    data: hourlyData,
-                    backgroundColor: getColor(index),
-                    borderColor: getColor(index).replace('0.8', '1.0'),
-                    borderWidth: 1
-                };
-            });
-            
-            return {
-                labels: hourLabels,
-                datasets: datasets
-            };
-        }
-        
-        // Initialize events chart
-        const eventsCtx = document.getElementById('eventsChart').getContext('2d');
-        // Generate labels for the last 24 hours
-        const currentTime = new Date();
-        const last24HoursLabels = Array.from({length: 24}, (_, i) => {
-            const hourAgo = new Date(currentTime);
-            hourAgo.setHours(currentTime.getHours() - (23 - i)); // 23 hours ago to now
-            return `${hourAgo.getHours()}:00`;
-        });
-        
-        let eventsChartData = {
-            labels: last24HoursLabels,
-            datasets: [
-                {
-                    label: 'Loading...',
-                    data: Array(24).fill(0),
-                    backgroundColor: 'rgba(52, 109, 241, 0.7)',
-                    borderColor: '#346DF1',
-                    borderWidth: 1
-                }
-            ]
-        };
-        
-        const eventsChartOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        font: {
-                            size: 12
-                        }
-                    }
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        title: function(context) {
-                            return context[0].label;
-                        },
-                        label: function(context) {
-                            return `${context.dataset.label}: ${context.parsed.y}`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    stacked: true,
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Number of Events'
-                    },
-                    ticks: {
-                        precision: 0
-                    },
-                    grid: {
-                        color: 'rgba(225, 228, 232, 0.3)',
-                    }
-                },
-                x: {
-                    stacked: true,
-                    title: {
-                        display: true,
-                        text: 'Last 24 Hours'
-                    },
-                    grid: {
-                        color: 'rgba(225, 228, 232, 0.3)',
-                    }
-                }
-            }
-        };
-        
-        let eventsChart = new Chart(eventsCtx, {
-            type: 'bar',
-            data: eventsChartData,
-            options: eventsChartOptions
-        });
+        // Events chart has been removed
         
         // Function to parse a segment string (e.g., "sender=0xabc...")
         function parseSegment(segmentText) {
@@ -1648,22 +1132,10 @@
             const { network, contract } = getNetworkAndContract();
             
             // Fetch all data in parallel with filters
-            const [gasData, eventsData, uniqueAddressesData] = await Promise.all([
-                fetchDailyGasUsageData(network, contract, filters),
+            const [eventsData, uniqueAddressesData] = await Promise.all([
                 fetchEventsData(network, contract, filters),
                 fetchUniqueAddressesCount(network, contract) // Note: unique addresses endpoint doesn't support filters yet
             ]);
-            
-            // Update gas usage chart
-            if (gasData) {
-                const processedGasData = processDailyGasData(gasData);
-                gasChart.data.labels = processedGasData.labels;
-                gasChart.data.datasets = processedGasData.datasets;
-                gasChart.update();
-                
-                // Update metrics cards with real data
-                updateMetricsCards(gasData);
-            }
             
             // Update events chart
             if (eventsData) {
@@ -1685,304 +1157,7 @@
             }
         }
         
-        // Function to fetch decoded event keys from the API
-        async function fetchDecodedEventKeys(network, contract) {
-            try {
-                const url = `/data/${network}/${contract}/events/decoded-keys`;
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error("Error fetching decoded event keys:", error);
-                return null;
-            }
-        }
-        
-        // Global variable to store event keys by type
-        let eventKeysData = null;
-        
-        // Function to update event type dropdown
-        function updateEventTypeSelector(decodedKeys) {
-            if (!decodedKeys || !decodedKeys.eventKeys) return;
-            
-            const eventTypeSelect = document.getElementById('eventTypeSelect');
-            // Clear current options except the first one
-            while (eventTypeSelect.options.length > 1) {
-                eventTypeSelect.remove(1);
-            }
-            
-            // Add event types from the API data
-            const eventTypes = Object.keys(decodedKeys.eventKeys);
-            eventTypes.forEach(eventType => {
-                const option = document.createElement('option');
-                option.value = eventType;
-                option.textContent = eventType;
-                eventTypeSelect.appendChild(option);
-            });
-            
-            // Enable the select if we have options
-            eventTypeSelect.disabled = eventTypes.length === 0;
-            
-            // Store the data globally for later use
-            eventKeysData = decodedKeys;
-        }
-        
-        // Function to update parameter dropdown based on selected event type
-        function updateParameterSelector(eventType) {
-            const parameterSelect = document.getElementById('parameterSelect');
-            
-            // Clear current options except the first one
-            while (parameterSelect.options.length > 1) {
-                parameterSelect.remove(1);
-            }
-            
-            if (!eventType || !eventKeysData || !eventKeysData.eventKeys[eventType]) {
-                parameterSelect.disabled = true;
-                return;
-            }
-            
-            // Add parameters from the selected event type
-            const parameters = eventKeysData.eventKeys[eventType];
-            parameters.forEach(param => {
-                const option = document.createElement('option');
-                option.value = param;
-                option.textContent = param;
-                parameterSelect.appendChild(option);
-            });
-            
-            // Enable the select if we have options
-            parameterSelect.disabled = parameters.length === 0;
-            
-            // Update placeholder in search input
-            if (parameters.length > 0) {
-                segmentSearch.placeholder = `Enter value for ${parameters[0]}`;
-            } else {
-                segmentSearch.placeholder = "Enter value";
-            }
-        }
-        
-        // Function to update segment suggestions based on event data
-        function updateSegmentSuggestions(eventsData) {
-            // Clear existing suggestions
-            segmentSuggestions.innerHTML = '';
-            
-            if (!eventKeysData || !eventKeysData.eventKeys) {
-                // Fallback to generic suggestions
-                const suggestedFields = [
-                    'sender', 'recipient', 'amount', 'tokenId', 'aggregatorId', 
-                    'price', 'operator', 'owner', 'spender', 'value'
-                ];
-                
-                // Add title
-                const suggestionTitle = document.createElement('div');
-                suggestionTitle.className = 'suggestion-title';
-                suggestionTitle.textContent = 'Common fields:';
-                segmentSuggestions.appendChild(suggestionTitle);
-                
-                // Add suggestion items
-                suggestedFields.forEach(field => {
-                    const item = document.createElement('div');
-                    item.className = 'segment-suggestion-item';
-                    item.textContent = field;
-                    
-                    item.addEventListener('click', function() {
-                        segmentSearch.value = field + '=';
-                        segmentSearch.focus();
-                        // Position cursor after the "="
-                        const pos = segmentSearch.value.length;
-                        segmentSearch.setSelectionRange(pos, pos);
-                    });
-                    
-                    segmentSuggestions.appendChild(item);
-                });
-                return;
-            }
-            
-            // If we have event data, show event types and their parameters
-            const eventTypes = Object.keys(eventKeysData.eventKeys);
-            
-            // Only show suggestions if we have actual parameters
-            if (eventTypes.length > 0) {
-                // Add title
-                const suggestionTitle = document.createElement('div');
-                suggestionTitle.className = 'suggestion-title';
-                suggestionTitle.textContent = 'Event Parameters:';
-                segmentSuggestions.appendChild(suggestionTitle);
-                
-                // Add suggestion items grouped by event type
-                eventTypes.forEach(eventType => {
-                    const params = eventKeysData.eventKeys[eventType];
-                    if (params && params.length > 0) {
-                        // Add event type header
-                        const eventHeader = document.createElement('div');
-                        eventHeader.className = 'suggestion-title event-type-header';
-                        eventHeader.textContent = eventType;
-                        segmentSuggestions.appendChild(eventHeader);
-                        
-                        // Add parameter items
-                        params.forEach(param => {
-                            const item = document.createElement('div');
-                            item.className = 'segment-suggestion-item';
-                            item.textContent = `${param}`;
-                            
-                            item.addEventListener('click', function() {
-                                // Set the event type in the dropdown
-                                const eventTypeSelect = document.getElementById('eventTypeSelect');
-                                eventTypeSelect.value = eventType;
-                                
-                                // Update parameter dropdown
-                                updateParameterSelector(eventType);
-                                
-                                // Set the selected parameter
-                                const parameterSelect = document.getElementById('parameterSelect');
-                                parameterSelect.value = param;
-                                
-                                // Focus on the search input
-                                segmentSearch.placeholder = `Enter value for ${param}`;
-                                segmentSearch.focus();
-                                
-                                // Hide suggestions
-                                segmentSuggestions.style.display = 'none';
-                            });
-                            
-                            segmentSuggestions.appendChild(item);
-                        });
-                    }
-                });
-            }
-        }
-        
-        // Event handler for event type selector
-        document.getElementById('eventTypeSelect').addEventListener('change', function() {
-            const selectedEventType = this.value;
-            updateParameterSelector(selectedEventType);
-        });
-        
-        // Event handler for parameter selector
-        document.getElementById('parameterSelect').addEventListener('change', function() {
-            const selectedParam = this.value;
-            if (selectedParam) {
-                segmentSearch.placeholder = `Enter value for ${selectedParam}`;
-                segmentSearch.focus();
-            }
-        });
-        
-        // Event handler for apply button
-        applySegmentBtn.addEventListener('click', function() {
-            const eventTypeSelect = document.getElementById('eventTypeSelect');
-            const parameterSelect = document.getElementById('parameterSelect');
-            const segmentValue = segmentSearch.value.trim();
-            
-            // Get the selected event type and parameter
-            const eventType = eventTypeSelect.value;
-            const parameter = parameterSelect.value;
-            
-            // If we have the dropdowns filled, use those
-            if (eventType && parameter) {
-                if (!segmentValue) {
-                    alert('Please enter a value for the selected parameter');
-                    return;
-                }
-                
-                // Create segment from dropdown selections
-                const segment = {
-                    key: parameter,
-                    value: segmentValue
-                };
-                
-                // Check if this segment already exists
-                const segmentStr = `${segment.key}:${segment.value}`;
-                if (activeSegments.has(segmentStr)) {
-                    alert('This filter is already applied');
-                    return;
-                }
-                
-                // Add the segment tag with event context
-                addSegmentTag(segment, eventType);
-                segmentSearch.value = '';
-                
-                // Reload data with the new filter
-                reloadChartsWithFilters();
-            } else {
-                // Legacy format (text input only)
-                const segmentText = segmentSearch.value.trim();
-                if (!segmentText) return;
-                
-                const segment = parseSegment(segmentText);
-                if (!segment) {
-                    alert('Please select an event type and parameter, or enter a valid filter in the format "field=value"');
-                    return;
-                }
-                
-                // Check if this segment already exists
-                const segmentStr = `${segment.key}:${segment.value}`;
-                if (activeSegments.has(segmentStr)) {
-                    alert('This filter is already applied');
-                    return;
-                }
-                
-                // Add the segment tag and update the data
-                addSegmentTag(segment);
-                segmentSearch.value = '';
-                
-                // Reload data with the new filter
-                reloadChartsWithFilters();
-            }
-        });
-        
-        // Event handler for clear button
-        clearSegmentBtn.addEventListener('click', function() {
-            // Clear all segment tags
-            activeSegmentsContainer.innerHTML = '';
-            activeSegments.clear();
-            
-            // Reload data without filters
-            reloadChartsWithFilters();
-        });
-        
-        // Event listener for Enter key in the search input
-        segmentSearch.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                applySegmentBtn.click();
-            }
-        });
-        
-        // Function to show segment suggestions
-        segmentSearch.addEventListener('focus', function() {
-            segmentSuggestions.style.display = 'block';
-        });
-        
-        // Function to hide segment suggestions when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!segmentSearch.contains(e.target) && !segmentSuggestions.contains(e.target)) {
-                segmentSuggestions.style.display = 'none';
-            }
-        });
-        
-        // Function to filter suggestions as user types
-        segmentSearch.addEventListener('input', function() {
-            const searchText = segmentSearch.value.trim().toLowerCase();
-            
-            // If search includes '=', don't filter suggestions
-            if (searchText.includes('=')) {
-                return;
-            }
-            
-            // Show only matching suggestions
-            const suggestions = segmentSuggestions.querySelectorAll('.segment-suggestion-item');
-            suggestions.forEach(item => {
-                if (searchText === '' || item.textContent.toLowerCase().includes(searchText)) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
+        // Event filtering and suggestion functions have been removed
         
         // Function to update the live users count with auto-refresh
         async function updateLiveUsersCount() {
@@ -2015,24 +1190,12 @@
             // Contract details section has been removed
 
             // Fetch all data in parallel
-            const [gasData, eventsData, decodedKeys, uniqueAddressesData, liveUsersData] = await Promise.all([
-                fetchDailyGasUsageData(network, contract),
+            const [eventsData, decodedKeys, uniqueAddressesData, liveUsersData] = await Promise.all([
                 fetchEventsData(network, contract),
                 fetchDecodedEventKeys(network, contract),
                 fetchUniqueAddressesCount(network, contract),
                 fetchLiveUsersCount(network, contract)
             ]);
-
-            // Update gas usage chart
-            if (gasData) {
-                const processedGasData = processDailyGasData(gasData);
-                gasChart.data.labels = processedGasData.labels;
-                gasChart.data.datasets = processedGasData.datasets;
-                gasChart.update();
-
-                // Update metrics cards with real data
-                updateMetricsCards(gasData);
-            }
 
             // Update events chart
             if (eventsData) {
@@ -2367,38 +1530,63 @@
             }
         });
 
-        // Update the initializeRealData function to also fetch token flows
+        // Function to parse a segment string (e.g., "sender=0xabc...")
+        function parseSegment(segmentText) {
+            const parts = segmentText.split('=');
+            if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) {
+                return null;
+            }
+            
+            return {
+                key: parts[0].trim(),
+                value: parts[1].trim()
+            };
+        }
+
+        // Function to update data without filters
+        async function reloadData() {
+            const { network, contract } = getNetworkAndContract();
+            
+            // Fetch data in parallel
+            const [uniqueAddressesData, tokenFlowsData] = await Promise.all([
+                fetchUniqueAddressesCount(network, contract),
+                fetchTokenFlowsData(network, contract)
+            ]);
+            
+            // Update unique addresses count
+            if (uniqueAddressesData) {
+                const uniqueAddressElement = document.getElementById('uniqueAddressCount');
+                if (uniqueAddressElement) {
+                    uniqueAddressElement.textContent = uniqueAddressesData.uniqueAddressCount.toLocaleString();
+                }
+            }
+
+            // Update token flows chart
+            if (tokenFlowsData && tokenFlowsData.length > 0) {
+                // Populate token selector dropdown
+                populateTokenSelector(tokenFlowsData);
+                
+                // Process and display the token flow data
+                const processedTokenFlowsData = processTokenFlowsData(tokenFlowsData);
+                tokenFlowsChart.data.labels = processedTokenFlowsData.labels;
+                tokenFlowsChart.data.datasets = processedTokenFlowsData.datasets;
+                tokenFlowsChart.update();
+
+                // Update token flow metrics
+                updateTokenFlowMetrics(tokenFlowsData);
+            }
+        }
+
+        // Initialize real data on page load
         async function initializeRealData() {
             const { network, contract } = getNetworkAndContract();
 
-            // Fetch all data in parallel - now including token flows
-            const [gasData, eventsData, decodedKeys, uniqueAddressesData, liveUsersData, tokenFlowsData] = await Promise.all([
-                fetchDailyGasUsageData(network, contract),
-                fetchEventsData(network, contract),
-                fetchDecodedEventKeys(network, contract),
+            // Fetch data in parallel
+            const [uniqueAddressesData, liveUsersData, tokenFlowsData] = await Promise.all([
                 fetchUniqueAddressesCount(network, contract),
                 fetchLiveUsersCount(network, contract),
                 fetchTokenFlowsData(network, contract)
             ]);
-
-            // Update gas usage chart
-            if (gasData) {
-                const processedGasData = processDailyGasData(gasData);
-                gasChart.data.labels = processedGasData.labels;
-                gasChart.data.datasets = processedGasData.datasets;
-                gasChart.update();
-
-                // Update metrics cards with real data
-                updateMetricsCards(gasData);
-            }
-
-            // Update events chart
-            if (eventsData) {
-                const processedEventsData = processEventsData(eventsData);
-                eventsChart.data.labels = processedEventsData.labels;
-                eventsChart.data.datasets = processedEventsData.datasets;
-                eventsChart.update();
-            }
 
             // Update unique addresses count if available
             if (uniqueAddressesData) {
@@ -2431,80 +1619,11 @@
                 updateTokenFlowMetrics(tokenFlowsData);
             }
 
-            // Update event type selector and parameter dropdown with decoded keys
-            if (decodedKeys) {
-                updateEventTypeSelector(decodedKeys);
-                // Initialize segment suggestions with the decoded keys
-                updateSegmentSuggestions(eventsData);
-            } else {
-                // Fallback to basic suggestions if we couldn't fetch decoded keys
-                updateSegmentSuggestions(eventsData);
-            }
-
             // Set up auto-refresh for live users count every 5 seconds
             setInterval(updateLiveUsersCount, 5000);
         }
 
-        // Update reloadChartsWithFilters function to include token flows
-        async function reloadChartsWithFilters() {
-            const filters = getActiveFilters();
-            const { network, contract } = getNetworkAndContract();
-            
-            // Fetch all data in parallel with filters
-            const [gasData, eventsData, uniqueAddressesData, tokenFlowsData] = await Promise.all([
-                fetchDailyGasUsageData(network, contract, filters),
-                fetchEventsData(network, contract, filters),
-                fetchUniqueAddressesCount(network, contract), // Note: unique addresses endpoint doesn't support filters yet
-                fetchTokenFlowsData(network, contract) // Note: token flows endpoint doesn't support filters yet
-            ]);
-            
-            // Update gas usage chart
-            if (gasData) {
-                const processedGasData = processDailyGasData(gasData);
-                gasChart.data.labels = processedGasData.labels;
-                gasChart.data.datasets = processedGasData.datasets;
-                gasChart.update();
-                
-                // Update metrics cards with real data
-                updateMetricsCards(gasData);
-            }
-            
-            // Update events chart
-            if (eventsData) {
-                const processedEventsData = processEventsData(eventsData);
-                eventsChart.data.labels = processedEventsData.labels;
-                eventsChart.data.datasets = processedEventsData.datasets;
-                eventsChart.update();
-                
-                // Update segment suggestions from event data
-                updateSegmentSuggestions(eventsData);
-            }
-            
-            // Update unique addresses count
-            if (uniqueAddressesData) {
-                const uniqueAddressElement = document.getElementById('uniqueAddressCount');
-                if (uniqueAddressElement) {
-                    uniqueAddressElement.textContent = uniqueAddressesData.uniqueAddressCount.toLocaleString();
-                }
-            }
-
-            // Update token flows chart
-            if (tokenFlowsData && tokenFlowsData.length > 0) {
-                // Populate token selector dropdown
-                populateTokenSelector(tokenFlowsData);
-                
-                // Process and display the token flow data
-                const processedTokenFlowsData = processTokenFlowsData(tokenFlowsData);
-                tokenFlowsChart.data.labels = processedTokenFlowsData.labels;
-                tokenFlowsChart.data.datasets = processedTokenFlowsData.datasets;
-                tokenFlowsChart.update();
-
-                // Update token flow metrics
-                updateTokenFlowMetrics(tokenFlowsData);
-            }
-        }
-
-        // Initialize real data on page load
+        // Initialize data
         initializeRealData();
 
         // Add refresh button functionality
@@ -2586,7 +1705,7 @@
                     refreshButton.disabled = false;
 
                     // Reload the data to reflect any immediate changes
-                    reloadChartsWithFilters();
+                    initializeRealData();
                 }, 2000);
 
             } catch (error) {

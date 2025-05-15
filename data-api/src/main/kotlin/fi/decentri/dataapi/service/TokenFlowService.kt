@@ -4,6 +4,10 @@ import fi.decentri.dataapi.FormatUtilsExtensions.asEth
 import fi.decentri.dataapi.model.TokenFlowPoint
 import fi.decentri.dataapi.model.TokenFlowsDTO
 import fi.decentri.dataapi.repository.TransferEventRepository
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import kotlin.time.ExperimentalTime
 
 /**
@@ -18,9 +22,10 @@ class TokenFlowService(
 
     /**
      * Gets daily token flow data for a specific contract on a given network
-     * Data is extracted from the TransferEvents table for the past 30 days
+     * Data is extracted from the TransferEvents table for the past X days
+     * Ensures that every day in the requested period has a data point
      */
-    suspend fun getTokenFlows(network: String, safe: String, daysToLookBack: Int = 30): List<TokenFlowsDTO> {
+    suspend fun getTokenFlows(network: String, safe: String, daysToLookBack: Int = 365): List<TokenFlowsDTO> {
 
         // Fetch token flows from the repository 
         val dailyFlows =
@@ -28,18 +33,36 @@ class TokenFlowService(
 
         return dailyFlows.map { (tokenName, dailyFlows) ->
             val token = tokenService.getToken(network, tokenName.name)
-            val dataPoints = dailyFlows.map { flow ->
-                TokenFlowPoint(
-                    timestamp = flow.date,
-                    inflow = flow.inflow.asEth(6).toDouble(),
-                    outflow = flow.outflow.asEth(6).toDouble(),
-                    netFlow = flow.netFlow.asEth(6).toDouble()
+
+            // Create a map of existing data points keyed by day start
+            val existingDataPoints = dailyFlows.associate {
+                it.date to TokenFlowPoint(
+                    timestamp = it.date,
+                    inflow = it.inflow.asEth(6).toDouble(),
+                    outflow = it.outflow.asEth(6).toDouble(),
+                    netFlow = it.netFlow.asEth(6).toDouble()
                 )
             }
 
+            // Generate all days in the period
+            val startInstant = getStartOfDayInstant(Instant.now().minus(daysToLookBack.toLong(), ChronoUnit.DAYS))
+            val endInstant = getStartOfDayInstant(Instant.now())
+
+            // Create a complete list of data points with zeros for missing days
+            val completeDataPoints = generateDaysBetween(startInstant, endInstant).map { dayInstant ->
+                existingDataPoints.getOrElse(dayInstant) {
+                    TokenFlowPoint(
+                        timestamp = dayInstant,
+                        inflow = 0.0,
+                        outflow = 0.0,
+                        netFlow = 0.0
+                    )
+                }
+            }.sortedBy { it.timestamp }
+
             // Calculate totals
-            val totalInflow = dataPoints.sumOf { it.inflow }
-            val totalOutflow = dataPoints.sumOf { it.outflow }
+            val totalInflow = completeDataPoints.sumOf { it.inflow }
+            val totalOutflow = completeDataPoints.sumOf { it.outflow }
             val netFlow = totalInflow - totalOutflow
 
             TokenFlowsDTO(
@@ -47,11 +70,32 @@ class TokenFlowService(
                 period = "daily",
                 tokenSymbol = token!!.name,
                 tokenDecimals = token.decimals,
-                dataPoints = dataPoints,
+                dataPoints = completeDataPoints.toList(),
                 totalInflow = totalInflow,
                 totalOutflow = totalOutflow,
                 netFlow = netFlow
             )
         }
+    }
+
+    /**
+     * Converts an Instant to the start of day in UTC
+     */
+    private fun getStartOfDayInstant(instant: Instant): Instant {
+        val localDate = instant.atZone(ZoneOffset.UTC).toLocalDate()
+        return localDate.atStartOfDay(ZoneOffset.UTC).toInstant()
+    }
+
+    /**
+     * Generates a sequence of all day-start instants between start and end (inclusive)
+     */
+    private fun generateDaysBetween(start: Instant, end: Instant): Sequence<Instant> {
+        val startDate = start.atZone(ZoneOffset.UTC).toLocalDate()
+        val endDate = end.atZone(ZoneOffset.UTC).toLocalDate()
+
+        return generateSequence(startDate) { date ->
+            val next = date.plusDays(1)
+            if (next.isAfter(endDate)) null else next
+        }.map { it.atStartOfDay(ZoneOffset.UTC).toInstant() }
     }
 }
