@@ -11,7 +11,10 @@ import kotlin.time.ExperimentalTime
  * Uses the TransferEvents table to compute token inflows and outflows
  */
 @ExperimentalTime
-class TokenFlowService(private val transferEventRepository: TransferEventRepository) {
+class TokenFlowService(
+    private val transferEventRepository: TransferEventRepository,
+    private val tokenService: TokenService
+) {
 
     /**
      * Gets daily token flow data for a specific contract on a given network
@@ -24,13 +27,13 @@ class TokenFlowService(private val transferEventRepository: TransferEventReposit
             transferEventRepository.getDailyTokenFlows(network.lowercase(), safe.lowercase(), daysToLookBack)
 
         return dailyFlows.map { (tokenName, dailyFlows) ->
-            //Todo: fetch token here
+            val token = tokenService.getToken(network, tokenName.name)
             val dataPoints = dailyFlows.map { flow ->
                 TokenFlowPoint(
                     timestamp = flow.date,
-                    inflow = flow.inflow.asEth().toDouble(),
-                    outflow = flow.outflow.asEth().toDouble(),
-                    netFlow = flow.netFlow.asEth().toDouble()
+                    inflow = flow.inflow.asEth(6).toDouble(),
+                    outflow = flow.outflow.asEth(6).toDouble(),
+                    netFlow = flow.netFlow.asEth(6).toDouble()
                 )
             }
 
@@ -41,10 +44,9 @@ class TokenFlowService(private val transferEventRepository: TransferEventReposit
 
             TokenFlowsDTO(
                 network = network,
-                contract = safe,
                 period = "daily",
-                tokenSymbol = tokenName.name,
-                tokenDecimals = 18,
+                tokenSymbol = token!!.name,
+                tokenDecimals = token.decimals,
                 dataPoints = dataPoints,
                 totalInflow = totalInflow,
                 totalOutflow = totalOutflow,

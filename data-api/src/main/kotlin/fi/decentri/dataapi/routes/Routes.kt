@@ -5,6 +5,7 @@ import fi.decentri.dataapi.repository.IngestionMetadataRepository
 import fi.decentri.dataapi.service.ContractsService
 import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
+import fi.decentri.dataapi.service.TokenService
 import fi.decentri.dataapi.waitlist.WaitlistRepository
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -17,7 +18,8 @@ fun Application.configureRoutesModules(
     waitlistRepository: WaitlistRepository,
     contractsRepository: ContractsRepository,
     ingestionMetadataRepository: IngestionMetadataRepository,
-    contractsService: ContractsService
+    contractsService: ContractsService,
+    tokenService: TokenService
 ) {
     routing {
         // Base routes like health check, landing page
@@ -30,6 +32,6 @@ fun Application.configureRoutesModules(
         waitlistRoutes(waitlistRepository)
 
         // Analytics routes
-        analyticsRoutes(gasUsageService, eventService)
+        analyticsRoutes(gasUsageService, eventService, tokenService)
     }
 }

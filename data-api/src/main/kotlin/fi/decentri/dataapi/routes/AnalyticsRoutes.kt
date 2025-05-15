@@ -6,6 +6,7 @@ import fi.decentri.dataapi.repository.TransferEventRepository
 import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
 import fi.decentri.dataapi.service.TokenFlowService
+import fi.decentri.dataapi.service.TokenService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -22,6 +23,7 @@ private val logger = LoggerFactory.getLogger("fi.decentri.dataapi.routes.Analyti
 fun Route.analyticsRoutes(
     gasUsageService: GasUsageService,
     eventService: EventService,
+    tokenService: TokenService,
 ) {
     route("/data") {
         // Gas usage endpoints
@@ -154,7 +156,7 @@ fun Route.analyticsRoutes(
 
                 // Get from repository or fallback to sample data if TransferEventRepository throws
                 val transferEventRepository = TransferEventRepository()
-                val tokenFlowService = TokenFlowService(transferEventRepository)
+                val tokenFlowService = TokenFlowService(transferEventRepository, tokenService)
                 val tokenFlowsData = tokenFlowService.getTokenFlows(network, contract)
                 call.respond(tokenFlowsData)
             } catch (e: Exception) {

@@ -2054,7 +2054,7 @@
             if (liveUsersData) {
                 const liveUserCountElement = document.getElementById('liveUserCount');
                 if (liveUserCountElement) {
-                    liveUserCountElement.textContent = liveUsersData.activeUsers.toLocaleString();
+                    liveUserCountElement.textContent = liveUsersData.uniqueAddressCount;
                 }
             }
 
@@ -2412,7 +2412,7 @@
             if (liveUsersData) {
                 const liveUserCountElement = document.getElementById('liveUserCount');
                 if (liveUserCountElement) {
-                    liveUserCountElement.textContent = liveUsersData.activeUsers.toLocaleString();
+                    liveUserCountElement.textContent = liveUsersData.uniqueAddressCount.toLocaleString();
                 }
             }
 

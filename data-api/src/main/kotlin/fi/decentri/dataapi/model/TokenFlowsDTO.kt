@@ -32,7 +32,6 @@ data class TokenFlowPoint(
 @Serializable
 data class TokenFlowsDTO(
     val network: String,
-    val contract: String,
     val period: String = "daily",
     val tokenSymbol: String = "TOKEN",
     val tokenDecimals: Int = 18,

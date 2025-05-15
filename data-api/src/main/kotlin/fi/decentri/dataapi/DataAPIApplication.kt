@@ -11,6 +11,7 @@ import fi.decentri.dataapi.routes.configureRoutesModules
 import fi.decentri.dataapi.service.ContractsService
 import fi.decentri.dataapi.service.EventService
 import fi.decentri.dataapi.service.GasUsageService
+import fi.decentri.dataapi.service.TokenService
 import fi.decentri.dataapi.waitlist.WaitlistRepository
 import fi.decentri.db.DatabaseFactory
 import fi.decentri.db.contract.Contracts
@@ -61,6 +62,7 @@ fun main() {
     // Initialize services
     val gasUsageService = GasUsageService(rawInvocationsRepository)
     val eventService = EventService(rawLogsRepository)
+    val tokenService = TokenService()
 
     // Start the server
     embeddedServer(Netty, port = appConfig.server.port) {
@@ -70,7 +72,8 @@ fun main() {
             waitlistRepository,
             contractsRepository,
             ingestionMetadataRepository,
-            contractsService
+            contractsService,
+            tokenService
         )
         configureSerialization()
         configureTemplating()

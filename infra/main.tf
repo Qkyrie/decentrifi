@@ -51,6 +51,35 @@ module "data_api" {
   ]
 }
 
+module "chainlayer" {
+  source         = "./modules/kubernetes-app"
+  app_name       = "chainlayer"
+  namespace      = kubernetes_namespace.decentrifi-namespace.metadata.0.name
+  github_repo    = var.github_repo
+  container_port = 8080
+  replicas       = 1
+
+  env_vars = [
+    {
+      name = "ETH_RPC_URL"
+      value_from = {
+        secret_key_ref = {
+          name = "decentrifi-secrets"
+          key  = "eth-rpc-url"
+        }
+      }
+    },
+    {
+      name  = "SERVER_PORT"
+      value = "8080"
+    },
+    {
+      name  = "SPRING_PROFILES_ACTIVE"
+      value = "production"
+    }
+  ]
+}
+
 resource "kubernetes_cron_job_v1" "data-ingestion-hourly" {
   metadata {
     name      = "data-ingestion"

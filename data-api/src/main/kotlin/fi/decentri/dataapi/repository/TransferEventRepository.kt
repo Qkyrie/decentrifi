@@ -3,7 +3,6 @@ package fi.decentri.dataapi.repository
 import fi.decentri.db.DatabaseFactory.dbQuery
 import fi.decentri.db.token.TransferEvents
 import org.jetbrains.exposed.sql.*
-import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.*
 import kotlin.time.ExperimentalTime
@@ -18,6 +17,7 @@ class TransferEventRepository {
      * Model for transfer event data retrieved from the database
      */
     data class TransferData(
+        val token: String,
         val timestamp: Instant,
         val fromAddress: String,
         val toAddress: String,
@@ -52,7 +52,7 @@ class TransferEventRepository {
         network: String,
         contract: String,
         daysToLookBack: Int = 30
-    ): Map<TokenName, List<DailyTokenFlow>> {
+    ): Map<TokenAddress, List<DailyTokenFlow>> {
         val startDate = LocalDateTime.now().minusDays(daysToLookBack.toLong()).toInstant(ZoneOffset.UTC)
 
         // Fetch all transfer events in a single query
@@ -78,14 +78,15 @@ class TransferEventRepository {
                         timestamp = row[TransferEvents.blockTimestamp],
                         fromAddress = row[TransferEvents.fromAddress],
                         toAddress = row[TransferEvents.toAddress],
-                        amount = row[TransferEvents.amount].toBigInteger()
+                        amount = row[TransferEvents.amount].toBigInteger(),
+                        token = row[TransferEvents.tokenAddress]
                     )
                 }
         }
     }
 
     @JvmInline
-    value class TokenName(val name: String)
+    value class TokenAddress(val name: String)
 
     /**
      * Transform the transfer events into daily flows using a functional approach
@@ -93,18 +94,18 @@ class TransferEventRepository {
     private fun calculateDailyFlows(
         transfers: List<TransferData>,
         contract: String
-    ): Map<TokenName, List<DailyTokenFlow>> {
+    ): Map<TokenAddress, List<DailyTokenFlow>> {
         // Helper function to get start of day for a timestamp
         fun getStartOfDay(instant: Instant): Instant {
             val localDate = instant.atZone(ZoneOffset.UTC).toLocalDate()
             return localDate.atStartOfDay(ZoneOffset.UTC).toInstant()
         }
 
-        val perToken = transfers.groupBy { it.toAddress }
+        val perToken = transfers.groupBy { it.token }
 
         // Group transfers by day
         return perToken.map { (token, transfersForToken) ->
-            TokenName(token) to transfersForToken.groupBy { getStartOfDay(it.timestamp) }
+            TokenAddress(token) to transfersForToken.groupBy { getStartOfDay(it.timestamp) }
                 .map { (dayStart, dayTransfers) ->
                     // Calculate inflows - when tokens are sent TO the contract
                     val inflows = dayTransfers
