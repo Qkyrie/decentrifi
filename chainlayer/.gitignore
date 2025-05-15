@@ -1,0 +1,16 @@
+build/
+.idea/
+.gradle/
+docker_data/
+application-dev.properties
+
+
+target/
+.terraform*
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+.aider*
+
+
+.DS_Store

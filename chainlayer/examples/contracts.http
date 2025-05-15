@@ -1,0 +1,14 @@
+POST http://localhost:8081/base/contract/read
+content-type: application/json
+
+{
+  "contract": "0x75ac29cc3dd8d005ffe5cf935d8c153c183a6691",
+  "method": "WETH",
+  "inputs": [
+  ],
+  "outputs": [
+    {
+      "type": "address"
+    }
+  ]
+}

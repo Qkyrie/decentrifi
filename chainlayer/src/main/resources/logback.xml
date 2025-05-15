@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Application Name -->
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+
+    <!-- Logtail API Token -->
+    <springProperty scope="context" name="logtailToken" source="logtail.sourceToken"/>
+
+    <!-- Logtail Appender -->
+    <appender name="Logtail" class="com.logtail.logback.LogtailAppender">
+        <appName>${appName}</appName>
+        <sourceToken>${logtailToken}</sourceToken>
+        <mdcFields>traceId</mdcFields>
+        <mdcTypes>string</mdcTypes>
+        <encoder>
+            <pattern>%highlight(%-5level) [%blue(%t)] %yellow(%C{1}) [%highlight(%X{traceId})] : %msg%n%throwable</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Console Appender -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%green(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1}) [%highlight(%X{traceId})] : %msg%n%throwable</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="Console" />
+    </root>
+</configuration>
