@@ -7,14 +7,14 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   # Configuration for deployment targets
   # Services listed here will be deployed to Kubernetes
-  K8S_SERVICES: 'data-api'
+  K8S_SERVICES: 'data-api chainlayer'
 
 on:
   workflow_dispatch:
     inputs:
       application_to_deploy:
         type: choice
-        options: ['data-ingestion', 'data-api']
+        options: ['data-ingestion', 'data-api', 'chainlayer']
         description: 'What to restart'
         required: true
         default: 'data-ingestion'
