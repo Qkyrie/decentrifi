@@ -55,7 +55,6 @@ class IngestCommand : CliktCommand(
         val logger = LoggerFactory.getLogger(Application::class.java)
     }
 
-    @OptIn(ExperimentalTime::class)
     override fun run() {
         runBlocking {
             logger.info("Starting data ingestion application in mode: $mode")
@@ -138,10 +137,8 @@ class IngestCommand : CliktCommand(
                     }
 
                     "contract" -> {
-                        // Use network parameter or default to ethereum
                         val networkToUse = network ?: error("Network parameter is required in contract mode")
 
-                        // Verify the network is configured
                         if (!web3jManager.getNetworkNames().contains(networkToUse)) {
                             logger.error("Network '$networkToUse' is not configured in application.conf")
                             exitProcess(1)
