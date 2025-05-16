@@ -5,14 +5,16 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-SJ1471PPQX"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decentrifi - Smart Contract Analytics</title>
+    <title>Decentrifi - Safe Analytics</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary-blue: #346DF1;
             --accent-teal: #22D1C6;
+            --safe-green: #12FF80;
             --gradient: linear-gradient(45deg, #346DF1, #7D4CFF);
+            --safe-gradient: linear-gradient(45deg, #12FF80, #00D770);
             --light-bg: #F5F8FA;
             --dark-text: #2A2E3D;
             --border-color: #E1E4E8;
@@ -58,7 +60,7 @@
         h1 {
             font-size: 48px;
             line-height: 1.2;
-            background: var(--gradient);
+            background: var(--safe-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800;
@@ -165,6 +167,29 @@
             align-items: center;
         }
 
+        /* Safe Badge Styling */
+        .safe-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(45deg, rgba(18, 255, 128, 0.1), rgba(0, 215, 112, 0.1));
+            border: 1px solid rgba(18, 255, 128, 0.3);
+            border-radius: 100px;
+            padding: 8px 16px;
+            margin-bottom: 24px;
+            animation: fadeInDown 0.6s ease forwards 0.3s;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        
+        .safe-type {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--safe-green);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
         /* Analytics Dashboard Section */
         .analytics-dashboard {
             padding: 120px 0 60px;
@@ -181,7 +206,7 @@
             width: 600px;
             height: 600px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(52, 109, 241, 0.05) 0%, rgba(125, 76, 255, 0.05) 50%, transparent 70%);
+            background: radial-gradient(circle, rgba(18, 255, 128, 0.08) 0%, rgba(0, 215, 112, 0.05) 50%, transparent 70%);
             z-index: 0;
         }
 
@@ -193,7 +218,7 @@
             width: 500px;
             height: 500px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(34, 209, 198, 0.05) 0%, rgba(125, 76, 255, 0.05) 50%, transparent 70%);
+            background: radial-gradient(circle, rgba(18, 255, 128, 0.06) 0%, rgba(52, 109, 241, 0.05) 50%, transparent 70%);
             z-index: 0;
         }
 
@@ -232,7 +257,18 @@
             overflow: hidden;
         }
         
-        .contract-details::before, .segments-panel::before {
+        .contract-details::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--safe-gradient);
+            border-radius: 4px 4px 0 0;
+        }
+        
+        .segments-panel::before {
             content: '';
             position: absolute;
             top: 0;
@@ -807,9 +843,16 @@
         <div class="container">
             <div class="dashboard-content">
                 <div class="dashboard-header">
-                    <h1>Smart Contract Analytics</h1>
+                    <div class="safe-badge">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="3" y="3" width="18" height="18" rx="3" stroke="#12FF80" stroke-width="2"/>
+                            <path d="M9 12l2 2 4-4" stroke="#12FF80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="safe-type">Multi-Signature Safe</span>
+                    </div>
+                    <h1>Safe Analytics Dashboard</h1>
                     <p class="dashboard-subtitle">
-                        Detailed metrics for your smart contract. Analyze trends, identify optimization opportunities, and track token flows.
+                        Monitor your Safe's activity and token flows. Track transactions, signers, and manage your multi-signature wallet with detailed insights.
                     </p>
                 </div>
 
@@ -822,9 +865,9 @@
                                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            User Activity
+                            Safe Activity
                         </div>
-                        <button id="refreshButton" class="chart-button" title="Refresh contract data">
+                        <button id="refreshButton" class="chart-button" title="Refresh Safe data">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M23 4v6h-6" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 <path d="M1 20v-6h6" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -835,19 +878,19 @@
                     </div>
                     <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
                         <div class="metric-card">
-                            <div class="metric-title">Total Interactions</div>
+                            <div class="metric-title">Safe Transactions</div>
                             <div class="metric-value" id="totalInteractions">0</div>
-                            <div class="metric-change">Number of transactions in 24 hours</div>
+                            <div class="metric-change">Executed in the last 24 hours</div>
                         </div>
-                        <div class="metric-card unique-addresses-card">
-                            <div class="metric-title">Active Users (24h)</div>
+                        <div class="metric-card unique-addresses-card" style="background: linear-gradient(45deg, rgba(18, 255, 128, 0.05), rgba(0, 215, 112, 0.05)); border-left: 3px solid var(--safe-green);">
+                            <div class="metric-title">Active Signers (24h)</div>
                             <div class="metric-value" id="uniqueAddressCount">0</div>
-                            <div class="metric-change">Unique addresses in the last 24 hours</div>
+                            <div class="metric-change">Unique signers in the last 24 hours</div>
                         </div>
                         <div class="metric-card" style="background: linear-gradient(45deg, rgba(46, 204, 113, 0.05), rgba(52, 152, 219, 0.05)); border-left: 3px solid #2ecc71;">
-                            <div class="metric-title">Live Users <span class="live-indicator" style="display: inline-block; width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; margin-left: 4px;"></span></div>
+                            <div class="metric-title">Live Activity <span class="live-indicator" style="display: inline-block; width: 8px; height: 8px; background-color: #2ecc71; border-radius: 50%; margin-left: 4px;"></span></div>
                             <div class="metric-value" id="liveUserCount">0</div>
-                            <div class="metric-change">Active users in the last 30 minutes</div>
+                            <div class="metric-change">Active operations in the last 30 minutes</div>
                         </div>
                     </div>
                 </div>
