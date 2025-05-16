@@ -23,6 +23,7 @@ import fi.decentri.infrastructure.repository.token.TransferEventRepository
 import io.ktor.server.application.*
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
+import java.lang.Runtime
 import kotlin.system.exitProcess
 import kotlin.time.ExperimentalTime
 
@@ -113,6 +114,16 @@ class IngestCommand : CliktCommand(
                 applicationScope,
             )
 
+            // Register shutdown hook for graceful termination
+            Runtime.getRuntime().addShutdownHook(Thread {
+                logger.info("Shutdown hook triggered, cancelling jobs...")
+                runBlocking {
+                    applicationScope.cancel()
+                    web3jManager.shutdown()
+                }
+                logger.info("Shutdown hook completed")
+            })
+
             try {
                 when (mode) {
                     "auto" -> {
@@ -185,10 +196,18 @@ class IngestCommand : CliktCommand(
             } catch (e: Exception) {
                 logger.error("Error during ingestion job: ${e.message}", e)
             } finally {
-                // Shutdown resources
+                logger.info("Application cleanup initiated")
+                // Cancel all coroutines
                 applicationScope.cancel()
+                
+                // Give coroutines time to finish
+                delay(1000)
+                
+                // Shutdown Web3j connections
                 web3jManager.shutdown()
-                logger.info("Application shutdown complete")
+                
+                logger.info("Application shutdown complete, exiting...")
+
                 exitProcess(0)
             }
         }

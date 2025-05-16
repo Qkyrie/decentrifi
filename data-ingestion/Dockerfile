@@ -24,10 +24,12 @@ RUN mvn clean package -DskipTests -B \
 # --- runtime stage unchanged ---
 FROM amazoncorretto:21-alpine
 WORKDIR /app
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 COPY --from=build /app/data-ingestion/target/app.jar /app/app.jar
 COPY data-ingestion/src/main/resources/application.conf /app/application.conf
-# Use ENTRYPOINT for the fixed part and CMD for the default arguments
+# Use dumb-init as the entrypoint to handle signals properly
 # This allows kubernetes to override just the CMD part with its own arguments
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT ["dumb-init", "--", "java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
 # Default to auto mode if no arguments are provided
 CMD ["--mode=auto"]
