@@ -1,10 +1,11 @@
 FROM maven:3.9.6-amazoncorretto-21 AS build
 WORKDIR /app
 
-# copy the aggregator pom + module poms
 COPY pom.xml ./
 COPY data-ingestion/pom.xml data-ingestion/
 COPY data-api/pom.xml data-api/
+COPY web3/pom.xml web3/
+COPY chainlayer/pom.xml chainlayer/
 COPY db/pom.xml db/
 
 # fetch all *remote* deps for data-ingestion AND the modules it depends on (db, data-api)
