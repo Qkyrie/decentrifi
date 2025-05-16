@@ -928,6 +928,66 @@
                     </div>
                 </div>
                 
+                <!-- Transfer Size Distribution Chart Card -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="7" height="7" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="14" y="3" width="7" height="7" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="14" y="14" width="7" height="7" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <rect x="3" y="14" width="7" height="7" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Transfer Size Distribution
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="transferSizeChart"></canvas>
+                    </div>
+                    <div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr); margin-top: 20px;">
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(52, 152, 219, 0.05), rgba(155, 89, 182, 0.05)); border-left: 3px solid #3498db;">
+                            <div class="metric-title">Total Transfers</div>
+                            <div class="metric-value" id="totalTransfers">0</div>
+                            <div class="metric-change">All transfers tracked</div>
+                        </div>
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(241, 196, 15, 0.05), rgba(243, 156, 18, 0.05)); border-left: 3px solid #f1c40f;">
+                            <div class="metric-title">Median Transfer Size</div>
+                            <div class="metric-value" id="medianTransferSize">0</div>
+                            <div class="metric-change">50th percentile transfer</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Top Counterparties Chart Card -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="9" cy="7" r="4" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Top Counterparties
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="topCounterpartiesChart"></canvas>
+                    </div>
+                    <div class="metrics-grid" style="grid-template-columns: repeat(2, 1fr); margin-top: 20px;">
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(142, 68, 173, 0.05), rgba(155, 89, 182, 0.05)); border-left: 3px solid #9b59b6;">
+                            <div class="metric-title">Unique Counterparties</div>
+                            <div class="metric-value" id="uniqueCounterparties">0</div>
+                            <div class="metric-change">Active trading partners</div>
+                        </div>
+                        <div class="metric-card" style="background: linear-gradient(45deg, rgba(52, 73, 94, 0.05), rgba(44, 62, 80, 0.05)); border-left: 3px solid #34495e;">
+                            <div class="metric-title">Top 10% Volume</div>
+                            <div class="metric-value" id="topTenPercentVolume">0%</div>
+                            <div class="metric-change">Concentration ratio</div>
+                        </div>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </section>
@@ -1216,11 +1276,13 @@
             // Contract details section has been removed
 
             // Fetch all data in parallel
-            const [eventsData, decodedKeys, uniqueAddressesData, liveUsersData] = await Promise.all([
+            const [eventsData, decodedKeys, uniqueAddressesData, liveUsersData, transferSizeData, topCounterpartiesData] = await Promise.all([
                 fetchEventsData(network, contract),
                 fetchDecodedEventKeys(network, contract),
                 fetchUniqueAddressesCount(network, contract),
-                fetchLiveUsersCount(network, contract)
+                fetchLiveUsersCount(network, contract),
+                fetchTransferSizeDistribution(network, contract),
+                fetchTopCounterparties(network, contract)
             ]);
 
             // Update events chart
@@ -1255,6 +1317,38 @@
             } else {
                 // Fallback to basic suggestions if we couldn't fetch decoded keys
                 updateSegmentSuggestions(eventsData);
+            }
+            
+            // Update transfer size distribution chart
+            if (transferSizeData) {
+                console.log('Transfer Size Data:', transferSizeData);
+                const processedTransferSizeData = processTransferSizeData(transferSizeData);
+                console.log('Processed Transfer Size Data:', processedTransferSizeData);
+                if (processedTransferSizeData) {
+                    transferSizeChart.data.labels = processedTransferSizeData.labels;
+                    transferSizeChart.data.datasets[0].data = processedTransferSizeData.values;
+                    transferSizeChart.data.datasets[0].dataWithPercentages = processedTransferSizeData.dataWithPercentages;
+                    transferSizeChart.update();
+                    
+                    // Update metrics
+                    updateTransferSizeMetrics(transferSizeData);
+                }
+            }
+            
+            // Update top counterparties chart
+            if (topCounterpartiesData) {
+                console.log('Top Counterparties Data:', topCounterpartiesData);
+                const processedCounterpartiesData = processTopCounterpartiesData(topCounterpartiesData);
+                console.log('Processed Counterparties Data:', processedCounterpartiesData);
+                if (processedCounterpartiesData) {
+                    topCounterpartiesChart.data.labels = processedCounterpartiesData.labels;
+                    topCounterpartiesChart.data.datasets[0].data = processedCounterpartiesData.volumes;
+                    topCounterpartiesChart.data.datasets[0].dataWithDetails = processedCounterpartiesData.dataWithDetails;
+                    topCounterpartiesChart.update();
+                    
+                    // Update metrics
+                    updateTopCounterpartiesMetrics(topCounterpartiesData);
+                }
             }
 
             // Set up auto-refresh for live users count every 5 seconds
@@ -1613,6 +1707,306 @@
             });
         }
         
+        // Function to fetch transfer size distribution data
+        async function fetchTransferSizeDistribution(network, contract) {
+            try {
+                const url = `/data/${network}/${contract}/transfer-size-distribution`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error fetching transfer size distribution data:", error);
+                return null;
+            }
+        }
+        
+        // Function to fetch top counterparties data
+        async function fetchTopCounterparties(network, contract) {
+            try {
+                const url = `/data/${network}/${contract}/top-counterparties`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error("Error fetching top counterparties data:", error);
+                return null;
+            }
+        }
+        
+        // Initialize transfer size distribution chart
+        const transferSizeCtx = document.getElementById('transferSizeChart').getContext('2d');
+        let transferSizeChart = new Chart(transferSizeCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Number of Transfers',
+                    data: [],
+                    backgroundColor: function(context) {
+                        const chart = context.chart;
+                        const {ctx, chartArea} = chart;
+                        if (!chartArea) return 'rgba(52, 152, 219, 0.5)';
+                        
+                        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                        gradient.addColorStop(0, 'rgba(52, 152, 219, 0.1)');
+                        gradient.addColorStop(0.5, 'rgba(52, 152, 219, 0.5)');
+                        gradient.addColorStop(1, 'rgba(41, 128, 185, 0.7)');
+                        return gradient;
+                    },
+                    borderColor: '#3498db',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#2A2E3D',
+                        bodyColor: '#2A2E3D',
+                        borderColor: 'rgba(225, 228, 232, 0.8)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                const dataWithPercentages = context.chart.data.datasets[0].dataWithPercentages;
+                                const percentage = dataWithPercentages && dataWithPercentages[context.dataIndex] 
+                                    ? dataWithPercentages[context.dataIndex].percentage 
+                                    : 0;
+                                return `${value} transfers (${percentage.toFixed(1)}%)`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Transfer Size Range',
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 13
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Number of Transfers',
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 13
+                            }
+                        },
+                        grid: {
+                            display: true,
+                            drawBorder: false,
+                            color: 'rgba(225, 228, 232, 0.2)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Initialize top counterparties chart
+        const topCounterpartiesCtx = document.getElementById('topCounterpartiesChart').getContext('2d');
+        let topCounterpartiesChart = new Chart(topCounterpartiesCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Transaction Volume',
+                    data: [],
+                    backgroundColor: function(context) {
+                        const chart = context.chart;
+                        const {ctx, chartArea} = chart;
+                        if (!chartArea) return 'rgba(155, 89, 182, 0.5)';
+                        
+                        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                        gradient.addColorStop(0, 'rgba(155, 89, 182, 0.1)');
+                        gradient.addColorStop(0.5, 'rgba(155, 89, 182, 0.5)');
+                        gradient.addColorStop(1, 'rgba(142, 68, 173, 0.7)');
+                        return gradient;
+                    },
+                    borderColor: '#9b59b6',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#2A2E3D',
+                        bodyColor: '#2A2E3D',
+                        borderColor: 'rgba(225, 228, 232, 0.8)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        callbacks: {
+                            title: function(context) {
+                                const dataPoint = context[0];
+                                const dataWithDetails = dataPoint.chart.data.datasets[0].dataWithDetails;
+                                const details = dataWithDetails && dataWithDetails[dataPoint.dataIndex];
+                                return details ? details.fullAddress : dataPoint.label;
+                            },
+                            label: function(context) {
+                                const volume = context.parsed.x;
+                                const dataWithDetails = context.chart.data.datasets[0].dataWithDetails;
+                                const details = dataWithDetails && dataWithDetails[context.dataIndex];
+                                const percentage = details ? details.percentage : 0;
+                                const txCount = details ? details.transactionCount : 0;
+                                return [
+                                    `Volume: ${volume.toLocaleString()} tokens`,
+                                    `Percentage: ${percentage.toFixed(2)}%`,
+                                    `Transactions: ${txCount}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Transaction Volume',
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 13
+                            }
+                        },
+                        grid: {
+                            display: true,
+                            drawBorder: false,
+                            color: 'rgba(225, 228, 232, 0.2)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Function to process transfer size distribution data for chart
+        function processTransferSizeData(data) {
+            if (!data || !data.distribution) return null;
+            
+            const labels = data.distribution.map(item => item.range);
+            const values = data.distribution.map(item => item.count);
+            const percentages = data.distribution.map(item => item.percentage);
+            
+            // For Chart.js bar chart, data should be simple numbers
+            // We'll store percentage info in dataset's data property
+            const dataWithPercentages = values.map((value, index) => ({
+                y: value,
+                percentage: percentages[index]
+            }));
+            
+            return {
+                labels: labels,
+                values: values,  // Simple array of numbers
+                dataWithPercentages: dataWithPercentages  // Objects with extra data
+            };
+        }
+        
+        // Function to process top counterparties data for chart
+        function processTopCounterpartiesData(data) {
+            if (!data || !data.counterparties) return null;
+            
+            // Take top 10 counterparties
+            const topCounterparties = data.counterparties.slice(0, 10);
+            
+            const labels = topCounterparties.map(item => item.shortAddress);
+            const volumes = topCounterparties.map(item => item.volume);
+            const dataWithDetails = topCounterparties.map(item => ({
+                volume: item.volume,
+                percentage: item.percentage,
+                transactionCount: item.transactionCount,
+                fullAddress: item.address
+            }));
+            
+            return {
+                labels: labels,
+                volumes: volumes,  // Simple array of numbers
+                dataWithDetails: dataWithDetails  // Objects with extra data
+            };
+        }
+        
+        // Update metrics for transfer size distribution
+        function updateTransferSizeMetrics(data) {
+            if (!data) return;
+            
+            const totalTransfersElement = document.getElementById('totalTransfers');
+            const medianTransferSizeElement = document.getElementById('medianTransferSize');
+            
+            if (totalTransfersElement) {
+                totalTransfersElement.textContent = data.totalTransfers.toLocaleString();
+            }
+            
+            // Calculate median range
+            if (medianTransferSizeElement && data.distribution && data.distribution.length > 0) {
+                let cumulativePercentage = 0;
+                let medianRange = data.distribution[0].range;
+                
+                for (const range of data.distribution) {
+                    cumulativePercentage += range.percentage;
+                    if (cumulativePercentage >= 50) {
+                        medianRange = range.range;
+                        break;
+                    }
+                }
+                
+                medianTransferSizeElement.textContent = medianRange;
+            }
+        }
+        
+        // Update metrics for top counterparties
+        function updateTopCounterpartiesMetrics(data) {
+            if (!data) return;
+            
+            const uniqueCounterpartiesElement = document.getElementById('uniqueCounterparties');
+            const topTenPercentVolumeElement = document.getElementById('topTenPercentVolume');
+            
+            if (uniqueCounterpartiesElement) {
+                uniqueCounterpartiesElement.textContent = data.counterparties.length.toLocaleString();
+            }
+            
+            if (topTenPercentVolumeElement && data.counterparties && data.counterparties.length > 0) {
+                // Calculate top 10% volume concentration
+                const topTenPercentCount = Math.ceil(data.counterparties.length * 0.1);
+                const topTenPercentVolume = data.counterparties
+                    .slice(0, topTenPercentCount)
+                    .reduce((sum, cp) => sum + cp.percentage, 0);
+                
+                topTenPercentVolumeElement.textContent = `${topTenPercentVolume.toFixed(1)}%`;
+            }
+        }
+        
         // Initialize token flows chart
         const tokenFlowsCtx = document.getElementById('tokenFlowsChart').getContext('2d');
         let tokenFlowsChart = new Chart(tokenFlowsCtx, {
@@ -1854,10 +2248,12 @@
             const { network, contract } = getNetworkAndContract();
 
             // Fetch data in parallel
-            const [uniqueAddressesData, liveUsersData, tokenFlowsData] = await Promise.all([
+            const [uniqueAddressesData, liveUsersData, tokenFlowsData, transferSizeData, topCounterpartiesData] = await Promise.all([
                 fetchUniqueAddressesCount(network, contract),
                 fetchLiveUsersCount(network, contract),
-                fetchTokenFlowsData(network, contract, selectedDaysSince)
+                fetchTokenFlowsData(network, contract, selectedDaysSince),
+                fetchTransferSizeDistribution(network, contract),
+                fetchTopCounterparties(network, contract)
             ]);
 
             // Update unique addresses count if available
@@ -1889,6 +2285,38 @@
 
                 // Update token flow metrics
                 updateTokenFlowMetrics(tokenFlowsData);
+            }
+            
+            // Update transfer size distribution chart
+            if (transferSizeData) {
+                console.log('Transfer Size Data:', transferSizeData);
+                const processedTransferSizeData = processTransferSizeData(transferSizeData);
+                console.log('Processed Transfer Size Data:', processedTransferSizeData);
+                if (processedTransferSizeData) {
+                    transferSizeChart.data.labels = processedTransferSizeData.labels;
+                    transferSizeChart.data.datasets[0].data = processedTransferSizeData.values;
+                    transferSizeChart.data.datasets[0].dataWithPercentages = processedTransferSizeData.dataWithPercentages;
+                    transferSizeChart.update();
+                    
+                    // Update metrics
+                    updateTransferSizeMetrics(transferSizeData);
+                }
+            }
+            
+            // Update top counterparties chart
+            if (topCounterpartiesData) {
+                console.log('Top Counterparties Data:', topCounterpartiesData);
+                const processedCounterpartiesData = processTopCounterpartiesData(topCounterpartiesData);
+                console.log('Processed Counterparties Data:', processedCounterpartiesData);
+                if (processedCounterpartiesData) {
+                    topCounterpartiesChart.data.labels = processedCounterpartiesData.labels;
+                    topCounterpartiesChart.data.datasets[0].data = processedCounterpartiesData.volumes;
+                    topCounterpartiesChart.data.datasets[0].dataWithDetails = processedCounterpartiesData.dataWithDetails;
+                    topCounterpartiesChart.update();
+                    
+                    // Update metrics
+                    updateTopCounterpartiesMetrics(topCounterpartiesData);
+                }
             }
 
             // Set up auto-refresh for live users count every 5 seconds
