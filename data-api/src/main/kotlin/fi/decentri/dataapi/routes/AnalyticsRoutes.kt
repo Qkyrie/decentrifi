@@ -152,7 +152,6 @@ fun Route.analyticsRoutes(
                     "Missing contract parameter"
                 )
                 
-                // Parse the daysSince parameter with a default of 365 days
                 val daysSince = call.request.queryParameters["daysSince"]?.toIntOrNull() ?: 365
                 
                 logger.info("Fetching token flows for network=$network, contract=$contract, daysSince=$daysSince")
@@ -161,32 +160,6 @@ fun Route.analyticsRoutes(
                 val transferEventRepository = TransferEventRepository()
                 val tokenFlowService = TokenFlowService(transferEventRepository, tokenService)
                 val tokenFlowsData = tokenFlowService.getTokenFlows(network, contract, daysSince)
-                call.respond(tokenFlowsData)
-            } catch (e: Exception) {
-                logger.error("Error fetching token flows data", e)
-                call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
-            }
-        }
-        
-        // Maintain backward compatibility with the old endpoint
-        get("/{network}/{contract}/token-flows/monthly") {
-            try {
-                val network = call.parameters["network"] ?: return@get call.respond(
-                    HttpStatusCode.BadRequest,
-                    "Missing network parameter"
-                )
-                val contract = call.parameters["contract"] ?: return@get call.respond(
-                    HttpStatusCode.BadRequest,
-                    "Missing contract parameter"
-                )
-
-                logger.info("Fetching monthly token flows for network=$network, contract=$contract")
-
-                // Get from repository or fallback to sample data if TransferEventRepository throws
-                val transferEventRepository = TransferEventRepository()
-                val tokenFlowService = TokenFlowService(transferEventRepository, tokenService)
-                // Use 365 days for monthly view
-                val tokenFlowsData = tokenFlowService.getTokenFlows(network, contract, 365)
                 call.respond(tokenFlowsData)
             } catch (e: Exception) {
                 logger.error("Error fetching token flows data", e)

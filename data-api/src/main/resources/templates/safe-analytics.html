@@ -1292,32 +1292,67 @@
                         {
                             label: 'Inflow',
                             data: Array(30).fill(0),
-                            backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                            backgroundColor: function(context) {
+                                const chart = context.chart;
+                                const {ctx, chartArea} = chart;
+                                if (!chartArea) return 'rgba(46, 204, 113, 0.5)';
+                                
+                                const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                gradient.addColorStop(0, 'rgba(46, 204, 113, 0.1)');
+                                gradient.addColorStop(0.5, 'rgba(46, 204, 113, 0.5)');
+                                gradient.addColorStop(1, 'rgba(39, 174, 96, 0.7)');
+                                return gradient;
+                            },
                             borderColor: '#2ecc71',
                             borderWidth: 1,
+                            borderRadius: 4,
                             type: 'bar',
                             order: 1
                         },
                         {
                             label: 'Outflow',
                             data: Array(30).fill(0),
-                            backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                            backgroundColor: function(context) {
+                                const chart = context.chart;
+                                const {ctx, chartArea} = chart;
+                                if (!chartArea) return 'rgba(231, 76, 60, 0.5)';
+                                
+                                const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                gradient.addColorStop(0, 'rgba(231, 76, 60, 0.1)');
+                                gradient.addColorStop(0.5, 'rgba(231, 76, 60, 0.5)');
+                                gradient.addColorStop(1, 'rgba(192, 57, 43, 0.7)');
+                                return gradient;
+                            },
                             borderColor: '#e74c3c',
                             borderWidth: 1,
+                            borderRadius: 4,
                             type: 'bar',
                             order: 2
                         },
                         {
                             label: 'Net Flow',
                             data: Array(30).fill(0),
-                            borderColor: '#9b59b6',
-                            backgroundColor: 'rgba(155, 89, 182, 0.2)',
-                            borderWidth: 2,
+                            borderColor: 'rgba(155, 89, 182, 0.8)',
+                            backgroundColor: function(context) {
+                                const chart = context.chart;
+                                const {ctx, chartArea} = chart;
+                                if (!chartArea) return 'rgba(155, 89, 182, 0.2)';
+                                
+                                const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                gradient.addColorStop(0, 'rgba(155, 89, 182, 0.05)');
+                                gradient.addColorStop(1, 'rgba(155, 89, 182, 0.3)');
+                                return gradient;
+                            },
+                            borderWidth: 2.5,
                             type: 'line',
-                            fill: false,
+                            fill: true,
                             tension: 0.4,
-                            pointRadius: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
                             pointBackgroundColor: '#9b59b6',
+                            pointBorderColor: 'rgba(255, 255, 255, 0.8)',
+                            pointBorderWidth: 2,
+                            pointHoverBackgroundColor: '#8e44ad',
                             order: 0
                         }
                     ]
@@ -1362,32 +1397,67 @@
                     {
                         label: `${tokenData.tokenSymbol} Inflow`,
                         data: inflowData,
-                        backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return 'rgba(46, 204, 113, 0.5)';
+                            
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(46, 204, 113, 0.1)');
+                            gradient.addColorStop(0.5, 'rgba(46, 204, 113, 0.5)');
+                            gradient.addColorStop(1, 'rgba(39, 174, 96, 0.7)');
+                            return gradient;
+                        },
                         borderColor: '#2ecc71',
                         borderWidth: 1,
+                        borderRadius: 4,
                         type: 'bar',
                         order: 1
                     },
                     {
                         label: `${tokenData.tokenSymbol} Outflow`,
                         data: outflowData,
-                        backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return 'rgba(231, 76, 60, 0.5)';
+                            
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(231, 76, 60, 0.1)');
+                            gradient.addColorStop(0.5, 'rgba(231, 76, 60, 0.5)');
+                            gradient.addColorStop(1, 'rgba(192, 57, 43, 0.7)');
+                            return gradient;
+                        },
                         borderColor: '#e74c3c',
                         borderWidth: 1,
+                        borderRadius: 4,
                         type: 'bar',
                         order: 2
                     },
                     {
                         label: `${tokenData.tokenSymbol} Net Flow`,
                         data: netFlowData,
-                        borderColor: '#9b59b6',
-                        backgroundColor: 'rgba(155, 89, 182, 0.2)',
-                        borderWidth: 2,
+                        borderColor: 'rgba(155, 89, 182, 0.8)',
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return 'rgba(155, 89, 182, 0.2)';
+                            
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(155, 89, 182, 0.05)');
+                            gradient.addColorStop(1, 'rgba(155, 89, 182, 0.3)');
+                            return gradient;
+                        },
+                        borderWidth: 2.5,
                         type: 'line',
-                        fill: false,
+                        fill: true,
                         tension: 0.4,
-                        pointRadius: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
                         pointBackgroundColor: '#9b59b6',
+                        pointBorderColor: 'rgba(255, 255, 255, 0.8)',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: '#8e44ad',
                         order: 0
                     }
                 ]
@@ -1553,30 +1623,65 @@
                     {
                         label: 'Inflow',
                         data: Array(30).fill(0),
-                        backgroundColor: 'rgba(46, 204, 113, 0.5)',
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return 'rgba(46, 204, 113, 0.5)';
+                            
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(46, 204, 113, 0.1)');
+                            gradient.addColorStop(0.5, 'rgba(46, 204, 113, 0.5)');
+                            gradient.addColorStop(1, 'rgba(39, 174, 96, 0.7)');
+                            return gradient;
+                        },
                         borderColor: '#2ecc71',
                         borderWidth: 1,
+                        borderRadius: 4,
                         order: 1
                     },
                     {
                         label: 'Outflow',
                         data: Array(30).fill(0),
-                        backgroundColor: 'rgba(231, 76, 60, 0.5)',
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return 'rgba(231, 76, 60, 0.5)';
+                            
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(231, 76, 60, 0.1)');
+                            gradient.addColorStop(0.5, 'rgba(231, 76, 60, 0.5)');
+                            gradient.addColorStop(1, 'rgba(192, 57, 43, 0.7)');
+                            return gradient;
+                        },
                         borderColor: '#e74c3c',
                         borderWidth: 1,
+                        borderRadius: 4,
                         order: 2
                     },
                     {
                         label: 'Net Flow',
                         data: Array(30).fill(0),
-                        borderColor: '#9b59b6',
-                        backgroundColor: 'rgba(155, 89, 182, 0.2)',
-                        borderWidth: 2,
+                        borderColor: 'rgba(155, 89, 182, 0.8)',
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return 'rgba(155, 89, 182, 0.2)';
+                            
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(155, 89, 182, 0.05)');
+                            gradient.addColorStop(1, 'rgba(155, 89, 182, 0.3)');
+                            return gradient;
+                        },
+                        borderWidth: 2.5,
                         type: 'line',
-                        fill: false,
+                        fill: true,
                         tension: 0.4,
-                        pointRadius: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
                         pointBackgroundColor: '#9b59b6',
+                        pointBorderColor: 'rgba(255, 255, 255, 0.8)',
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: '#8e44ad',
                         order: 0
                     }
                 ]
@@ -1587,10 +1692,33 @@
                 plugins: {
                     legend: {
                         position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 13,
+                                family: "'Inter', sans-serif"
+                            }
+                        }
                     },
                     tooltip: {
                         mode: 'index',
                         intersect: false,
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#2A2E3D',
+                        bodyColor: '#2A2E3D',
+                        borderColor: 'rgba(225, 228, 232, 0.8)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        boxPadding: 6,
+                        bodyFont: {
+                            family: "'Inter', sans-serif"
+                        },
+                        titleFont: {
+                            family: "'Inter', sans-serif",
+                            weight: 'bold'
+                        },
+                        padding: 12,
                         callbacks: {
                             label: function(context) {
                                 let label = context.dataset.label || '';
@@ -1609,19 +1737,45 @@
                     x: {
                         title: {
                             display: true,
-                            text: 'Date (MM/DD)'
+                            text: 'Date (MM/DD)',
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 13
+                            }
                         },
                         grid: {
-                            color: 'rgba(225, 228, 232, 0.3)'
+                            display: true,
+                            drawBorder: false,
+                            color: 'rgba(225, 228, 232, 0.2)'
+                        },
+                        ticks: {
+                            padding: 8,
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 11
+                            }
                         }
                     },
                     y: {
                         title: {
                             display: true,
-                            text: 'Token Amount'
+                            text: 'Token Amount',
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 13
+                            }
                         },
                         grid: {
-                            color: 'rgba(225, 228, 232, 0.3)'
+                            display: true,
+                            drawBorder: false,
+                            color: 'rgba(225, 228, 232, 0.2)'
+                        },
+                        ticks: {
+                            padding: 8,
+                            font: {
+                                family: "'Inter', sans-serif",
+                                size: 11
+                            }
                         }
                     }
                 }
