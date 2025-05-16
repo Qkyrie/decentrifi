@@ -327,6 +327,70 @@ The application includes functionality to display and auto-refresh the count of 
 - Front-end integration with animated updates every 5 seconds
 - Real-time visibility into platform activity
 
+## Safe Wallet Analytics
+
+Decentrifi now includes specialized analytics features for Gnosis Safe (Safe) multisig wallets. When a Safe contract is detected (based on its contract type), the platform provides a dedicated analytics interface with Safe-specific metrics and visualizations.
+
+### Safe-Specific Features
+
+1. **Token Flow Analytics**:
+   - Real-time tracking of ERC-20 token movements in and out of the Safe
+   - Daily inflow and outflow charts for all detected tokens
+   - Net flow calculations to understand treasury balance changes
+   - Support for customizable time ranges (30 days, 6 months, 1 year, all time)
+   - Animated chart transitions and responsive design
+
+2. **Transfer Size Distribution**:
+   - Visual breakdown of transaction sizes across different ranges
+   - Helps understand typical transaction patterns
+   - Categories include: 0-10, 10-100, 100-1k, 1k-10k, 10k-100k, and 100k+ tokens
+   - Percentage distribution visualization
+
+3. **Top Counterparties**:
+   - Identifies the most frequent transaction partners
+   - Shows volume and transaction count for each counterparty
+   - Useful for understanding primary relationships and dependencies
+
+4. **Active Address Metrics**:
+   - Live count of unique addresses interacting with the Safe
+   - 30-minute refresh intervals for real-time monitoring
+   - Daily active user tracking
+
+### Technical Implementation
+
+The Safe analytics features leverage the existing decentrifi infrastructure:
+
+- **Data Ingestion**: Utilizes the `TransferEvent` table to capture all ERC-20 token transfers
+- **API Endpoints**: New REST endpoints for Safe-specific analytics:
+  - `GET /{network}/{contract}/token-flows` - Daily token flow data
+  - `GET /{network}/{contract}/transfer-size-distribution` - Transfer size analysis
+  - `GET /{network}/{contract}/top-counterparties` - Most active counterparties
+- **UI**: Custom `safe-analytics.html` template with:
+  - Chart.js for interactive visualizations
+  - Safe green color scheme (#12FF80)
+  - Responsive design for mobile and desktop
+  - Time range selector for historical data
+
+### Contract Type Detection
+
+The platform automatically detects Safe contracts based on the contract type specified during submission. When a Safe is detected:
+
+1. The contract is marked with type "safe" in the database
+2. The routing system automatically serves the Safe-specific analytics page
+3. Token transfer events are prioritized for ingestion
+
+### Future Safe Analytics Enhancements
+
+The research document (`research/safe-analytics.md`) outlines a comprehensive vision for Safe treasury analytics, including:
+
+- Yield tracking across multiple DeFi protocols
+- Cross-chain analysis for multi-network Safes
+- Risk analytics with collateralization ratios
+- Cash flow projections and liquidity planning
+- Integration with EtherFi Cash for spending analytics
+
+These features represent opportunities for future development based on user needs and feedback.
+
 ## Waitlist Functionality
 
 The project includes a waitlist system for early access signups. The waitlist allows potential users to register their interest in the platform before general availability.
