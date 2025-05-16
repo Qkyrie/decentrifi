@@ -114,6 +114,7 @@ resource "kubernetes_cron_job_v1" "data-ingestion-hourly" {
           }
           spec {
             restart_policy = "OnFailure"
+            termination_grace_period_seconds = 10
 
             container {
               name  = "data-ingestion"
