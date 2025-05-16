@@ -895,37 +895,7 @@
                     </div>
                 </div>
 
-                <div class="segments-panel">
-                    <div class="chart-header">
-                        <div class="chart-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M19 11h-6V5h6v6zm-6 2h6v6h-6v-6zm-2 6H5v-6h6v6zm0-14v6H5V5h6z" stroke="#346DF1" stroke-width="1.8"/>
-                            </svg>
-                            <span>Filters</span>
-                        </div>
-                        <button id="toggleFilters" class="chart-button">
-                            <svg id="filterArrow" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(180deg); transition: transform 0.3s ease;">
-                                <path d="M6 9l6 6 6-6" stroke="#346DF1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span id="filterToggleText">Show Filters</span>
-                        </button>
-                    </div>
-                    <div class="active-segments" id="activeSegments" style="margin-top: 15px;">
-                        <!-- Active segments will be displayed here -->
-                    </div>
 
-                    <div class="segments-content" id="filtersContent" style="display: none; transition: all 0.3s ease;">
-                        <!-- Placeholder for future filters -->
-                        <div class="segment-search">
-                            <p>Token flow filters coming soon...</p>
-                        </div>
-                    </div>
-                </div>
-
-
-
-
-                
                 <!-- Token Flows Chart Card -->
                 <div class="chart-card">
                     <div class="chart-header">
@@ -1096,26 +1066,6 @@
             navLinks.classList.toggle('active');
         });
         
-        // Filter toggle functionality
-        const toggleFiltersBtn = document.getElementById('toggleFilters');
-        const filtersContent = document.getElementById('filtersContent');
-        const filterArrow = document.getElementById('filterArrow');
-        const filterToggleText = document.getElementById('filterToggleText');
-        
-        toggleFiltersBtn.addEventListener('click', function() {
-            // Toggle display of filters content
-            const isVisible = filtersContent.style.display !== 'none';
-            
-            if (isVisible) {
-                filtersContent.style.display = 'none';
-                filterArrow.style.transform = 'rotate(180deg)';
-                filterToggleText.textContent = 'Show Filters';
-            } else {
-                filtersContent.style.display = 'block';
-                filterArrow.style.transform = 'rotate(0deg)';
-                filterToggleText.textContent = 'Hide Filters';
-            }
-        });
 
         // Store active segments globally
         const activeSegments = new Set();
