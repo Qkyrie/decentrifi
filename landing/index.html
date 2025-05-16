@@ -234,8 +234,8 @@
 
         .hero-badge {
             display: inline-block;
-            background: linear-gradient(90deg, rgba(52, 109, 241, 0.1) 0%, rgba(34, 209, 198, 0.1) 100%);
-            color: var(--primary-blue);
+            background: linear-gradient(90deg, rgba(18, 255, 128, 0.15) 0%, rgba(0, 215, 112, 0.15) 100%);
+            color: #00D770;
             font-weight: 600;
             font-size: 14px;
             padding: 8px 16px;
@@ -610,12 +610,12 @@
 
         .feature-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 30px;
             padding: 0 20px;
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 968px) {
             .feature-grid {
                 grid-template-columns: 1fr;
                 gap: 20px;
@@ -657,6 +657,11 @@
             transform: translateY(-8px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             border-color: rgba(52, 109, 241, 0.3);
+        }
+        
+        .feature-card:nth-child(4):hover {
+            box-shadow: 0 20px 40px rgba(18, 255, 128, 0.15);
+            border-color: rgba(18, 255, 128, 0.3);
         }
         
         .feature-card:hover::after {
@@ -1319,6 +1324,7 @@
                     <ul class="nav-links" id="nav-links">
                         <li><a href="#product">Product</a></li>
                         <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="https://data.decentri.fi/ethereum/0x59a0f98345f54bab245a043488ece7fcecd7b596" class="demo-nav-link">Safe Analytics</a></li>
                         <li><a href="https://data.decentri.fi/ethereum/0x881d40237659c251811cec9c364ef91dc08d300c" class="demo-nav-link">Demo</a></li>
                     </ul>
                 </nav>
@@ -1330,13 +1336,13 @@
         <div class="container">
             <div class="hero-content">
                 <div class="hero-badge">
-                    <span>✨ Early Access Available</span>
+                    <span>✨ Safe Analytics Now Available</span>
                 </div>
-                <h1>Real-Time On-Chain Insights for EVM Contracts</h1>
-                <p class="subhead">Track transfers, gas metrics, wallet activity, and user behavior—all in one intuitive dashboard to help you make data-driven decisions.</p>
+                <h1>Real-Time On-Chain Insights for EVM Contracts & Safe Wallets</h1>
+                <p class="subhead">Track transfers, gas metrics, wallet activity, and user behavior. Now featuring specialized analytics for Gnosis Safe multi-sig wallets and treasury management.</p>
                 <div class="hero-buttons">
                     <a href="#waitlist" class="cta-button">Join the Waitlist</a>
-                    <a href="https://data.decentri.fi/ethereum/0x881d40237659c251811cec9c364ef91dc08d300c" class="highlight-button">Try Demo</a>
+                    <a href="https://data.decentri.fi/safe/ethereum/0x76262e27ffbee5e0c68daf022fc47e170b1e3980" class="highlight-button" style="background: #12FF80; color: #000;">Try Safe Analytics</a>
                     <a href="#how-it-works" class="secondary-button">How It Works</a>
                 </div>
             </div>
@@ -1345,10 +1351,10 @@
                     <div class="dashboard-header">
                         <div class="dashboard-title">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M21 8V20.9932C21 21.5501 20.5552 22 20.0066 22H3.9934C3.44495 22 3 21.556 3 21.0082V2.9918C3 2.45531 3.4487 2 4.00221 2H14.9968L21 8Z" stroke="#346DF1" stroke-width="2"/>
-                                <path d="M14 2V8H21" stroke="#346DF1" stroke-width="2"/>
+                                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#12FF80" stroke-width="2"/>
+                                <path d="M9 9H15M9 15H15M9 12H15" stroke="#12FF80" stroke-width="2"/>
                             </svg>
-                            Contract Analytics Dashboard
+                            Safe Wallet Analytics Dashboard
                         </div>
                         <div class="dashboard-controls">
                             <button class="dashboard-button">
@@ -1570,8 +1576,11 @@
         <div class="container">
             <div class="demo-cta-content">
                 <h2>Try Our Early Demo</h2>
-                <p>Experience the power of Decentrifi analytics with our early demo version</p>
-                <a href="https://data.decentri.fi/ethereum/0x881d40237659c251811cec9c364ef91dc08d300c" class="cta-button demo-link">View Demo Contract Analytics</a>
+                <p>Experience the power of Decentrifi analytics with our early demo versions</p>
+                <div class="demo-buttons" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                    <a href="https://data.decentri.fi/ethereum/0x881d40237659c251811cec9c364ef91dc08d300c" class="cta-button demo-link">View Contract Analytics Demo</a>
+                    <a href="https://data.decentri.fi/safe/ethereum/0x76262e27ffbee5e0c68daf022fc47e170b1e3980" class="cta-button demo-link" style="background: #12FF80; color: #000;">View Safe Wallet Demo</a>
+                </div>
             </div>
         </div>
     </section>
@@ -1611,6 +1620,16 @@
                         <li>User behavior analytics</li>
                         <li>Whale activity monitoring</li>
                         <li>Retention metrics & insights</li>
+                    </ul>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3 class="feature-title">Safe Multi-Sig Analytics</h3>
+                    <p class="feature-desc">Specialized analytics for Gnosis Safe wallets including token flows, treasury management, and multi-signature patterns.</p>
+                    <ul class="feature-points">
+                        <li>Token flow visualization</li>
+                        <li>Treasury balance tracking</li>
+                        <li>Transaction pattern analysis</li>
                     </ul>
                 </div>
             </div>
@@ -1711,6 +1730,7 @@
                 <div class="footer-column">
                     <h4 class="footer-title">Product</h4>
                     <a href="#" class="footer-link">Features</a>
+                    <a href="https://data.decentri.fi/safe/ethereum/0x76262e27ffbee5e0c68daf022fc47e170b1e3980" class="footer-link">Safe Analytics</a>
                     <a href="#" class="footer-link">API Documentation</a>
                     <a href="#" class="footer-link">Roadmap</a>
                     <a href="#" class="footer-link">Status</a>
