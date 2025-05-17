@@ -157,15 +157,11 @@ class TransferEventRepository {
             TransferEvents
                 .selectAll().where {
                     (TransferEvents.network eq network) and
-                    ((TransferEvents.fromAddress eq contract.lowercase()) or (TransferEvents.toAddress eq contract.lowercase())) and
-                    (TransferEvents.blockTimestamp greaterEq startDate)
+                            ((TransferEvents.fromAddress eq contract.lowercase()) or (TransferEvents.toAddress eq contract.lowercase())) and
+                            (TransferEvents.blockTimestamp greaterEq startDate)
                 }
-                .toList()
                 .groupBy { row ->
-                    val fromAddress = row[TransferEvents.fromAddress]
-                    val toAddress = row[TransferEvents.toAddress]
-                    // The counterparty is the address that's not the contract
-                    if (fromAddress.equals(contract, ignoreCase = true)) toAddress else fromAddress
+                    extractCounterparty(row, contract)
                 }
                 .map { (address, transactions) ->
                     val totalVolume = transactions.sumOf { row ->
@@ -180,5 +176,12 @@ class TransferEventRepository {
                 .sortedByDescending { it.totalVolume }
                 .take(limit)
         }
+    }
+
+    private fun extractCounterparty(row: ResultRow, contract: String): String {
+        val fromAddress = row[TransferEvents.fromAddress].lowercase()
+        val toAddress = row[TransferEvents.toAddress].lowercase()
+        // The counterparty is the address that's not the contract
+        return if (fromAddress.equals(contract, ignoreCase = true)) toAddress else fromAddress
     }
 }
