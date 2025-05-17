@@ -27,4 +27,4 @@ FROM amazoncorretto:21-alpine
 WORKDIR /app
 COPY --from=build /app/chainlayer/target/*-SNAPSHOT.jar /app/app.jar
 COPY data-api/src/main/resources/application.conf /app/application.conf
-CMD [ "/jre/bin/java", "-jar",  "-Duser.timezone=UTC", "/app/app.jar", "-XX:+ExitOnOutOfMemoryError", "-XX:+UseCGroupMemoryLimitForHeap", "-XX:+UseSerialGC"]
+CMD [ "java", "-jar",  "-Duser.timezone=UTC", "/app/app.jar", "-XX:+ExitOnOutOfMemoryError", "-XX:+UseCGroupMemoryLimitForHeap", "-XX:+UseSerialGC"]
