@@ -68,7 +68,8 @@ class TransferEventRepository {
     private suspend fun fetchAllTransfers(network: String, contract: String, startDate: Instant): List<TransferData> {
         return dbQuery {
             TransferEvents
-                .selectAll().where {
+                .selectAll()
+                .where {
                     (TransferEvents.network eq network) and
                             ((TransferEvents.fromAddress eq contract.lowercase()) or (TransferEvents.toAddress eq contract.lowercase())) and
                             (TransferEvents.blockTimestamp greaterEq startDate)
@@ -143,7 +144,7 @@ class TransferEventRepository {
      */
     suspend fun getTopCounterparties(
         network: String,
-        contract: String,
+        safe: String,
         daysToLookBack: Int,
         limit: Int = 10
     ): List<CounterpartyData> {
@@ -157,30 +158,37 @@ class TransferEventRepository {
             TransferEvents
                 .selectAll().where {
                     (TransferEvents.network eq network) and
-                            ((TransferEvents.fromAddress eq contract.lowercase()) or (TransferEvents.toAddress eq contract.lowercase())) and
+                            ((TransferEvents.fromAddress eq safe.lowercase()) or (TransferEvents.toAddress eq safe.lowercase())) and
                             (TransferEvents.blockTimestamp greaterEq startDate)
+                }.asSequence().map { row ->
+                    TransferData(
+                        timestamp = row[TransferEvents.blockTimestamp],
+                        fromAddress = row[TransferEvents.fromAddress].lowercase(),
+                        toAddress = row[TransferEvents.toAddress].lowercase(),
+                        amount = row[TransferEvents.amount].toBigInteger(),
+                        token = row[TransferEvents.tokenAddress]
+                    )
                 }
-                .groupBy { row ->
-                    extractCounterparty(row, contract)
+                .groupBy { transfer ->
+                    extractCounterparty(transfer, safe)
                 }
                 .map { (address, transactions) ->
-                    val totalVolume = transactions.sumOf { row ->
-                        row[TransferEvents.amount].toBigInteger()
-                    }
                     CounterpartyData(
                         address = address,
-                        totalVolume = totalVolume,
+                        totalVolume = transactions.sumOf { row ->
+                            row.amount
+                        },
                         transactionCount = transactions.size
                     )
                 }
                 .sortedByDescending { it.totalVolume }
-                .take(limit)
+                .take(limit).toList()
         }
     }
 
-    private fun extractCounterparty(row: ResultRow, contract: String): String {
-        val fromAddress = row[TransferEvents.fromAddress].lowercase()
-        val toAddress = row[TransferEvents.toAddress].lowercase()
+    private fun extractCounterparty(row: TransferData, contract: String): String {
+        val fromAddress = row.fromAddress
+        val toAddress = row.toAddress
         // The counterparty is the address that's not the contract
         return if (fromAddress.equals(contract, ignoreCase = true)) toAddress else fromAddress
     }

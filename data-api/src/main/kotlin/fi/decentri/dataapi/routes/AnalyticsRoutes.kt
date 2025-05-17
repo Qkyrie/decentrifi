@@ -1,7 +1,5 @@
 package fi.decentri.dataapi.routes
 
-import fi.decentri.dataapi.model.TokenFlowPoint
-import fi.decentri.dataapi.model.TokenFlowsDTO
 import fi.decentri.dataapi.model.TransferSizeDistributionDTO
 import fi.decentri.dataapi.model.TransferSizeRange
 import fi.decentri.dataapi.model.TopCounterpartiesDTO
@@ -18,7 +16,6 @@ import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.time.LocalDateTime
-import java.time.ZoneOffset
 import kotlin.random.Random
 import kotlin.time.ExperimentalTime
 
@@ -227,20 +224,20 @@ fun Route.analyticsRoutes(
                     HttpStatusCode.BadRequest,
                     "Missing network parameter"
                 )
-                val contract = call.parameters["contract"] ?: return@get call.respond(
+                val safe = call.parameters["contract"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     "Missing contract parameter"
                 )
                 
                 val daysSince = call.request.queryParameters["daysSince"]?.toIntOrNull() ?: 30
                 
-                logger.info("Fetching top counterparties for network=$network, contract=$contract, daysSince=$daysSince")
+                logger.info("Fetching top counterparties for network=$network, contract=$safe, daysSince=$daysSince")
                 
                 // Fetch real data from the repository
                 val transferEventRepository = TransferEventRepository()
                 val counterpartiesData = transferEventRepository.getTopCounterparties(
                     network = network,
-                    contract = contract,
+                    safe = safe,
                     daysToLookBack = daysSince,
                     limit = 10
                 )
@@ -249,7 +246,7 @@ fun Route.analyticsRoutes(
                 val totalVolumeBigInteger = counterpartiesData.sumOf { it.totalVolume }
                 
                 // Get token info for conversions
-                val token = tokenService.getToken(network, contract)
+                val token = tokenService.getToken(network, safe)
                 val tokenDecimals = token?.decimals ?: 18
                 
                 // Convert volumes to double and calculate percentages
@@ -281,7 +278,7 @@ fun Route.analyticsRoutes(
                 
                 val response = TopCounterpartiesDTO(
                     network = network,
-                    contract = contract,
+                    contract = safe,
                     period = periodDescription,
                     tokenSymbol = token?.name ?: "TOKEN",
                     tokenDecimals = tokenDecimals,
