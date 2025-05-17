@@ -5,10 +5,7 @@ import fi.decentri.dataapi.model.TransferSizeRange
 import fi.decentri.dataapi.model.TopCounterpartiesDTO
 import fi.decentri.dataapi.model.Counterparty
 import fi.decentri.dataapi.repository.TransferEventRepository
-import fi.decentri.dataapi.service.EventService
-import fi.decentri.dataapi.service.GasUsageService
-import fi.decentri.dataapi.service.TokenFlowService
-import fi.decentri.dataapi.service.TokenService
+import fi.decentri.dataapi.service.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -24,6 +21,7 @@ private val logger = LoggerFactory.getLogger("fi.decentri.dataapi.routes.Analyti
 @ExperimentalTime
 fun Route.analyticsRoutes(
     gasUsageService: GasUsageService,
+    counterPartyService: CounterPartyService,
     eventService: EventService,
     tokenService: TokenService,
 ) {
@@ -153,9 +151,9 @@ fun Route.analyticsRoutes(
                     HttpStatusCode.BadRequest,
                     "Missing contract parameter"
                 )
-                
+
                 val daysSince = call.request.queryParameters["daysSince"]?.toIntOrNull() ?: 365
-                
+
                 logger.info("Fetching token flows for network=$network, contract=$contract, daysSince=$daysSince")
 
                 // Get from repository or fallback to sample data if TransferEventRepository throws
@@ -180,9 +178,9 @@ fun Route.analyticsRoutes(
                     HttpStatusCode.BadRequest,
                     "Missing contract parameter"
                 )
-                
+
                 logger.info("Fetching transfer size distribution for network=$network, contract=$contract")
-                
+
                 // Stubbed data for now
                 val distribution = listOf(
                     TransferSizeRange("0-10", Random.nextInt(100, 1000), 0.0),
@@ -192,14 +190,14 @@ fun Route.analyticsRoutes(
                     TransferSizeRange("10k-100k", Random.nextInt(50, 500), 0.0),
                     TransferSizeRange("100k+", Random.nextInt(10, 100), 0.0)
                 )
-                
+
                 val totalTransfers = distribution.sumOf { it.count }
-                
+
                 // Calculate percentages
                 val distributionWithPercentages = distribution.map { range ->
                     range.copy(percentage = (range.count.toDouble() / totalTransfers) * 100)
                 }
-                
+
                 val token = tokenService.getToken(network, contract)
                 val response = TransferSizeDistributionDTO(
                     network = network,
@@ -209,14 +207,14 @@ fun Route.analyticsRoutes(
                     totalTransfers = totalTransfers,
                     distribution = distributionWithPercentages
                 )
-                
+
                 call.respond(response)
             } catch (e: Exception) {
                 logger.error("Error fetching transfer size distribution", e)
                 call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
             }
         }
-        
+
         // Top counterparties endpoint
         get("/{network}/{contract}/top-counterparties") {
             try {
@@ -228,36 +226,36 @@ fun Route.analyticsRoutes(
                     HttpStatusCode.BadRequest,
                     "Missing contract parameter"
                 )
-                
+
                 val daysSince = call.request.queryParameters["daysSince"]?.toIntOrNull() ?: 30
-                
+
                 logger.info("Fetching top counterparties for network=$network, contract=$safe, daysSince=$daysSince")
-                
+
                 // Fetch real data from the repository
-                val transferEventRepository = TransferEventRepository()
-                val counterpartiesData = transferEventRepository.getTopCounterparties(
+                val counterpartiesData = counterPartyService.getTopCounterparties(
                     network = network,
                     safe = safe,
                     daysToLookBack = daysSince,
                     limit = 10
                 )
-                
+
                 // Calculate total volume from all counterparties
                 val totalVolumeBigInteger = counterpartiesData.sumOf { it.totalVolume }
-                
+
                 // Get token info for conversions
                 val token = tokenService.getToken(network, safe)
                 val tokenDecimals = token?.decimals ?: 18
-                
+
                 // Convert volumes to double and calculate percentages
                 val counterparties = counterpartiesData.map { counterpartyData ->
-                    val volumeAsDouble = counterpartyData.totalVolume.toDouble() / Math.pow(10.0, tokenDecimals.toDouble())
+                    val volumeAsDouble =
+                        counterpartyData.totalVolume.toDouble() / Math.pow(10.0, tokenDecimals.toDouble())
                     val percentage = if (totalVolumeBigInteger > BigInteger.ZERO) {
                         (counterpartyData.totalVolume.toDouble() / totalVolumeBigInteger.toDouble()) * 100
                     } else {
                         0.0
                     }
-                    
+
                     Counterparty(
                         address = counterpartyData.address,
                         shortAddress = "${counterpartyData.address.take(6)}...${counterpartyData.address.takeLast(4)}",
@@ -266,16 +264,16 @@ fun Route.analyticsRoutes(
                         percentage = percentage
                     )
                 }
-                
+
                 val totalVolumeDouble = totalVolumeBigInteger.toDouble() / Math.pow(10.0, tokenDecimals.toDouble())
-                
-                val periodDescription = when(daysSince) {
+
+                val periodDescription = when (daysSince) {
                     30 -> "last_30_days"
                     365 -> "last_year"
                     0 -> "all_time"
                     else -> "last_${daysSince}_days"
                 }
-                
+
                 val response = TopCounterpartiesDTO(
                     network = network,
                     contract = safe,
@@ -285,7 +283,7 @@ fun Route.analyticsRoutes(
                     totalVolume = totalVolumeDouble,
                     counterparties = counterparties
                 )
-                
+
                 call.respond(response)
             } catch (e: Exception) {
                 logger.error("Error fetching top counterparties", e)

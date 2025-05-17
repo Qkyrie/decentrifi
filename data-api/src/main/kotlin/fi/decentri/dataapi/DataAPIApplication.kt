@@ -3,15 +3,10 @@ package fi.decentri.dataapi
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import fi.decentri.dataapi.config.AppConfig
-import fi.decentri.dataapi.repository.ContractsRepository
-import fi.decentri.dataapi.repository.IngestionMetadataRepository
-import fi.decentri.dataapi.repository.RawInvocationsRepository
-import fi.decentri.dataapi.repository.RawLogsRepository
+import fi.decentri.dataapi.model.Counterparty
+import fi.decentri.dataapi.repository.*
 import fi.decentri.dataapi.routes.configureRoutesModules
-import fi.decentri.dataapi.service.ContractsService
-import fi.decentri.dataapi.service.EventService
-import fi.decentri.dataapi.service.GasUsageService
-import fi.decentri.dataapi.service.TokenService
+import fi.decentri.dataapi.service.*
 import fi.decentri.dataapi.waitlist.WaitlistRepository
 import fi.decentri.db.DatabaseFactory
 import fi.decentri.db.contract.Contracts
@@ -58,9 +53,11 @@ fun main() {
     val contractsRepository = ContractsRepository()
     val ingestionMetadataRepository = IngestionMetadataRepository()
     val contractsService = ContractsService(contractsRepository)
+    val transferEventRepository = TransferEventRepository()
 
     // Initialize services
     val gasUsageService = GasUsageService(rawInvocationsRepository)
+    val counterPartyService = CounterPartyService(transferEventRepository)
     val eventService = EventService(rawLogsRepository)
     val tokenService = TokenService()
 
@@ -68,6 +65,7 @@ fun main() {
     embeddedServer(Netty, port = appConfig.server.port) {
         configureRoutesModules(
             gasUsageService,
+            counterPartyService,
             eventService,
             waitlistRepository,
             contractsRepository,

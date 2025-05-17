@@ -5,6 +5,7 @@ import fi.decentri.db.token.TransferEvents
 import org.jetbrains.exposed.sql.*
 import java.math.BigInteger
 import java.time.*
+import kotlin.sequences.Sequence
 import kotlin.time.ExperimentalTime
 
 /**
@@ -129,37 +130,17 @@ class TransferEventRepository {
 
     }
 
-    /**
-     * Data class to hold counterparty data
-     */
-    data class CounterpartyData(
-        val address: String,
-        val totalVolume: BigInteger,
-        val transactionCount: Int
-    )
-
-    /**
-     * Get top counterparties for a contract within a time period
-     * Returns addresses that have had the most transactions with the contract
-     */
-    suspend fun getTopCounterparties(
+    suspend fun getTransferData(
         network: String,
         safe: String,
-        daysToLookBack: Int,
-        limit: Int = 10
-    ): List<CounterpartyData> {
-        val startDate = if (daysToLookBack > 0) {
-            LocalDateTime.now().minusDays(daysToLookBack.toLong()).toInstant(ZoneOffset.UTC)
-        } else {
-            Instant.MIN // All time
-        }
-
+        since: Instant
+    ): List<TransferData> {
         return dbQuery {
             TransferEvents
                 .selectAll().where {
                     (TransferEvents.network eq network) and
                             ((TransferEvents.fromAddress eq safe.lowercase()) or (TransferEvents.toAddress eq safe.lowercase())) and
-                            (TransferEvents.blockTimestamp greaterEq startDate)
+                            (TransferEvents.blockTimestamp greaterEq since)
                 }.asSequence().map { row ->
                     TransferData(
                         timestamp = row[TransferEvents.blockTimestamp],
@@ -168,28 +149,8 @@ class TransferEventRepository {
                         amount = row[TransferEvents.amount].toBigInteger(),
                         token = row[TransferEvents.tokenAddress]
                     )
-                }
-                .groupBy { transfer ->
-                    extractCounterparty(transfer, safe)
-                }
-                .map { (address, transactions) ->
-                    CounterpartyData(
-                        address = address,
-                        totalVolume = transactions.sumOf { row ->
-                            row.amount
-                        },
-                        transactionCount = transactions.size
-                    )
-                }
-                .sortedByDescending { it.totalVolume }
-                .take(limit).toList()
+                }.toList()
         }
     }
-
-    private fun extractCounterparty(row: TransferData, contract: String): String {
-        val fromAddress = row.fromAddress
-        val toAddress = row.toAddress
-        // The counterparty is the address that's not the contract
-        return if (fromAddress.equals(contract, ignoreCase = true)) toAddress else fromAddress
-    }
 }
+
