@@ -41,6 +41,12 @@ resource "kubernetes_deployment" "landing-page-html" {
       }
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      spec[0].template[0].metadata[0].annotations["kubectl.kubernetes.io/restartedAt"],
+    ]
+  }
 }
 
 # If using private repo, add this secret
