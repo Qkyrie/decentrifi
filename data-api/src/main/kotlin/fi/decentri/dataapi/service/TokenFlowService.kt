@@ -4,8 +4,10 @@ import fi.decentri.dataapi.FormatUtilsExtensions.asEth
 import fi.decentri.dataapi.model.TokenFlowPoint
 import fi.decentri.dataapi.model.TokenFlowsDTO
 import fi.decentri.dataapi.repository.TransferEventRepository
+import fi.decentri.dataapi.repository.TransferEventRepository.*
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import kotlin.time.ExperimentalTime
@@ -20,21 +22,10 @@ class TokenFlowService(
     private val tokenService: TokenService
 ) {
 
-    /**
-     * Gets daily token flow data for a specific contract on a given network
-     * Data is extracted from the TransferEvents table for the past X days
-     * Ensures that every day in the requested period has a data point
-     * 
-     * @param network The blockchain network name
-     * @param safe The contract address
-     * @param daysSince Number of days to look back (default 365 days)
-     * @return List of TokenFlowsDTO for each token associated with the contract
-     */
     suspend fun getTokenFlows(network: String, safe: String, daysSince: Int = 365): List<TokenFlowsDTO> {
 
         // Fetch token flows from the repository 
-        val dailyFlows =
-            transferEventRepository.getDailyTokenFlows(network.lowercase(), safe.lowercase(), daysSince)
+        val dailyFlows = getDailyFlows(network, safe, daysSince)
 
         return dailyFlows.map { (tokenName, dailyFlows) ->
             val token = tokenService.getToken(network, tokenName.name)
@@ -88,6 +79,60 @@ class TokenFlowService(
                 netFlow = netFlow
             )
         }
+    }
+
+    @JvmInline
+    value class TokenAddress(val name: String)
+
+    private suspend fun getDailyFlows(
+        network: String,
+        safe: String,
+        daysSince: Int
+    ): Map<TokenAddress, List<DailyTokenFlow>> {
+        val startDate = LocalDateTime.now().minusDays(daysSince.toLong()).toInstant(ZoneOffset.UTC)
+        val transferEvents = transferEventRepository.fetchAllTransfers(network, safe, startDate)
+        // Group by day and aggregate using functional operations
+        return calculateDailyFlows(transferEvents, safe)
+    }
+
+    /**
+     * Transform the transfer events into daily flows using a functional approach
+     */
+    private fun calculateDailyFlows(
+        transfers: List<TransferData>,
+        contract: String
+    ): Map<TokenAddress, List<DailyTokenFlow>> {
+        // Helper function to get start of day for a timestamp
+        fun getStartOfDay(instant: Instant): Instant {
+            val localDate = instant.atZone(ZoneOffset.UTC).toLocalDate()
+            return localDate.atStartOfDay(ZoneOffset.UTC).toInstant()
+        }
+
+        val perToken = transfers.groupBy { it.token }
+
+        // Group transfers by day
+        return perToken.map { (token, transfersForToken) ->
+            TokenAddress(token) to transfersForToken.groupBy { getStartOfDay(it.timestamp) }
+                .map { (dayStart, dayTransfers) ->
+                    // Calculate inflows - when tokens are sent TO the contract
+                    val inflows = dayTransfers
+                        .filter { it.toAddress == contract }
+                        .sumOf { it.amount }
+
+                    // Calculate outflows - when tokens are sent FROM the contract
+                    val outflows = dayTransfers
+                        .filter { it.fromAddress == contract }
+                        .sumOf { it.amount }
+
+                    DailyTokenFlow(
+                        date = dayStart,
+                        inflow = inflows,
+                        outflow = outflows
+                    )
+                }
+                .sortedBy { it.date }
+        }.toMap()
+
     }
 
     /**

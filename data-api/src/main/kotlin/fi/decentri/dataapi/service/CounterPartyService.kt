@@ -27,7 +27,7 @@ class CounterPartyService(private val transferEventRepository: TransferEventRepo
         }
 
         return dbQuery {
-            transferEventRepository.getTransferData(network, safe, startDate)
+            transferEventRepository.fetchAllTransfers(network, safe, startDate)
                 .groupBy { transfer ->
                     extractCounterparty(transfer, safe)
                 }

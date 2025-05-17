@@ -3,7 +3,6 @@ package fi.decentri.dataapi
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import fi.decentri.dataapi.config.AppConfig
-import fi.decentri.dataapi.model.Counterparty
 import fi.decentri.dataapi.repository.*
 import fi.decentri.dataapi.routes.configureRoutesModules
 import fi.decentri.dataapi.service.*
