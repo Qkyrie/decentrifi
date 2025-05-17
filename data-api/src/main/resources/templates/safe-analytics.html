@@ -1499,7 +1499,7 @@
                     },
                     {
                         label: `${tokenData.tokenSymbol} Outflow`,
-                        data: outflowData,
+                        data: outflowData.map(value => -value), // Make outflow negative
                         backgroundColor: function(context) {
                             const chart = context.chart;
                             const {ctx, chartArea} = chart;
@@ -2109,7 +2109,9 @@
                                     label += ': ';
                                 }
                                 if (context.parsed.y !== null) {
-                                    label += parseFloat(context.parsed.y.toFixed(2)).toLocaleString();
+                                    // Get the absolute value for display
+                                    const value = Math.abs(context.parsed.y);
+                                    label += parseFloat(value.toFixed(2)).toLocaleString();
                                 }
                                 return label;
                             }
@@ -2158,8 +2160,15 @@
                             font: {
                                 family: "'Inter', sans-serif",
                                 size: 11
+                            },
+                            callback: function(value) {
+                                // Show absolute values for ticks to avoid -0
+                                return Math.abs(value).toLocaleString();
                             }
-                        }
+                        },
+                        // Ensure the chart shows negative values properly
+                        stacked: false,
+                        beginAtZero: false
                     }
                 }
             }
