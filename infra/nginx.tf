@@ -77,6 +77,7 @@ resource "kubernetes_ingress_v1" "decentrifi-data-api" {
     annotations = {
       "nginx.ingress.kubernetes.io/enable-cors"     = "true"
       "nginx.ingress.kubernetes.io/proxy-body-size" = "20m"
+      "nginx.ingress.kubernetes.io/rewrite-target"  = "/$2"
     }
     namespace = kubernetes_namespace.decentrifi-namespace.metadata.0.name
   }
@@ -89,8 +90,22 @@ resource "kubernetes_ingress_v1" "decentrifi-data-api" {
     rule {
       host = "data.decentri.fi"
       http {
+        # Route /chains/* to chainlayer service (stripping /chains prefix)
         path {
-          path = "/"
+          path = "/chains/()(.*)"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = "chainlayer"
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+        # Route everything else to data-api
+        path {
+          path = "/()(.*)"
           path_type = "Prefix"
           backend {
             service {
