@@ -7,6 +7,7 @@ COPY data-ingestion/pom.xml data-ingestion/
 COPY data-api/pom.xml data-api/
 COPY chainlayer/pom.xml chainlayer/
 COPY db/pom.xml db/
+COPY web3/pom.xml web3/
 
 # fetch all *remote* deps for data-api AND the modules it depends on (db, data-api)
 RUN mvn dependency:go-offline -B \

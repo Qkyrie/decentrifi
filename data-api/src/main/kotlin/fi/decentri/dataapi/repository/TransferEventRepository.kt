@@ -129,24 +129,56 @@ class TransferEventRepository {
     }
 
     /**
-     * Get token symbol and decimals for a specific contract
+     * Data class to hold counterparty data
      */
-    suspend fun getTokenMetadata(network: String, contract: String): TokenMetadata? {
+    data class CounterpartyData(
+        val address: String,
+        val totalVolume: BigInteger,
+        val transactionCount: Int
+    )
+
+    /**
+     * Get top counterparties for a contract within a time period
+     * Returns addresses that have had the most transactions with the contract
+     */
+    suspend fun getTopCounterparties(
+        network: String,
+        contract: String,
+        daysToLookBack: Int,
+        limit: Int = 10
+    ): List<CounterpartyData> {
+        val startDate = if (daysToLookBack > 0) {
+            LocalDateTime.now().minusDays(daysToLookBack.toLong()).toInstant(ZoneOffset.UTC)
+        } else {
+            Instant.MIN // All time
+        }
+
         return dbQuery {
             TransferEvents
-                .select(TransferEvents.tokenSymbol, TransferEvents.tokenDecimals)
-                .where {
+                .selectAll().where {
                     (TransferEvents.network eq network) and
-                            (TransferEvents.contractAddress eq contract)
+                    ((TransferEvents.fromAddress eq contract.lowercase()) or (TransferEvents.toAddress eq contract.lowercase())) and
+                    (TransferEvents.blockTimestamp greaterEq startDate)
                 }
-                .limit(1)
-                .singleOrNull()
-                ?.let {
-                    TokenMetadata(
-                        symbol = it[TransferEvents.tokenSymbol] ?: "TOKEN",
-                        decimals = it[TransferEvents.tokenDecimals] ?: 18
+                .toList()
+                .groupBy { row ->
+                    val fromAddress = row[TransferEvents.fromAddress]
+                    val toAddress = row[TransferEvents.toAddress]
+                    // The counterparty is the address that's not the contract
+                    if (fromAddress.equals(contract, ignoreCase = true)) toAddress else fromAddress
+                }
+                .map { (address, transactions) ->
+                    val totalVolume = transactions.sumOf { row ->
+                        row[TransferEvents.amount].toBigInteger()
+                    }
+                    CounterpartyData(
+                        address = address,
+                        totalVolume = totalVolume,
+                        transactionCount = transactions.size
                     )
                 }
+                .sortedByDescending { it.totalVolume }
+                .take(limit)
         }
     }
 }

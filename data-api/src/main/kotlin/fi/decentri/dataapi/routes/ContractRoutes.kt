@@ -37,7 +37,6 @@ fun Route.contractRoutes(
             )
             logger.info("Saved contract to database with ID: $id")
 
-            // Launch the ingestion job for this contract
             try {
                 val ingestionLauncher = IngestionLauncher()
                 val jobName = ingestionLauncher.launchManualRun(
@@ -49,7 +48,6 @@ fun Route.contractRoutes(
                     "Failed to launch ingestion job for contract: ${contractSubmission.contractAddress}",
                     e
                 )
-                // Continue execution, as this is not a critical error for the contract submission
             }
 
             call.respond(

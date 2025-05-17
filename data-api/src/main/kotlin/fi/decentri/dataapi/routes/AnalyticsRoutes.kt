@@ -16,6 +16,7 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.slf4j.LoggerFactory
+import java.math.BigInteger
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import kotlin.random.Random
@@ -231,47 +232,61 @@ fun Route.analyticsRoutes(
                     "Missing contract parameter"
                 )
                 
-                logger.info("Fetching top counterparties for network=$network, contract=$contract")
+                val daysSince = call.request.queryParameters["daysSince"]?.toIntOrNull() ?: 30
                 
-                // Stubbed data for now - generate random addresses and volumes
-                val counterparties = mutableListOf<Counterparty>()
-                var totalVolume = 0.0
+                logger.info("Fetching top counterparties for network=$network, contract=$contract, daysSince=$daysSince")
                 
-                for (i in 1..10) {
-                    val address = "0x${Random.nextBytes(20).joinToString("") { "%02x".format(it) }}"
-                    val shortAddress = "${address.take(6)}...${address.takeLast(4)}"
-                    val volume = Random.nextDouble(10000.0, 1000000.0)
-                    val transactionCount = Random.nextInt(50, 1000)
+                // Fetch real data from the repository
+                val transferEventRepository = TransferEventRepository()
+                val counterpartiesData = transferEventRepository.getTopCounterparties(
+                    network = network,
+                    contract = contract,
+                    daysToLookBack = daysSince,
+                    limit = 10
+                )
+                
+                // Calculate total volume from all counterparties
+                val totalVolumeBigInteger = counterpartiesData.sumOf { it.totalVolume }
+                
+                // Get token info for conversions
+                val token = tokenService.getToken(network, contract)
+                val tokenDecimals = token?.decimals ?: 18
+                
+                // Convert volumes to double and calculate percentages
+                val counterparties = counterpartiesData.map { counterpartyData ->
+                    val volumeAsDouble = counterpartyData.totalVolume.toDouble() / Math.pow(10.0, tokenDecimals.toDouble())
+                    val percentage = if (totalVolumeBigInteger > BigInteger.ZERO) {
+                        (counterpartyData.totalVolume.toDouble() / totalVolumeBigInteger.toDouble()) * 100
+                    } else {
+                        0.0
+                    }
                     
-                    totalVolume += volume
-                    
-                    counterparties.add(
-                        Counterparty(
-                            address = address,
-                            shortAddress = shortAddress,
-                            volume = volume,
-                            transactionCount = transactionCount,
-                            percentage = 0.0 // Will calculate after
-                        )
+                    Counterparty(
+                        address = counterpartyData.address,
+                        shortAddress = "${counterpartyData.address.take(6)}...${counterpartyData.address.takeLast(4)}",
+                        volume = volumeAsDouble,
+                        transactionCount = counterpartyData.transactionCount,
+                        percentage = percentage
                     )
                 }
                 
-                // Sort by volume (descending) and calculate percentages
-                val sortedCounterparties = counterparties
-                    .sortedByDescending { it.volume }
-                    .map { counterparty ->
-                        counterparty.copy(percentage = (counterparty.volume / totalVolume) * 100)
-                    }
+                val totalVolumeDouble = totalVolumeBigInteger.toDouble() / Math.pow(10.0, tokenDecimals.toDouble())
                 
-                val token = tokenService.getToken(network, contract)
+                val periodDescription = when(daysSince) {
+                    30 -> "last_30_days"
+                    365 -> "last_year"
+                    0 -> "all_time"
+                    else -> "last_${daysSince}_days"
+                }
+                
                 val response = TopCounterpartiesDTO(
                     network = network,
                     contract = contract,
-                    period = "last_30_days",
+                    period = periodDescription,
                     tokenSymbol = token?.name ?: "TOKEN",
-                    tokenDecimals = token?.decimals ?: 18,
-                    totalVolume = totalVolume,
-                    counterparties = sortedCounterparties
+                    tokenDecimals = tokenDecimals,
+                    totalVolume = totalVolumeDouble,
+                    counterparties = counterparties
                 )
                 
                 call.respond(response)

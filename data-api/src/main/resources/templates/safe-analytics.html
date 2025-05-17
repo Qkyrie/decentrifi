@@ -1271,7 +1271,7 @@
                 fetchUniqueAddressesCount(network, contract),
                 fetchLiveUsersCount(network, contract),
                 fetchTransferSizeDistribution(network, contract),
-                fetchTopCounterparties(network, contract)
+                fetchTopCounterparties(network, contract, selectedDaysSince)
             ]);
 
             // Update events chart
@@ -1713,9 +1713,9 @@
         }
         
         // Function to fetch top counterparties data
-        async function fetchTopCounterparties(network, contract) {
+        async function fetchTopCounterparties(network, contract, daysSince = 30) {
             try {
-                const url = `/data/${network}/${contract}/top-counterparties`;
+                const url = `/data/${network}/${contract}/top-counterparties?daysSince=${daysSince}`;
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -2251,7 +2251,7 @@
                 fetchLiveUsersCount(network, contract),
                 fetchTokenFlowsData(network, contract, selectedDaysSince),
                 fetchTransferSizeDistribution(network, contract),
-                fetchTopCounterparties(network, contract)
+                fetchTopCounterparties(network, contract, selectedDaysSince)
             ]);
 
             // Update unique addresses count if available
