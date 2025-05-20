@@ -10,6 +10,7 @@ import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
+import fi.decentri.dataingest.service.ProgressListener
 import fi.decentri.infrastructure.repository.ingestion.EventLogData
 import fi.decentri.infrastructure.repository.ingestion.EventRepository
 import kotlinx.coroutines.delay
@@ -38,9 +39,14 @@ class EventIngestorUseCase(
     private val log = LoggerFactory.getLogger(this::class.java)
 
     /**
-     * Ingest events for a contract
+     * Ingest events for a contract with optional block range override
      */
-    suspend fun ingest(contract: Contract) {
+    suspend fun ingest(
+        contract: Contract, 
+        startBlockOverride: Long? = null,
+        endBlockOverride: Long? = null,
+        progressListener: ProgressListener? = null
+    ) {
         log.info("Starting event log ingestion for contract ${contract.address}")
 
         val (_, _, eventBatchSize, pollingInterval, _) = web3jManager.getNetworkConfig(contract.chain)
@@ -54,16 +60,17 @@ class EventIngestorUseCase(
         }
 
         // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = blockService.getLatestBlock(contract.chain)
+        val targetLatestBlock = endBlockOverride 
+            ?: blockService.getLatestBlock(contract.chain)
 
         // Get the last processed block or start from 24 hours ago
-        val startBlock =
-            metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, contract.id!!)
+        val startBlock = startBlockOverride
+            ?: metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, contract.id!!)
                 ?.toLongOrNull()
-                ?: blockService.getBlockClosestTo(
-                    LocalDateTime.now().minusHours(24),
-                    contract.chain
-                )
+            ?: blockService.getBlockClosestTo(
+                LocalDateTime.now().minusHours(24),
+                contract.chain
+            )
 
         log.info("Starting event ingestion from block $startBlock to target latest block $targetLatestBlock")
 
@@ -72,7 +79,6 @@ class EventIngestorUseCase(
 
         // Process blocks in batches until we reach the target latest block
         while (!completed) {
-
             kotlin.runCatching {
                 // Check if we've reached the target block
                 if (lastProcessedBlock >= targetLatestBlock) {
@@ -101,6 +107,16 @@ class EventIngestorUseCase(
                     val progressPercentage =
                         ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
                     log.info("Event ingestion progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
+                    
+                    // Report progress if listener is provided
+                    progressListener?.onProgress(
+                        lastProcessedBlock,
+                        targetLatestBlock,
+                        mapOf(
+                            "progressPercentage" to progressPercentage,
+                            "startBlock" to startBlock
+                        )
+                    )
                 }
             }.onFailure {
                 log.error("Error during event log ingestion: ${it.message}", it)

@@ -11,6 +11,7 @@ import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
+import fi.decentri.dataingest.service.ProgressListener
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationData
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
 import kotlinx.coroutines.delay
@@ -37,17 +38,26 @@ class IngestRawInvocationsUseCase(
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    suspend fun invoke(contract: Contract) {
+    suspend fun invoke(
+        contract: Contract,
+        startBlockOverride: Long? = null,
+        endBlockOverride: Long? = null,
+        progressListener: ProgressListener? = null
+    ) {
         val config = web3jManager.getNetworkConfig(contract.chain) ?: throw IllegalArgumentException(
             "Network configuration not found for network: ${contract.chain}"
         )
         log.info("Starting trace_filter data ingestion for contract $contract")
+        
         // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = blocks.getLatestBlock(contract.chain)
+        val targetLatestBlock = endBlockOverride 
+            ?: blocks.getLatestBlock(contract.chain)
 
-        val startBlock =
-            metadata.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, contract.id!!)
-                ?.toLongOrNull() ?: blocks.getBlockClosestTo(
+        // Get the last processed block or start from 24 hours ago
+        val startBlock = startBlockOverride
+            ?: metadata.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, contract.id!!)
+                ?.toLongOrNull() 
+            ?: blocks.getBlockClosestTo(
                 LocalDateTime.now().minusHours(25),
                 contract.chain
             )
@@ -74,10 +84,8 @@ class IngestRawInvocationsUseCase(
                         contract.chain, lastProcessedBlock + 1, toBlock, contract.address.lowercase(Locale.getDefault())
                     )
 
-
                     contract.updateMetadata(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, toBlock.toString())
                     contract.updateMetadata(MetadataType.RAW_INVOCATIONS_LAST_RUN_TIMESTAMP, Instant.now().toString())
-
 
                     lastProcessedBlock = toBlock
 
@@ -85,6 +93,16 @@ class IngestRawInvocationsUseCase(
                     val progressPercentage =
                         ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
                     log.info("Progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
+                    
+                    // Report progress if listener is provided
+                    progressListener?.onProgress(
+                        lastProcessedBlock,
+                        targetLatestBlock,
+                        mapOf(
+                            "progressPercentage" to progressPercentage,
+                            "startBlock" to startBlock
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 log.error("Error during trace_filter ingestion: ${e.message}", e)
@@ -107,7 +125,6 @@ class IngestRawInvocationsUseCase(
         network: String, fromBlock: Long, toBlock: Long, toAddress: String
     ) {
         log.info("Filtering traces from block $fromBlock to $toBlock for contract $toAddress")
-
 
         try {
             val traces = getTraces(fromBlock, toBlock, toAddress, network)

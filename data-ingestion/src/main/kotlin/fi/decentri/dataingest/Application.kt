@@ -13,11 +13,16 @@ import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.service.ContractsService
 import fi.decentri.dataingest.service.IngestionAutoMode
+import fi.decentri.dataingest.service.JobProcessorService
+import fi.decentri.dataingest.service.JobSchedulerService
+import fi.decentri.dataingest.service.JobService
 import fi.decentri.db.DatabaseFactory
+import fi.decentri.db.ingestion.Jobs
 import fi.decentri.infrastructure.abi.AbiService
 import fi.decentri.infrastructure.repository.contract.ContractsRepository
 import fi.decentri.infrastructure.repository.ingestion.EventRepository
 import fi.decentri.infrastructure.repository.ingestion.IngestionMetadataRepository
+import fi.decentri.infrastructure.repository.ingestion.JobRepository
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
 import fi.decentri.infrastructure.repository.token.TransferEventRepository
 import io.ktor.server.application.*
@@ -38,8 +43,8 @@ class IngestCommand : CliktCommand(
 ) {
     private val mode by option(
         "--mode",
-        help = "Ingestion mode: 'auto' processes all contracts, 'contract' processes a specific contract"
-    ).default("auto")
+        help = "Ingestion mode: 'auto' processes all contracts, 'contract' processes a specific contract, 'job' for job-based processing"
+    ).default("job")
 
     private val contractAddress by option(
         "--contract",
@@ -64,11 +69,14 @@ class IngestCommand : CliktCommand(
 
             // Initialize database
             DatabaseFactory.init(appConfig.database)
+            
+            // Initialize required database tables
+            DatabaseFactory.initTables(Jobs) // Make sure the Jobs table is created
 
             // Initialize Web3j manager
             val web3jManager = Web3jManager.init(ConfigFactory.load())
 
-            // adapters
+            // Create adapters
             val contractsRepository = ContractsRepository()
             val abiPort = AbiService()
             val contractsService = ContractsService(contractsRepository, abiPort)
@@ -77,15 +85,17 @@ class IngestCommand : CliktCommand(
             val eventRepository = EventRepository()
             val transferEventRepository = TransferEventRepository()
             val blockService = BlockService(Web3jManager.getInstance())
+            val jobRepository = JobRepository()
+            val abiService = AbiService()
 
-
-            //use cases
+            // Create use cases
             val ingestRawInvocationsUseCase = IngestRawInvocationsUseCase(
                 Web3jManager.getInstance(),
                 metadataRepository,
                 rawInvocationRepository,
                 blockService
             )
+            
             val eventIngestorUseCase = EventIngestorUseCase(
                 Web3jManager.getInstance(),
                 metadataRepository,
@@ -94,7 +104,7 @@ class IngestCommand : CliktCommand(
                 abiPort
             )
 
-            var tokenTransferListenerUseCase = TokenTransferListenerUseCase(
+            val tokenTransferListenerUseCase = TokenTransferListenerUseCase(
                 Web3jManager.getInstance(),
                 metadataRepository,
                 transferEventRepository,
@@ -103,8 +113,28 @@ class IngestCommand : CliktCommand(
 
             val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-            logger.info("Token transfer tracking enabled in auto mode")
+            // Create job services
+            val jobService = JobService(jobRepository, applicationScope)
+            
+            val jobProcessorService = JobProcessorService(
+                jobService,
+                contractsService,
+                ingestRawInvocationsUseCase,
+                eventIngestorUseCase,
+                tokenTransferListenerUseCase,
+                applicationScope
+            )
+            
+            val jobSchedulerService = JobSchedulerService(
+                jobService,
+                contractsService,
+                abiService,
+                blockService,
+                metadataRepository,
+                applicationScope
+            )
 
+            // Create legacy auto mode service
             val ingestionAutoMode = IngestionAutoMode(
                 contractsService,
                 ingestRawInvocationsUseCase,
@@ -125,6 +155,21 @@ class IngestCommand : CliktCommand(
 
             try {
                 when (mode) {
+                    "job" -> {
+                        // Job mode: Use the job scheduler and processor to manage ingestion tasks
+                        logger.info("Running in JOB mode - using job-based processing system")
+                        
+                        // Start the job processor service
+                        jobProcessorService.start()
+                        
+                        // Start the job scheduler service
+                        jobSchedulerService.start()
+                        
+                        // Keep the application running
+                        logger.info("Job services started successfully. Application will continue running.")
+                        awaitCancellation()
+                    }
+                    
                     "auto" -> {
                         // Auto mode: Ingest data for all contracts
                         // In auto mode, the BlockchainIngestor will skip contracts that
@@ -164,15 +209,6 @@ class IngestCommand : CliktCommand(
                             exitProcess(1)
                         }
 
-                        // If it's a 'safe' type contract and tokens flag is provided, initialize the token transfer listener
-                        logger.info("Token transfer tracking enabled for Safe contract: ${contract.address}")
-                        tokenTransferListenerUseCase = TokenTransferListenerUseCase(
-                            Web3jManager.getInstance(),
-                            metadataRepository,
-                            transferEventRepository,
-                            blockService
-                        )
-
                         // Run ingestion for the specific contract
                         val job = ingestForSpecificContract(
                             contract,
@@ -186,26 +222,29 @@ class IngestCommand : CliktCommand(
                     }
 
                     else -> {
-                        logger.error("Invalid mode: $mode. Valid options are 'auto' or 'contract'")
+                        logger.error("Invalid mode: $mode. Valid options are 'job', 'auto', or 'contract'")
                         exitProcess(1)
                     }
                 }
             } catch (e: Exception) {
                 logger.error("Error during ingestion job: ${e.message}", e)
             } finally {
-                logger.info("Application cleanup initiated")
-                // Cancel all coroutines
-                applicationScope.cancel()
-                
-                // Give coroutines time to finish
-                delay(1000)
-                
-                // Shutdown Web3j connections
-                web3jManager.shutdown()
-                
-                logger.info("Application shutdown complete, exiting...")
-
-                exitProcess(0)
+                if (mode != "job") {
+                    // Only clean up if we're not in job mode (which should run continuously)
+                    logger.info("Application cleanup initiated")
+                    // Cancel all coroutines
+                    applicationScope.cancel()
+                    
+                    // Give coroutines time to finish
+                    delay(1000)
+                    
+                    // Shutdown Web3j connections
+                    web3jManager.shutdown()
+                    
+                    logger.info("Application shutdown complete, exiting...")
+                    
+                    exitProcess(0)
+                }
             }
         }
     }
@@ -269,6 +308,14 @@ class IngestCommand : CliktCommand(
         rawInvocationsJob.join()
         eventsJob.join()
         tokenTransfersJob?.join()
+    }
+    
+    /**
+     * Helper function to await cancellation, keeping the application running
+     */
+    private suspend fun awaitCancellation() {
+        val job = Job()
+        job.join() // This will never complete, keeping the application running
     }
 }
 

@@ -12,7 +12,7 @@ import java.math.BigInteger
 import java.util.stream.Stream
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class DecodeLogTest {
+class LogDecoderTest {
 
     @DisplayName("decodeLog should correctly return event name and parameter map")
     @ParameterizedTest(name = "#{index} – {0}")

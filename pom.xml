@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.10</version>
+        <version>3.4.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -26,6 +26,8 @@
         <module>db</module>
         <module>web3</module>
         <module>chainlayer</module>
+        <!-- Temporarily disabled as it's new and not fully implemented yet -->
+        <!-- <module>token-api</module> -->
     </modules>
 
 
