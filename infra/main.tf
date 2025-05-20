@@ -78,6 +78,27 @@ module "chainlayer" {
       value = "production"
     }
   ]
+  
+  # Example of custom probe configuration (Spring Boot actuator)
+  liveness_probe = {
+    http_get = {
+      path = "/actuator/health"
+      port = 8080
+    }
+    initial_delay_seconds = 60
+    period_seconds        = 10
+    failure_threshold     = 3
+  }
+  
+  readiness_probe = {
+    http_get = {
+      path = "/actuator/health"
+      port = 8080
+    }
+    initial_delay_seconds = 30
+    period_seconds        = 5
+    failure_threshold     = 3
+  }
 }
 
 resource "kubernetes_cron_job_v1" "data-ingestion-hourly" {

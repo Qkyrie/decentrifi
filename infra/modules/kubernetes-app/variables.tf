@@ -63,3 +63,55 @@ variable "env_vars" {
   }))
   default = []
 }
+
+variable "liveness_probe" {
+  description = "Liveness probe configuration"
+  type = object({
+    http_get = optional(object({
+      path = string
+      port = number
+    }))
+    tcp_socket = optional(object({
+      port = number
+    }))
+    initial_delay_seconds = optional(number)
+    period_seconds        = optional(number)
+    timeout_seconds       = optional(number)
+    success_threshold     = optional(number)
+    failure_threshold     = optional(number)
+  })
+  default = {
+    http_get = {
+      path = "/health"
+      port = 8080
+    }
+    initial_delay_seconds = 30
+    period_seconds        = 10
+  }
+}
+
+variable "readiness_probe" {
+  description = "Readiness probe configuration"
+  type = object({
+    http_get = optional(object({
+      path = string
+      port = number
+    }))
+    tcp_socket = optional(object({
+      port = number
+    }))
+    initial_delay_seconds = optional(number)
+    period_seconds        = optional(number)
+    timeout_seconds       = optional(number)
+    success_threshold     = optional(number)
+    failure_threshold     = optional(number)
+  })
+  default = {
+    http_get = {
+      path = "/health"
+      port = 8080
+    }
+    initial_delay_seconds = 10
+    period_seconds        = 5
+  }
+}
