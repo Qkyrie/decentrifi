@@ -103,7 +103,6 @@ class IngestCommand : CliktCommand(
                 rawInvocationIngestor,
                 eventIngestorUseCase,
                 tokenTransferListenerUseCase,
-                applicationScope
             )
 
             val jobSchedulerService = JobSchedulerService(
@@ -112,7 +111,6 @@ class IngestCommand : CliktCommand(
                 abiService,
                 blockService,
                 metadataRepository,
-                applicationScope
             )
 
             // Register shutdown hook for graceful termination
@@ -129,15 +127,14 @@ class IngestCommand : CliktCommand(
                 // Job mode: Use the job scheduler and processor to manage ingestion tasks
                 logger.info("Running in JOB mode - using job-based processing system")
 
-                // Start the job processor service
-                jobProcessorService.run()
-
                 // Start the job scheduler service
-                jobSchedulerService.run()
+                val scheduler = jobSchedulerService.run()
 
-                // Keep the application running
-                logger.info("Job services started successfully. Application will continue running.")
-                awaitCancellation()
+                // Start the job processor service
+                val processor = jobProcessorService.run()
+
+                listOf(scheduler, processor).joinAll()
+                logger.info("Job services clompleted successfully. Application will die now.")
             } catch (e: Exception) {
                 logger.error("Error during ingestion job: ${e.message}", e)
             } finally {
@@ -157,14 +154,6 @@ class IngestCommand : CliktCommand(
                 exitProcess(0)
             }
         }
-    }
-
-    /**
-     * Helper function to await cancellation, keeping the application running
-     */
-    private suspend fun awaitCancellation() {
-        val job = Job()
-        job.join() // This will never complete, keeping the application running
     }
 }
 
