@@ -10,6 +10,7 @@ import com.github.michaelbull.retry.policy.limitAttempts
 import com.github.michaelbull.retry.policy.plus
 import com.github.michaelbull.retry.retry
 import com.google.gson.JsonParser
+import fi.decentri.evm.Chain
 import fi.decentri.evm.MultiCallCaller
 import fi.decentri.evm.command.EvmContractInteractionCommand
 import fi.decentri.evm.command.GetEventLogsCommand
@@ -30,7 +31,7 @@ import org.web3j.abi.datatypes.Function as Web3Function
 
 
 class EvmGateway(
-    network: String,
+    network: Chain,
     private val multicallCaller: MultiCallCaller,
     httpClient: HttpClient,
     endpoint: String,

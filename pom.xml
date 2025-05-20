@@ -26,8 +26,7 @@
         <module>db</module>
         <module>web3</module>
         <module>chainlayer</module>
-        <!-- Temporarily disabled as it's new and not fully implemented yet -->
-        <!-- <module>token-api</module> -->
+      <!--  <module>token-api</module> -->
     </modules>
 
 

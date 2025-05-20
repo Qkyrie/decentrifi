@@ -146,7 +146,7 @@ abstract class EvmContract(
         }
     }
 
-    fun getNetwork(): String {
+    fun getNetwork(): Chain {
         return this.gateway.network
     }
 }

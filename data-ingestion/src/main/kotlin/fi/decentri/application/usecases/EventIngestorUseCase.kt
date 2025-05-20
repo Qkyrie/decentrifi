@@ -45,7 +45,6 @@ class EventIngestorUseCase(
         contract: Contract, 
         startBlockOverride: Long? = null,
         endBlockOverride: Long? = null,
-        progressListener: ProgressListener? = null
     ) {
         log.info("Starting event log ingestion for contract ${contract.address}")
 
@@ -107,16 +106,6 @@ class EventIngestorUseCase(
                     val progressPercentage =
                         ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
                     log.info("Event ingestion progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
-                    
-                    // Report progress if listener is provided
-                    progressListener?.onProgress(
-                        lastProcessedBlock,
-                        targetLatestBlock,
-                        mapOf(
-                            "progressPercentage" to progressPercentage,
-                            "startBlock" to startBlock
-                        )
-                    )
                 }
             }.onFailure {
                 log.error("Error during event log ingestion: ${it.message}", it)

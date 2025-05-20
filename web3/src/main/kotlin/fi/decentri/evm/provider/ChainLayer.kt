@@ -4,6 +4,7 @@ import fi.decentri.evm.request.GetTransactionHistoryRequest
 import fi.decentri.evm.response.GetTransactionHistoryResponse
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import fi.decentri.evm.Chain
 import fi.decentri.evm.model.AssetTransfer
 import fi.decentri.evm.request.FindAssetTransfersRequest
 import io.ktor.client.*
@@ -19,11 +20,10 @@ import java.math.BigInteger
 import java.util.*
 
 abstract class ChainLayer(
-    val httpClient: HttpClient, val endpoint: String, val network: String
+    val httpClient: HttpClient, val endpoint: String, val network: Chain
 ) {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
-
 
     val mapper = jacksonObjectMapper().configure(
         DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false

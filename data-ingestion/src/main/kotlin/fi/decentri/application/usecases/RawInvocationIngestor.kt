@@ -11,7 +11,6 @@ import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
-import fi.decentri.dataingest.service.ProgressListener
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationData
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
 import kotlinx.coroutines.delay
@@ -29,7 +28,7 @@ import kotlin.time.ExperimentalTime
 /**
  * Service responsible for blockchain raw invocation data ingestion
  */
-class IngestRawInvocationsUseCase(
+class RawInvocationIngestor(
     private val web3jManager: Web3jManager,
     private val metadata: IngestionMetadataPort,
     private val rawInvocationsRepository: RawInvocationRepository,
@@ -42,21 +41,20 @@ class IngestRawInvocationsUseCase(
         contract: Contract,
         startBlockOverride: Long? = null,
         endBlockOverride: Long? = null,
-        progressListener: ProgressListener? = null
     ) {
         val config = web3jManager.getNetworkConfig(contract.chain) ?: throw IllegalArgumentException(
             "Network configuration not found for network: ${contract.chain}"
         )
         log.info("Starting trace_filter data ingestion for contract $contract")
-        
+
         // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = endBlockOverride 
+        val targetLatestBlock = endBlockOverride
             ?: blocks.getLatestBlock(contract.chain)
 
         // Get the last processed block or start from 24 hours ago
         val startBlock = startBlockOverride
             ?: metadata.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, contract.id!!)
-                ?.toLongOrNull() 
+                ?.toLongOrNull()
             ?: blocks.getBlockClosestTo(
                 LocalDateTime.now().minusHours(25),
                 contract.chain
@@ -93,16 +91,6 @@ class IngestRawInvocationsUseCase(
                     val progressPercentage =
                         ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
                     log.info("Progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
-                    
-                    // Report progress if listener is provided
-                    progressListener?.onProgress(
-                        lastProcessedBlock,
-                        targetLatestBlock,
-                        mapOf(
-                            "progressPercentage" to progressPercentage,
-                            "startBlock" to startBlock
-                        )
-                    )
                 }
             } catch (e: Exception) {
                 log.error("Error during trace_filter ingestion: ${e.message}", e)

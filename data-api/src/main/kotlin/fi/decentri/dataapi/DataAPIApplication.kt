@@ -11,6 +11,7 @@ import fi.decentri.db.DatabaseFactory
 import fi.decentri.db.contract.Contracts
 import fi.decentri.db.event.RawLogs
 import fi.decentri.db.ingestion.IngestionMetadata
+import fi.decentri.db.ingestion.Jobs
 import fi.decentri.db.rawinvocation.RawInvocations
 import fi.decentri.db.token.TransferEvents
 import fi.decentri.db.waitlist.WaitlistEntries
@@ -42,7 +43,8 @@ fun main() {
         IngestionMetadata,
         Contracts,
         WaitlistEntries,
-        TransferEvents
+        TransferEvents,
+        Jobs
     )
 
     // Initialize repositories

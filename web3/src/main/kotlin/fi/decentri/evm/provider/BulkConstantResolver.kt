@@ -14,13 +14,13 @@ class BulkConstantResolver(
         }
 
         evmContracts.forEach { (network, contracts) ->
-            resolveForNetwork(contracts, network)
+            resolveForNetwork(contracts)
         }
 
         return contracts
     }
 
-    private suspend fun resolveForNetwork(contracts: List<EvmContract>, network: String) {
+    private suspend fun resolveForNetwork(contracts: List<EvmContract>) {
         val functionByContracts = contracts.flatMap { contract ->
             contract.constantFunctions.map { function ->
                 function to contract
