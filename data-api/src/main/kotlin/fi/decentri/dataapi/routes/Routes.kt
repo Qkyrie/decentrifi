@@ -1,7 +1,7 @@
 package fi.decentri.dataapi.routes
 
 import fi.decentri.dataapi.repository.ContractsRepository
-import fi.decentri.dataapi.repository.IngestionMetadataRepository
+import fi.decentri.dataapi.repository.IngestionJobRepository
 import fi.decentri.dataapi.service.*
 import fi.decentri.dataapi.waitlist.WaitlistRepository
 import io.ktor.server.application.*
@@ -15,7 +15,7 @@ fun Application.configureRoutesModules(
     eventService: EventService,
     waitlistRepository: WaitlistRepository,
     contractsRepository: ContractsRepository,
-    ingestionMetadataRepository: IngestionMetadataRepository,
+    ingestionJobRepository: IngestionJobRepository,
     contractsService: ContractsService,
     tokenService: TokenService
 ) {
@@ -24,7 +24,7 @@ fun Application.configureRoutesModules(
         baseRoutes()
 
         // Contract-related routes
-        contractRoutes(contractsRepository, ingestionMetadataRepository, contractsService)
+        contractRoutes(contractsRepository, ingestionJobRepository, contractsService)
 
         // Waitlist routes
         waitlistRoutes(waitlistRepository)

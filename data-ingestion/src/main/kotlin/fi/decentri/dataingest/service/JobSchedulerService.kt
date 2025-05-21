@@ -1,9 +1,7 @@
 package fi.decentri.dataingest.service
 
 import fi.decentri.application.ports.BlockPort
-import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.model.Contract
-import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.db.ingestion.JobType
 import fi.decentri.infrastructure.abi.AbiService
 import kotlinx.coroutines.*
@@ -20,7 +18,6 @@ class JobSchedulerService(
     private val contractsService: ContractsService,
     private val abiService: AbiService,
     private val blockService: BlockPort,
-    private val metadataRepository: IngestionMetadataPort,
 ) {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -92,11 +89,6 @@ class JobSchedulerService(
 
         // Get the last processed block from metadata or from the latest job
         val lastProcessedBlock = latestJob?.metadata?.get("endBlock")?.toString()?.toLongOrNull()
-            ?: metadataRepository.getMetadatForContractId(
-                MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS,
-                contract.id
-            )
-                ?.toLongOrNull()
             ?: blockService.getBlockClosestTo(LocalDateTime.now().minusHours(24), contract.chain)
 
         // Get the latest block on the chain
@@ -134,8 +126,6 @@ class JobSchedulerService(
 
         // Get the last processed block from metadata or from the latest job
         val lastProcessedBlock = latestJob?.metadata?.get("endBlock")?.toString()?.toLongOrNull()
-            ?: metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, contract.id)
-                ?.toLongOrNull()
             ?: blockService.getBlockClosestTo(LocalDateTime.now().minusHours(24), contract.chain)
 
         // Get the latest block on the chain
@@ -166,10 +156,6 @@ class JobSchedulerService(
 
         // Get the last processed block from metadata or from the latest job
         val lastProcessedBlock = latestJob?.metadata?.get("endBlock")?.toString()?.toLongOrNull()
-            ?: metadataRepository.getMetadatForContractId(
-                MetadataType.LAST_PROCESSED_BLOCK_TRANSFER_EVENTS,
-                contract.id
-            )?.toLongOrNull()
             ?: blockService.getBlockClosestTo(LocalDateTime.now().minusHours(24), contract.chain)
 
         // Get the latest block on the chain
@@ -190,48 +176,5 @@ class JobSchedulerService(
         )
 
         jobService.createJob(JobType.TOKEN_TRANSFERS, contract.id, metadata)
-    }
-
-    /**
-     * Schedule a job immediately for a specific contract and range
-     */
-    suspend fun scheduleImmediateJob(
-        contract: Contract,
-        jobType: JobType,
-        startBlock: Long? = null,
-        endBlock: Long? = null
-    ): Int {
-        val metadata = mutableMapOf<String, Any>()
-
-        // If blocks are specified, use them
-        if (startBlock != null) {
-            metadata["startBlock"] = startBlock
-        }
-
-        if (endBlock != null) {
-            metadata["endBlock"] = endBlock
-        }
-
-        // Otherwise use default logic to determine block range
-        if (startBlock == null && endBlock == null) {
-            val lastProcessedBlockKey = when (jobType) {
-                JobType.RAW_INVOCATIONS -> MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS
-                JobType.EVENTS -> MetadataType.LAST_PROCESSED_BLOCK_EVENTS
-                JobType.TOKEN_TRANSFERS -> MetadataType.LAST_PROCESSED_BLOCK_TRANSFER_EVENTS
-            }
-
-            val lastProcessedBlock = metadataRepository
-                .getMetadatForContractId(lastProcessedBlockKey, contract.id!!)
-                ?.toLongOrNull()
-                ?: blockService.getBlockClosestTo(LocalDateTime.now().minusHours(24), contract.chain)
-
-            val latestBlock = blockService.getLatestBlock(contract.chain)
-
-            metadata["startBlock"] = lastProcessedBlock + 1
-            metadata["endBlock"] = latestBlock
-        }
-
-        logger.info("Scheduling immediate ${jobType.name} job for contract ${contract.address} with metadata: $metadata")
-        return jobService.createJob(jobType, contract.id!!, metadata)
     }
 }

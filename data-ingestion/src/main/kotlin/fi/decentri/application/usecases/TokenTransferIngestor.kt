@@ -6,7 +6,6 @@ import arrow.fx.coroutines.parMap
 import fi.decentri.evm.TypeUtils.Companion.address
 import fi.decentri.evm.TypeUtils.Companion.uint256
 import fi.decentri.application.ports.BlockPort
-import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
@@ -31,7 +30,6 @@ import kotlin.time.measureTime
  */
 class TokenTransferIngestor(
     private val web3jManager: Web3jManager,
-    private val metadataRepository: IngestionMetadataPort,
     private val transferEventRepository: TransferEventRepository,
     private val blockService: BlockPort,
 ) {
@@ -110,8 +108,6 @@ class TokenTransferIngestor(
                     )
 
                     // Update metadata if we're monitoring a specific contract
-                    updateTokenMetadata(contract, MetadataType.LAST_PROCESSED_BLOCK_TRANSFER_EVENTS, toBlock.toString())
-
                     lastProcessedBlock = toBlock
 
                     // Calculate and log progress
@@ -375,10 +371,4 @@ class TokenTransferIngestor(
         return metadata
     }
 
-    /**
-     * Update token metadata in the repository
-     */
-    private suspend fun updateTokenMetadata(contract: Contract, metadataKey: MetadataType, value: String) {
-        metadataRepository.updateMetadataForContractId(contract.id!!, metadataKey, value)
-    }
 }

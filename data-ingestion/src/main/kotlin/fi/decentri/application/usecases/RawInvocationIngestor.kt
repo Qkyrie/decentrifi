@@ -2,12 +2,9 @@
 
 package fi.decentri.application.usecases
 
-import arrow.core.Either
-import arrow.core.getOrElse
 import arrow.fx.coroutines.parMap
 import com.fasterxml.jackson.databind.JsonNode
 import fi.decentri.application.ports.BlockPort
-import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
@@ -29,7 +26,6 @@ import kotlin.time.ExperimentalTime
  */
 class RawInvocationIngestor(
     private val web3jManager: Web3jManager,
-    private val metadata: IngestionMetadataPort,
     private val rawInvocationsRepository: RawInvocationRepository,
     private val blocks: BlockPort,
 ) {
@@ -69,9 +65,6 @@ class RawInvocationIngestor(
                         contract.chain, lastProcessedBlock + 1, toBlock, contract.address.lowercase(Locale.getDefault())
                     )
 
-                    contract.updateMetadata(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, toBlock.toString())
-                    contract.updateMetadata(MetadataType.RAW_INVOCATIONS_LAST_RUN_TIMESTAMP, Instant.now().toString())
-
                     lastProcessedBlock = toBlock
 
                     // Calculate and log progress
@@ -86,14 +79,6 @@ class RawInvocationIngestor(
         }
 
         log.info("Ingestion run completed successfully. Processed blocks $startBlock to $endBlock")
-    }
-
-    private suspend fun Contract.updateMetadata(metadataType: MetadataType, value: String) {
-        metadata.updateMetadataForContractId(
-            this.id!!,
-            metadataType,
-            value
-        )
     }
 
     private suspend fun processBlockRangeWithTraceFilter(

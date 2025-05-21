@@ -3,7 +3,7 @@ package fi.decentri.dataapi.routes
 import fi.decentri.dataapi.k8s.ingestion.IngestionLauncher
 import fi.decentri.dataapi.model.ContractSubmission
 import fi.decentri.dataapi.repository.ContractsRepository
-import fi.decentri.dataapi.repository.IngestionMetadataRepository
+import fi.decentri.dataapi.repository.IngestionJobRepository
 import fi.decentri.dataapi.service.ContractsService
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -19,7 +19,7 @@ private val logger = LoggerFactory.getLogger("fi.decentri.dataapi.routes.Contrac
 @ExperimentalTime
 fun Route.contractRoutes(
     contractsRepository: ContractsRepository,
-    ingestionMetadataRepository: IngestionMetadataRepository,
+    ingestionJobRepository: IngestionJobRepository,
     contractsService: ContractsService
 ) {
     // Contract submission endpoint
@@ -116,7 +116,7 @@ fun Route.contractRoutes(
         }
 
         // Check if ingestion metadata exists for this contract
-        val hasMetadata = ingestionMetadataRepository.hasAnyMetadataForContract(contract.id!!)
+        val hasMetadata = ingestionJobRepository.hasAnyCompletedJob(contract.id!!)
         if (!hasMetadata) {
             logger.info("No ingestion metadata found for contract: $contractAddress on network: $network, showing processing page")
             call.respond(
@@ -179,7 +179,7 @@ fun Route.contractRoutes(
             }
 
             // Check if ingestion metadata exists for this contract
-            val hasMetadata = ingestionMetadataRepository.hasAnyMetadataForContract(contract.id!!)
+            val hasMetadata = ingestionJobRepository.hasAnyCompletedJob(contract.id!!)
             if (!hasMetadata) {
                 logger.info("No ingestion metadata found for contract: $contractAddress on network: $network")
                 call.respond(mapOf("status" to "processing"))

@@ -10,7 +10,6 @@ import fi.decentri.dataapi.waitlist.WaitlistRepository
 import fi.decentri.db.DatabaseFactory
 import fi.decentri.db.contract.Contracts
 import fi.decentri.db.event.RawLogs
-import fi.decentri.db.ingestion.IngestionMetadata
 import fi.decentri.db.ingestion.Jobs
 import fi.decentri.db.rawinvocation.RawInvocations
 import fi.decentri.db.token.TransferEvents
@@ -40,7 +39,6 @@ fun main() {
     DatabaseFactory.initTables(
         RawInvocations,
         RawLogs,
-        IngestionMetadata,
         Contracts,
         WaitlistEntries,
         TransferEvents,
@@ -52,7 +50,7 @@ fun main() {
     val waitlistRepository = WaitlistRepository()
     val rawLogsRepository = RawLogsRepository()
     val contractsRepository = ContractsRepository()
-    val ingestionMetadataRepository = IngestionMetadataRepository()
+    val ingestionJobRepository = IngestionJobRepository()
     val contractsService = ContractsService(contractsRepository)
     val transferEventRepository = TransferEventRepository()
 
@@ -70,7 +68,7 @@ fun main() {
             eventService,
             waitlistRepository,
             contractsRepository,
-            ingestionMetadataRepository,
+            ingestionJobRepository,
             contractsService,
             tokenService
         )

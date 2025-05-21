@@ -6,7 +6,6 @@ import arrow.fx.coroutines.parMap
 import fi.decentri.infrastructure.abi.LogDecoder.decode
 import fi.decentri.application.ports.AbiPort
 import fi.decentri.application.ports.BlockPort
-import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
@@ -30,7 +29,6 @@ import kotlin.time.measureTime
  */
 class EventIngestor(
     private val web3jManager: Web3jManager,
-    private val metadataRepository: IngestionMetadataPort,
     private val eventRepository: EventRepository,
     private val blockService: BlockPort,
     private val abiPort: AbiPort,
@@ -88,9 +86,6 @@ class EventIngestor(
                         contract.abi
                     )
 
-                    contract.updateMetadata(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, toBlock.toString())
-                    contract.updateMetadata(MetadataType.EVENTS_LAST_RUN_TIMESTAMP, Instant.now().toString())
-
                     lastProcessedBlock = toBlock
 
                     // Calculate and log progress
@@ -107,14 +102,6 @@ class EventIngestor(
         log.info("Event ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
     }
 
-
-    private suspend fun Contract.updateMetadata(metadataType: MetadataType, value: String) {
-        metadataRepository.updateMetadataForContractId(
-            this.id!!,
-            metadataType,
-            value
-        )
-    }
 
     /**
      * Process logs within a block range

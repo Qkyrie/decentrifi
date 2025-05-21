@@ -17,7 +17,6 @@ import fi.decentri.db.ingestion.Jobs
 import fi.decentri.infrastructure.abi.AbiService
 import fi.decentri.infrastructure.repository.contract.ContractsRepository
 import fi.decentri.infrastructure.repository.ingestion.EventRepository
-import fi.decentri.infrastructure.repository.ingestion.IngestionMetadataRepository
 import fi.decentri.infrastructure.repository.ingestion.JobRepository
 import fi.decentri.infrastructure.repository.ingestion.RawInvocationRepository
 import fi.decentri.infrastructure.repository.token.TransferEventRepository
@@ -61,7 +60,6 @@ class IngestCommand : CliktCommand(
             val contractsRepository = ContractsRepository()
             val abiPort = AbiService()
             val contractsService = ContractsService(contractsRepository, abiPort)
-            val metadataRepository = IngestionMetadataRepository()
             val rawInvocationRepository = RawInvocationRepository()
             val eventRepository = EventRepository()
             val transferEventRepository = TransferEventRepository()
@@ -72,14 +70,12 @@ class IngestCommand : CliktCommand(
             // Create use cases
             val rawInvocationIngestor = RawInvocationIngestor(
                 Web3jManager.getInstance(),
-                metadataRepository,
                 rawInvocationRepository,
                 blockService
             )
 
             val eventIngestor = EventIngestor(
                 Web3jManager.getInstance(),
-                metadataRepository,
                 eventRepository,
                 blockService,
                 abiPort
@@ -87,7 +83,6 @@ class IngestCommand : CliktCommand(
 
             val tokenTransferIngestor = TokenTransferIngestor(
                 Web3jManager.getInstance(),
-                metadataRepository,
                 transferEventRepository,
                 blockService
             )
@@ -110,7 +105,6 @@ class IngestCommand : CliktCommand(
                 contractsService,
                 abiService,
                 blockService,
-                metadataRepository,
             )
 
             // Register shutdown hook for graceful termination
