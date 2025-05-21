@@ -97,7 +97,7 @@ class JobSchedulerService(
                 contract.id
             )
                 ?.toLongOrNull()
-            ?: blockService.getBlockClosestTo(LocalDateTime.now().minusHours(24), contract.chain)
+            ?: blockService.getBlockClosestTo(LocalDateTime.now().minusHours(1000), contract.chain)
 
         // Get the latest block on the chain
         val latestBlock = blockService.getLatestBlock(contract.chain)

@@ -1,6 +1,7 @@
 package fi.decentri.dataapi.model
 
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
 
@@ -10,10 +11,10 @@ import java.time.LocalDateTime
 @Serializable
 data class GasUsagePoint(
     val timestamp: Instant, // ISO-8601 format in UTC
-    val gasUsed: Long
+    val gasUsed: BigDecimal
 ) {
     companion object {
-        fun from(dateTime: LocalDateTime, gasUsed: Long): GasUsagePoint {
+        fun from(dateTime: LocalDateTime, gasUsed: BigDecimal): GasUsagePoint {
             return GasUsagePoint(
                 timestamp = dateTime.toInstant(java.time.ZoneOffset.UTC),
                 gasUsed = gasUsed

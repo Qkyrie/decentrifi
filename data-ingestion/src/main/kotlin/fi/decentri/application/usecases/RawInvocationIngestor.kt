@@ -97,79 +97,81 @@ class RawInvocationIngestor(
     }
 
     private suspend fun processBlockRangeWithTraceFilter(
-        network: String, fromBlock: Long, toBlock: Long, toAddress: String
+        network: String,
+        fromBlock: Long,
+        toBlock: Long,
+        toAddress: String
     ) {
-        log.info("Filtering traces from block $fromBlock to $toBlock for contract $toAddress")
+        val traces = getTraces(fromBlock, toBlock, toAddress, network)
+        if (traces.isEmpty()) return
 
-        try {
-            val traces = getTraces(fromBlock, toBlock, toAddress, network)
+        val invocations = traces.parMap(concurrency = 8) { t ->
+            try {
+                /* ---------- identity ------------ */
+                val txHash      = t["transactionHash"]?.asText() ?: return@parMap null
+                val traceArray  = t["traceAddress"]
+                val tracePath   = if (traceArray == null || traceArray.isEmpty)
+                    "" else traceArray.joinToString(".") { it.asInt().toString() }
+                val depth       = if (tracePath.isEmpty()) 0 else tracePath.count { it == '.' } + 1
 
-            if (traces.isEmpty()) {
-                log.debug("No traces found for the contract in blocks $fromBlock to $toBlock")
-                return
+                val blockNumHex = t["blockNumber"]?.asText() ?: return@parMap null
+                val blockNumber = Numeric.decodeQuantity(blockNumHex).longValueExact()
+
+                /* ---------- call meta ----------- */
+                val action      = t["action"]
+                val result      = t["result"]
+                val callType    = action?.get("callType")?.asText()
+                val traceType   = t["type"]?.asText() ?: "call"
+
+                /* ---------- participants -------- */
+                val from        = action?.get("from")?.asText() ?: return@parMap null
+                val to          = action?.get("to")?.asText()
+                val valueWei    = Numeric.decodeQuantity(action?.get("value")?.asText() ?: "0x0")
+
+                /* ---------- gas ----------------- */
+                val gasSupplied = Numeric.decodeQuantity(action?.get("gas")?.asText() ?: "0x0")
+                val gasUsed     = Numeric.decodeQuantity(result?.get("gasUsed")?.asText() ?: "0x0")
+
+                /* ---------- payload ------------- */
+                val input       = action?.get("input")?.asText()
+                val output      = result?.get("output")?.asText()
+                val functionSel = input?.takeIf { it.length >= 10 }?.substring(0, 10)
+
+                /* ---------- timestamp ----------- */
+                val block       = blocks.getBlockByNumber(BigInteger(blockNumHex), network)
+
+                RawInvocationData(
+                    network          = network,
+                    contractAddress  = toAddress,
+                    blockNumber      = blockNumber,
+                    blockTimestamp   = Instant.ofEpochSecond(block.timestamp.longValueExact()),
+                    txHash           = txHash,
+
+                    tracePath        = tracePath,
+                    depth            = depth,
+                    callType         = callType,
+                    traceType        = traceType,
+
+                    from             = from,
+                    to               = to,
+                    valueWei         = valueWei,
+
+                    gas              = gasSupplied,
+                    gasUsed          = gasUsed,
+
+                    functionSelector = functionSel,
+                    input            = input,
+                    output           = output
+                )
+            } catch (e: Exception) {
+                log.error("Trace parse error: ${e.message}", e)
+                null
             }
+        }.filterNotNull()          // let the DB handle true duplicates
 
-            log.info("Found ${traces.size} traces for the contract in blocks $fromBlock to $toBlock")
-
-            // Process each trace to extract invocation data
-            val invocations = traces.parMap(concurrency = 8) { trace ->
-                try {
-                    // Extract transaction data from the trace
-                    val txHash = trace.get("transactionHash")?.asText() ?: return@parMap null
-                    val blockNumber = trace.get("blockNumber")?.asText()?.let {
-                        Numeric.decodeQuantity(it).longValueExact()
-                    } ?: return@parMap null
-
-                    // Get the input data (function call data)
-                    val input = trace.get("action")?.get("input")?.asText() ?: "0x"
-
-                    // Extract function selector (first 4 bytes of input)
-                    val functionSelector = if (input.length >= 10) {
-                        input.substring(0, 10)
-                    } else {
-                        "0x"
-                    }
-
-                    // Get the sender address
-                    val from = trace.get("action")?.get("from")?.asText() ?: return@parMap null
-
-                    val gasUsed = Either.catch {
-                        Numeric.decodeQuantity(trace.get("result")?.get("gasUsed")?.textValue()) ?: BigInteger.ZERO
-                    }.mapLeft {
-                        log.error("Error decoding gasUsed: ${it.message}", it)
-                        BigInteger.ZERO
-                    }.getOrElse { BigInteger.ZERO }
-
-                    // Get the block to extract timestamp
-                    val block = blocks.getBlockByNumber(BigInteger(trace.get("blockNumber").asText()), network)
-
-                    // Create invocation data
-                    RawInvocationData(
-                        network = network,
-                        contractAddress = toAddress,
-                        blockNumber = blockNumber,
-                        blockTimestamp = Instant.ofEpochSecond(block.timestamp.longValueExact()),
-                        txHash = txHash,
-                        fromAddress = from,
-                        functionSelector = functionSelector,
-                        inputArgs = mapOf("rawInput" to input),
-                        gasUsed = gasUsed.toLong()
-                    )
-                } catch (e: Exception) {
-                    log.error("Error processing trace: ${e.message}", e)
-                    null
-                }
-            }.filterNotNull().distinctBy { it.txHash } // Deduplicate by transaction hash
-
-            // Store invocations in the database
-            if (invocations.isNotEmpty()) {
-                rawInvocationsRepository.batchInsert(invocations)
-                log.info("Saved ${invocations.size} invocations to database from trace_filter")
-            }
-
-        } catch (e: Exception) {
-            log.error("Error executing trace_filter: ${e.message}", e)
-            throw e
+        if (invocations.isNotEmpty()) {
+            rawInvocationsRepository.batchInsert(invocations)
+            log.info("Saved ${invocations.size} raw invocations")
         }
     }
 

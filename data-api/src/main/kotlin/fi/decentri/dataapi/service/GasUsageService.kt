@@ -4,6 +4,7 @@ import fi.decentri.dataapi.model.InvocationDataDTO
 import fi.decentri.dataapi.model.GasUsagePoint
 import fi.decentri.dataapi.model.UniqueAddressesDTO
 import fi.decentri.dataapi.repository.RawInvocationsRepository
+import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -88,7 +89,7 @@ class GasUsageService(private val rawInvocationsRepository: RawInvocationsReposi
                 result.add(
                     GasUsagePoint.from(
                         dateTime = hourTimestamp,
-                        gasUsed = 0
+                        gasUsed = BigDecimal.ZERO
                     )
                 )
             }
