@@ -2,9 +2,9 @@ package fi.decentri.dataingest
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.typesafe.config.ConfigFactory
-import fi.decentri.application.usecases.EventIngestorUseCase
+import fi.decentri.application.usecases.EventIngestor
 import fi.decentri.application.usecases.RawInvocationIngestor
-import fi.decentri.application.usecases.TokenTransferListenerUseCase
+import fi.decentri.application.usecases.TokenTransferIngestor
 import fi.decentri.block.BlockService
 import fi.decentri.dataingest.config.AppConfig
 import fi.decentri.dataingest.config.Web3jManager
@@ -77,7 +77,7 @@ class IngestCommand : CliktCommand(
                 blockService
             )
 
-            val eventIngestorUseCase = EventIngestorUseCase(
+            val eventIngestor = EventIngestor(
                 Web3jManager.getInstance(),
                 metadataRepository,
                 eventRepository,
@@ -85,7 +85,7 @@ class IngestCommand : CliktCommand(
                 abiPort
             )
 
-            val tokenTransferListenerUseCase = TokenTransferListenerUseCase(
+            val tokenTransferIngestor = TokenTransferIngestor(
                 Web3jManager.getInstance(),
                 metadataRepository,
                 transferEventRepository,
@@ -101,8 +101,8 @@ class IngestCommand : CliktCommand(
                 jobService,
                 contractsService,
                 rawInvocationIngestor,
-                eventIngestorUseCase,
-                tokenTransferListenerUseCase,
+                eventIngestor,
+                tokenTransferIngestor,
             )
 
             val jobSchedulerService = JobSchedulerService(

@@ -1,8 +1,8 @@
 package fi.decentri.dataingest.service
 
-import fi.decentri.application.usecases.EventIngestorUseCase
+import fi.decentri.application.usecases.EventIngestor
 import fi.decentri.application.usecases.RawInvocationIngestor
-import fi.decentri.application.usecases.TokenTransferListenerUseCase
+import fi.decentri.application.usecases.TokenTransferIngestor
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.db.ingestion.JobType
 import fi.decentri.infrastructure.repository.ingestion.JobData
@@ -18,8 +18,8 @@ class JobProcessorService(
     private val jobService: JobService,
     private val contractsService: ContractsService,
     private val rawInvocationIngestor: RawInvocationIngestor,
-    private val eventIngestorUseCase: EventIngestorUseCase,
-    private val tokenTransferListenerUseCase: TokenTransferListenerUseCase,
+    private val eventIngestor: EventIngestor,
+    private val tokenTransferIngestor: TokenTransferIngestor,
 ) {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -86,16 +86,10 @@ class JobProcessorService(
      */
     private suspend fun processRawInvocationsJob(job: JobData, contract: Contract) {
         logger.info("Processing raw invocations job for contract ${contract.address}")
-
-        // Extract block range from metadata if available
-        val startBlock = job.metadata["startBlock"]?.toString()?.toLongOrNull()
-        val endBlock = job.metadata["endBlock"]?.toString()?.toLongOrNull()
-
-        // Process raw invocations with optional block range
-        rawInvocationIngestor.invoke(
+        rawInvocationIngestor.ingest(
             contract = contract,
-            startBlockOverride = startBlock,
-            endBlockOverride = endBlock,
+            startBlock = job.getStartBlock(),
+            endBlock = job.getEndBlock(),
         )
     }
 
@@ -105,15 +99,10 @@ class JobProcessorService(
     private suspend fun processEventsJob(job: JobData, contract: Contract) {
         logger.info("Processing events job for contract ${contract.address}")
 
-        // Extract block range from metadata if available
-        val startBlock = job.metadata["startBlock"]?.toString()?.toLongOrNull()
-        val endBlock = job.metadata["endBlock"]?.toString()?.toLongOrNull()
-
-        // Process events with optional block range
-        eventIngestorUseCase.ingest(
+        eventIngestor.ingest(
             contract = contract,
-            startBlockOverride = startBlock,
-            endBlockOverride = endBlock,
+            startBlock = job.getStartBlock(),
+            endBlock = job.getEndBlock(),
         )
     }
 
@@ -122,36 +111,20 @@ class JobProcessorService(
      */
     private suspend fun processTokenTransfersJob(job: JobData, contract: Contract) {
         logger.info("Processing token transfers job for contract ${contract.address}")
-
-        // Extract block range from metadata if available
-        val startBlock = job.metadata["startBlock"]?.toString()?.toLongOrNull()
-        val endBlock = job.metadata["endBlock"]?.toString()?.toLongOrNull()
-
-        // Track progress through metadata updates
-        val progressListener = object : ProgressListener {
-            override suspend fun onProgress(current: Long, total: Long, metadata: Map<String, Any>) {
-                val updatedMetadata = job.metadata.toMutableMap().apply {
-                    put("currentBlock", current)
-                    put("totalBlocks", total)
-                    putAll(metadata)
-                }
-                jobService.updateJobMetadata(job.id, updatedMetadata)
-            }
-        }
-
-        // Process token transfers with optional block range
-        tokenTransferListenerUseCase.listenForTransfers(
+        tokenTransferIngestor.ingest(
             contract = contract,
-            startBlockOverride = startBlock,
-            endBlockOverride = endBlock,
-            progressListener = progressListener
+            startBlock = job.getStartBlock(),
+            endBlock = job.getEndBlock(),
         )
     }
-}
 
-/**
- * Interface for reporting progress during job execution
- */
-interface ProgressListener {
-    suspend fun onProgress(current: Long, total: Long, metadata: Map<String, Any> = emptyMap())
+    fun JobData.getStartBlock(): Long {
+        return metadata["startBlock"]?.toString()?.toLongOrNull()
+            ?: error("job metadata must contain startBlock key with a long value, got: ${metadata["startBlock"]}")
+    }
+
+    fun JobData.getEndBlock(): Long {
+        return metadata["endBlock"]?.toString()?.toLongOrNull()
+            ?: error("job metadata must contain endBlock key with a long value, got: ${metadata["endBlock"]}")
+    }
 }

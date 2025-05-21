@@ -11,7 +11,6 @@ import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
 import fi.decentri.dataingest.model.TransferEvent
-import fi.decentri.dataingest.service.ProgressListener
 import fi.decentri.infrastructure.repository.token.TransferEventRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await
@@ -24,14 +23,13 @@ import org.web3j.protocol.core.methods.response.EthLog
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.Instant
-import java.time.LocalDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
 /**
  * Service that listens for ERC20 Transfer events and processes them
  */
-class TokenTransferListenerUseCase(
+class TokenTransferIngestor(
     private val web3jManager: Web3jManager,
     private val metadataRepository: IngestionMetadataPort,
     private val transferEventRepository: TransferEventRepository,
@@ -59,11 +57,10 @@ class TokenTransferListenerUseCase(
     /**
      * Listen for transfer events for all token contracts related to the monitored contract
      */
-    suspend fun listenForTransfers(
+    suspend fun ingest(
         contract: Contract,
-        startBlockOverride: Long? = null,
-        endBlockOverride: Long? = null,
-        progressListener: ProgressListener? = null
+        startBlock: Long,
+        endBlock: Long,
     ) {
         logger.info("Starting token transfer event listener for chain: ${contract.chain}")
 
@@ -74,35 +71,23 @@ class TokenTransferListenerUseCase(
             return
         }
 
-        processTokenTransfers(contract, tokens, startBlockOverride, endBlockOverride, progressListener)
+        processTokenTransfers(contract, tokens, startBlock, endBlock)
     }
 
     /**
      * Process transfer events for a specific token contract
      */
     private suspend fun processTokenTransfers(
-        contract: Contract, 
+        contract: Contract,
         tokens: List<String>,
-        startBlockOverride: Long? = null,
-        endBlockOverride: Long? = null,
-        progressListener: ProgressListener? = null
+        startBlock: Long,
+        endblock: Long,
     ) {
         val (_, _, _, pollingInterval, _) = web3jManager.getNetworkConfig(contract.chain)
             ?: error("Unable to get network config for ${contract.chain}")
 
-        // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = endBlockOverride
-            ?: blockService.getLatestBlock(contract.chain)
 
-        // Get the last processed block or start from 24 hours ago
-        val startBlock = startBlockOverride
-            ?: metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_TRANSFER_EVENTS, contract.id!!)
-                ?.toLongOrNull() 
-            ?: blockService.getBlockClosestTo(
-                LocalDateTime.now().minusYears(1), contract.chain
-            )
-
-        logger.info("Starting token transfer ingestion from block $startBlock to target latest block $targetLatestBlock")
+        logger.info("Starting token transfer ingestion from block $startBlock to target latest block $endblock")
 
         var lastProcessedBlock = startBlock
         var completed = false
@@ -111,12 +96,12 @@ class TokenTransferListenerUseCase(
         while (!completed) {
             kotlin.runCatching {
                 // Check if we've reached the target block
-                if (lastProcessedBlock >= targetLatestBlock) {
-                    logger.info("Reached target latest block $targetLatestBlock. Token transfer ingestion complete.")
+                if (lastProcessedBlock >= endblock) {
+                    logger.info("Reached target latest block $endblock. Token transfer ingestion complete.")
                     completed = true
                 } else {
                     // Calculate the next batch to process
-                    val toBlock = minOf(lastProcessedBlock + 5000, targetLatestBlock)
+                    val toBlock = minOf(lastProcessedBlock + 5000, endblock)
                     logger.info("Processing token transfer events for blocks ${lastProcessedBlock + 1} to $toBlock (${toBlock - lastProcessedBlock} blocks)")
 
                     // Process the block range to get transfer events
@@ -131,19 +116,8 @@ class TokenTransferListenerUseCase(
 
                     // Calculate and log progress
                     val progressPercentage =
-                        ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
-                    logger.info("Token transfer ingestion progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
-                    
-                    // Report progress if listener is provided
-                    progressListener?.onProgress(
-                        lastProcessedBlock,
-                        targetLatestBlock,
-                        mapOf(
-                            "progressPercentage" to progressPercentage,
-                            "startBlock" to startBlock,
-                            "tokenCount" to tokens.size
-                        )
-                    )
+                        ((lastProcessedBlock - startBlock).toDouble() / (endblock - startBlock).toDouble() * 100).toInt()
+                    logger.info("Token transfer ingestion progress: $progressPercentage% (processed up to block $lastProcessedBlock of $endblock)")
                 }
             }.onFailure {
                 logger.error("Error during token transfer ingestion: ${it.message}", it)
@@ -151,7 +125,7 @@ class TokenTransferListenerUseCase(
             }
         }
 
-        logger.info("Token transfer ingestion completed for ${tokens.size} tokens. Processed blocks $startBlock to $targetLatestBlock")
+        logger.info("Token transfer ingestion completed for ${tokens.size} tokens. Processed blocks $startBlock to $endblock")
     }
 
     /**

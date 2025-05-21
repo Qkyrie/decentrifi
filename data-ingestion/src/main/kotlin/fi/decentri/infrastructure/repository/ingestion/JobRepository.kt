@@ -174,9 +174,6 @@ class JobRepository {
     }
 }
 
-/**
- * Data class for job information
- */
 data class JobData(
     val id: Int,
     val type: JobType,

@@ -21,7 +21,6 @@ import org.web3j.utils.Numeric
 import java.lang.IllegalArgumentException
 import java.math.BigInteger
 import java.time.Instant
-import java.time.LocalDateTime
 import java.util.*
 import kotlin.time.ExperimentalTime
 
@@ -37,30 +36,18 @@ class RawInvocationIngestor(
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    suspend fun invoke(
+    suspend fun ingest(
         contract: Contract,
-        startBlockOverride: Long? = null,
-        endBlockOverride: Long? = null,
+        startBlock: Long,
+        endBlock: Long,
     ) {
         val config = web3jManager.getNetworkConfig(contract.chain) ?: throw IllegalArgumentException(
             "Network configuration not found for network: ${contract.chain}"
         )
         log.info("Starting trace_filter data ingestion for contract $contract")
 
-        // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = endBlockOverride
-            ?: blocks.getLatestBlock(contract.chain)
 
-        // Get the last processed block or start from 24 hours ago
-        val startBlock = startBlockOverride
-            ?: metadata.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_RAW_INVOCATIONS, contract.id!!)
-                ?.toLongOrNull()
-            ?: blocks.getBlockClosestTo(
-                LocalDateTime.now().minusHours(25),
-                contract.chain
-            )
-
-        log.info("Starting ingestion from block $startBlock to target latest block $targetLatestBlock")
+        log.info("Starting ingestion from block $startBlock to target latest block $endBlock")
 
         var lastProcessedBlock = startBlock
         var completed = false
@@ -69,12 +56,12 @@ class RawInvocationIngestor(
         while (!completed) {
             try {
                 // Check if we've reached the target block
-                if (lastProcessedBlock >= targetLatestBlock) {
-                    log.info("Reached target latest block $targetLatestBlock. Ingestion complete.")
+                if (lastProcessedBlock >= endBlock) {
+                    log.info("Reached target latest block $endBlock. Ingestion complete.")
                     completed = true
                 } else {
                     // Calculate the next batch to process
-                    val toBlock = minOf(lastProcessedBlock + config.batchSize, targetLatestBlock)
+                    val toBlock = minOf(lastProcessedBlock + config.batchSize, endBlock)
                     log.info("Processing blocks ${lastProcessedBlock + 1} to $toBlock with trace_filter (${toBlock - lastProcessedBlock} blocks)")
 
                     // Process the block range using trace_filter
@@ -89,8 +76,8 @@ class RawInvocationIngestor(
 
                     // Calculate and log progress
                     val progressPercentage =
-                        ((lastProcessedBlock - startBlock).toDouble() / (targetLatestBlock - startBlock).toDouble() * 100).toInt()
-                    log.info("Progress: $progressPercentage% (processed up to block $lastProcessedBlock of $targetLatestBlock)")
+                        ((lastProcessedBlock - startBlock).toDouble() / (endBlock - startBlock).toDouble() * 100).toInt()
+                    log.info("Progress: $progressPercentage% (processed up to block $lastProcessedBlock of $endBlock)")
                 }
             } catch (e: Exception) {
                 log.error("Error during trace_filter ingestion: ${e.message}", e)
@@ -98,7 +85,7 @@ class RawInvocationIngestor(
             }
         }
 
-        log.info("Ingestion run completed successfully. Processed blocks $startBlock to $targetLatestBlock")
+        log.info("Ingestion run completed successfully. Processed blocks $startBlock to $endBlock")
     }
 
     private suspend fun Contract.updateMetadata(metadataType: MetadataType, value: String) {

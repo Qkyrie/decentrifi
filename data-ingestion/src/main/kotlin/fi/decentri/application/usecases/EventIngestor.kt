@@ -10,7 +10,6 @@ import fi.decentri.application.ports.IngestionMetadataPort
 import fi.decentri.dataingest.config.Web3jManager
 import fi.decentri.dataingest.model.Contract
 import fi.decentri.dataingest.model.MetadataType
-import fi.decentri.dataingest.service.ProgressListener
 import fi.decentri.infrastructure.repository.ingestion.EventLogData
 import fi.decentri.infrastructure.repository.ingestion.EventRepository
 import kotlinx.coroutines.delay
@@ -29,7 +28,7 @@ import kotlin.time.measureTime
 /**
  * Service responsible for blockchain event logs ingestion
  */
-class EventIngestorUseCase(
+class EventIngestor(
     private val web3jManager: Web3jManager,
     private val metadataRepository: IngestionMetadataPort,
     private val eventRepository: EventRepository,
@@ -42,9 +41,9 @@ class EventIngestorUseCase(
      * Ingest events for a contract with optional block range override
      */
     suspend fun ingest(
-        contract: Contract, 
-        startBlockOverride: Long? = null,
-        endBlockOverride: Long? = null,
+        contract: Contract,
+        startBlock: Long,
+        endBlock: Long,
     ) {
         log.info("Starting event log ingestion for contract ${contract.address}")
 
@@ -59,18 +58,10 @@ class EventIngestorUseCase(
         }
 
         // Get the latest block at the start of this run - this is our target end block
-        val targetLatestBlock = endBlockOverride 
-            ?: blockService.getLatestBlock(contract.chain)
+        val targetLatestBlock = endBlock
 
         // Get the last processed block or start from 24 hours ago
-        val startBlock = startBlockOverride
-            ?: metadataRepository.getMetadatForContractId(MetadataType.LAST_PROCESSED_BLOCK_EVENTS, contract.id!!)
-                ?.toLongOrNull()
-            ?: blockService.getBlockClosestTo(
-                LocalDateTime.now().minusHours(24),
-                contract.chain
-            )
-
+        val startBlock = startBlock
         log.info("Starting event ingestion from block $startBlock to target latest block $targetLatestBlock")
 
         var lastProcessedBlock = startBlock
@@ -154,7 +145,7 @@ class EventIngestorUseCase(
                         try {
                             processLog(log, network, address, abi)
                         } catch (e: Exception) {
-                            this@EventIngestorUseCase.log.error("Error processing log: ${e.message}", e)
+                            this@EventIngestor.log.error("Error processing log: ${e.message}", e)
                             null
                         }
                     }.filterNotNull()
