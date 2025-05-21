@@ -1,6 +1,6 @@
 package org.cipheredge.rest
 
-import org.cipheredge.chain.Chain
+import fi.decentri.evm.Chain
 import org.cipheredge.chain.evm.config.Web3jHolder
 import org.cipheredge.chain.evm.web3j.Web3JProxyImpl
 import org.cipheredge.rest.request.GetEventLogsRequest

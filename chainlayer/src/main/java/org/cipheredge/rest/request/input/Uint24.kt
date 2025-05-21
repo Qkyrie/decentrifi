@@ -1,6 +1,6 @@
 package org.cipheredge.rest.request.input
 
-import org.cipheredge.web3j.TypeUtils.Companion.toUint24
+import fi.decentri.evm.TypeUtils.Companion.toUint24
 import java.math.BigInteger
 
 class Uint24(

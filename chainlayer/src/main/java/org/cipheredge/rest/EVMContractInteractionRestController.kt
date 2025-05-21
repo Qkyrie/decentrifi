@@ -2,15 +2,15 @@ package org.cipheredge.rest
 
 import arrow.core.Either
 import arrow.core.getOrElse
+import fi.decentri.evm.TypeUtils
 import org.cipheredge.chain.EthCallResultToTypeConverter
-import org.cipheredge.chain.Chain
+import fi.decentri.evm.Chain
 import org.cipheredge.chain.evm.ReadStateToNativeCallConverter
 import org.cipheredge.chain.evm.config.Web3jHolder
 import org.cipheredge.chain.evm.web3j.Web3JProxyImpl
 import org.cipheredge.rest.request.EvmContractInteractionRequest
 import org.cipheredge.rest.request.EvmReadContractStateRequest
 import org.cipheredge.rest.request.output.Output
-import org.cipheredge.web3j.TypeUtils
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.web3j.abi.EventEncoder

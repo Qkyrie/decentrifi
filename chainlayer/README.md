@@ -143,7 +143,7 @@ The application follows a standard Spring Boot structure with clear separation o
 
 To add support for additional blockchain networks:
 
-1. Add the new chain to the `Chain` enum in `org.cipheredge.chain.Chain.kt`
+1. Add the new chain to the `Chain` enum in `fi.decentri.evm.Chain.kt`
 2. Configure RPC endpoints in application properties
 3. Update the `Web3jConfig` class to include the new chain
 

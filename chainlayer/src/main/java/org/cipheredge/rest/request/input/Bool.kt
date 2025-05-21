@@ -1,7 +1,6 @@
 package org.cipheredge.rest.request.input
 
-import org.cipheredge.web3j.TypeUtils.Companion.toBool
-
+import fi.decentri.evm.TypeUtils.Companion.toBool
 
 class Bool(
     type: String,

@@ -1,7 +1,7 @@
 package org.cipheredge.rest.request.input
 
+import fi.decentri.evm.TypeUtils.Companion.toBytes32
 import org.bouncycastle.util.encoders.Hex
-import org.cipheredge.web3j.TypeUtils.Companion.toBytes32
 
 class Bytes32(
     type: String,

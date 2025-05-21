@@ -1,7 +1,7 @@
 package org.cipheredge.chain.evm.config
 
 import okhttp3.OkHttpClient
-import org.cipheredge.chain.Chain
+import fi.decentri.evm.Chain
 import org.web3j.protocol.Web3j
 import org.web3j.protocol.http.HttpService
 import java.util.concurrent.TimeUnit

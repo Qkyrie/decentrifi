@@ -1,7 +1,6 @@
 package org.cipheredge.rest.request.input
 
-import org.cipheredge.web3j.TypeUtils.Companion.toAddress
-
+import fi.decentri.evm.TypeUtils.Companion.toAddress
 
 class Address(
     type: String,
