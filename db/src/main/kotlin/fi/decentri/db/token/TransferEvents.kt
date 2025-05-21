@@ -10,8 +10,8 @@ import java.math.BigDecimal
 object TransferEvents : Table("token_transfer_events") {
     val id = integer("id").autoIncrement()
     val network = varchar("network", 50)
-    val tokenAddress = varchar("token_address", 50)
-    val contractAddress = varchar("contract_address", 50).nullable() // Optional monitored contract address
+    val tokenAddress = varchar("token_address", 42)
+    val contractAddress = varchar("contract_address", 42)
     val txHash = varchar("tx_hash", 66)
     val logIndex = integer("log_index")
     val blockNumber = long("block_number")
@@ -22,5 +22,6 @@ object TransferEvents : Table("token_transfer_events") {
     val tokenSymbol = varchar("token_symbol", 20).nullable()
     val tokenDecimals = integer("token_decimals").nullable()
 
-    override val primaryKey = PrimaryKey(id)
+    override val primaryKey =
+        PrimaryKey(network, txHash, logIndex, name = "pk_transfer_events")
 }

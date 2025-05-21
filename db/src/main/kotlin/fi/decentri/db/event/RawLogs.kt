@@ -12,7 +12,7 @@ import org.jetbrains.exposed.sql.json.jsonb
 object RawLogs : Table("raw_logs") {
     val id = integer("id").autoIncrement()
     val network = varchar("network", 50)
-    val contractAddress = varchar("contract_address", 50)
+    val contractAddress = varchar("contract_address", 42)
     val txHash = varchar("tx_hash", 66)
     val logIndex = integer("log_index")
     val blockNumber = long("block_number")
@@ -23,5 +23,5 @@ object RawLogs : Table("raw_logs") {
     val eventName = varchar("event_name", 100).nullable() // Decoded event name from ABI
     val decoded = jsonb<JsonElement>("decoded", Json) // Parsed event parameters
 
-    override val primaryKey = PrimaryKey(id)
+    override val primaryKey = PrimaryKey(network, txHash, logIndex, name = "pk_raw_logs")
 }

@@ -128,12 +128,11 @@ class IngestCommand : CliktCommand(
                 logger.info("Running in JOB mode - using job-based processing system")
 
                 // Start the job scheduler service
-                val scheduler = jobSchedulerService.run()
+                jobSchedulerService.run()
 
                 // Start the job processor service
                 val processor = jobProcessorService.run()
-
-                listOf(scheduler, processor).joinAll()
+                processor.join()
                 logger.info("Job services clompleted successfully. Application will die now.")
             } catch (e: Exception) {
                 logger.error("Error during ingestion job: ${e.message}", e)

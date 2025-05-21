@@ -27,11 +27,9 @@ class JobSchedulerService(
     /**
      * Start the job scheduler
      */
-    suspend fun run(): Job = coroutineScope {
-        launch {
-            logger.info("Starting job scheduler service")
-            scheduleJobs()
-        }
+    suspend fun run() {
+        logger.info("Starting job scheduler service")
+        scheduleJobs()
     }
 
     /**

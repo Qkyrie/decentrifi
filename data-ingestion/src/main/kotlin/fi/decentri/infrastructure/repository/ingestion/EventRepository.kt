@@ -2,10 +2,10 @@ package fi.decentri.infrastructure.repository.ingestion
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.decentri.db.DatabaseFactory.dbQuery
-import fi.decentri.db.event.EventDefinitions
 import fi.decentri.db.event.RawLogs
 import kotlinx.serialization.json.Json
-import org.jetbrains.exposed.sql.*
+import kotlinx.serialization.json.encodeToJsonElement
+import org.jetbrains.exposed.sql.batchInsert
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -24,7 +24,9 @@ class EventRepository {
 
         logger.debug("Batch inserting ${events.size} event logs")
         dbQuery {
-            RawLogs.batchInsert(events) { data ->
+            RawLogs.batchInsert(
+                data = events,
+                ignore = true) { data ->
                 this[RawLogs.network] = data.network
                 this[RawLogs.contractAddress] = data.contractAddress
                 this[RawLogs.txHash] = data.txHash
@@ -32,75 +34,10 @@ class EventRepository {
                 this[RawLogs.blockNumber] = data.blockNumber
                 this[RawLogs.blockTimestamp] = data.blockTimestamp
                 this[RawLogs.topic0] = data.topic0
-                this[RawLogs.topics] = Json.parseToJsonElement(
-                    objectMapper.writeValueAsString(data.topics)
-                )
+                this[RawLogs.topics] = Json.encodeToJsonElement(data.topics)
                 this[RawLogs.data] = data.data
                 this[RawLogs.eventName] = data.eventName
-                this[RawLogs.decoded] = Json.parseToJsonElement(
-                    objectMapper.writeValueAsString(data.decoded)
-                )
-            }
-        }
-    }
-
-    /**
-     * Store an event definition from ABI
-     */
-    suspend fun storeEventDefinition(definition: EventDefinitionData) {
-        logger.debug("Storing event definition: ${definition.eventName} for contract ${definition.contractAddress}")
-        dbQuery {
-            // Check if this event definition already exists
-            val existing = EventDefinitions.selectAll().where {
-                (EventDefinitions.contractAddress eq definition.contractAddress) and
-                        (EventDefinitions.signature eq definition.signature) and
-                        (EventDefinitions.network eq definition.network)
-            }.firstOrNull()
-
-            if (existing == null) {
-                // Insert new event definition
-                EventDefinitions.insert {
-                    it[contractAddress] = definition.contractAddress
-                    it[eventName] = definition.eventName
-                    it[signature] = definition.signature
-                    it[abiJson] = definition.abiJson
-                    it[network] = definition.network
-                    it[createdAt] = Instant.now()
-                    it[updatedAt] = Instant.now()
-                }
-            }
-        }
-    }
-
-    /**
-     * Batch insert multiple event definitions
-     */
-    suspend fun batchInsertEventDefinitions(definitions: List<EventDefinitionData>) {
-        if (definitions.isEmpty()) return
-
-        logger.debug("Batch inserting ${definitions.size} event definitions")
-        dbQuery {
-            // For simplicity, we'll process them one by one to handle the existing check
-            definitions.forEach { definition ->
-                // Check if this event definition already exists
-                val existing = EventDefinitions.select {
-                    (EventDefinitions.contractAddress eq definition.contractAddress) and
-                            (EventDefinitions.signature eq definition.signature) and
-                            (EventDefinitions.network eq definition.network)
-                }.firstOrNull()
-
-                if (existing == null) {
-                    // Insert new event definition
-                    EventDefinitions.insert {
-                        it[contractAddress] = definition.contractAddress
-                        it[eventName] = definition.eventName
-                        it[signature] = definition.signature
-                        it[abiJson] = definition.abiJson
-                        it[network] = definition.network
-                        it[createdAt] = Instant.now()
-                        it[updatedAt] = Instant.now()
-                    }
-                }
+                this[RawLogs.decoded] = Json.encodeToJsonElement(data.decoded)
             }
         }
     }
@@ -121,15 +58,4 @@ data class EventLogData(
     val data: String?,
     val eventName: String?,
     val decoded: Map<String, Any>?
-)
-
-/**
- * Data class for event definition operations
- */
-data class EventDefinitionData(
-    val contractAddress: String,
-    val eventName: String,
-    val signature: String,
-    val abiJson: String,
-    val network: String
 )
