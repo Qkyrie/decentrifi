@@ -1,6 +1,6 @@
-package fi.decentri.dataapi
+package fi.decentri.evm
 
-import fi.decentri.dataapi.BigDecimalExtensions.dividePrecisely
+import fi.decentri.evm.BigDecimalExtensions.dividePrecisely
 import java.math.BigDecimal
 import java.math.BigInteger
 import org.web3j.utils.Convert

@@ -1,4 +1,4 @@
-package fi.decentri.dataapi
+package fi.decentri.evm
 
 import java.text.DecimalFormat
 

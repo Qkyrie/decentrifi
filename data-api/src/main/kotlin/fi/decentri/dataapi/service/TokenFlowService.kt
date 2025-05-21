@@ -1,12 +1,11 @@
 package fi.decentri.dataapi.service
 
-import fi.decentri.dataapi.FormatUtilsExtensions.asEth
+import fi.decentri.evm.FormatUtilsExtensions.asEth
 import fi.decentri.dataapi.model.TokenFlowPoint
 import fi.decentri.dataapi.model.TokenFlowsDTO
 import fi.decentri.dataapi.repository.TransferEventRepository
 import fi.decentri.dataapi.repository.TransferEventRepository.*
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
