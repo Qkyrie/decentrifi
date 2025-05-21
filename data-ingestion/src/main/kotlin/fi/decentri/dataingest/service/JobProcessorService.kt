@@ -7,6 +7,7 @@ import fi.decentri.dataingest.model.Contract
 import fi.decentri.db.ingestion.JobType
 import fi.decentri.infrastructure.repository.ingestion.JobData
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import org.slf4j.LoggerFactory
 import kotlin.time.ExperimentalTime
 
@@ -20,6 +21,7 @@ class JobProcessorService(
     private val rawInvocationIngestor: RawInvocationIngestor,
     private val eventIngestor: EventIngestor,
     private val tokenTransferIngestor: TokenTransferIngestor,
+    private val concurrency: Int = 1
 ) {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -28,27 +30,44 @@ class JobProcessorService(
      */
     suspend fun run(): Job = coroutineScope {
         launch {
-            logger.info("Starting job processor service")
-            processJobs()
+            logger.info("Starting job processor service with concurrency: $concurrency")
+
+            jobFlow()
+                .onEach { job ->
+                    logger.info("Processing job ${job.id} of type ${job.type} for contract ${job.contractId}")
+                }
+                .flatMapMerge(concurrency) { job ->
+                    flow { emit(processJob(job)) }
+                        .catch { e ->
+                            if (e is CancellationException) throw e
+                            logger.error("Error processing job ${job.id}: ${e.message}", e)
+                            jobService.failJob(job.id, e.message ?: "Unknown error")
+                        }
+                }
+                .collect()
+            logger.info("Job processor service stopped")
         }
     }
 
     /**
-     * Main job processing loop
+     * Creates a flow that emits pending jobs until none are available
      */
-    private suspend fun processJobs() {
-        try {
-            // Get the next pending job
-            val job = jobService.getNextPendingJob() ?: return
-
-            logger.info("Processing job ${job.id} of type ${job.type} for contract ${job.contractId}")
-            processJob(job)
-            delay(1000)
-            processJobs()
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            logger.error("Error in job processor: ${e.message}", e)
-            delay(10000) // Wait a bit longer on error
+    private fun jobFlow(): Flow<JobData> = flow {
+        while (currentCoroutineContext().isActive) {
+            try {
+                val job = jobService.getNextPendingJob()
+                if (job != null) {
+                    emit(job)
+                    delay(1000) // Brief delay between jobs
+                } else {
+                    logger.info("No more pending jobs found, stopping job processor")
+                    break // Stop the flow when no jobs are available
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                logger.error("Error fetching next job: ${e.message}", e)
+                delay(10000) // Wait longer on error
+            }
         }
     }
 
