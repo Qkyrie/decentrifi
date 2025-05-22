@@ -140,8 +140,6 @@ resource "kubernetes_cron_job_v1" "data-ingestion-hourly" {
             container {
               name  = "data-ingestion"
               image = "ghcr.io/${var.github_repo}/data-ingestion:latest"
-              args  = ["--mode=auto"]
-
               env {
                 name = "DB_PASSWORD"
                 value_from {
