@@ -31,6 +31,4 @@ COPY --from=build /app/data-ingestion/target/app.jar /app/app.jar
 COPY data-ingestion/src/main/resources/application.conf /app/application.conf
 # Use dumb-init as the entrypoint to handle signals properly
 # This allows kubernetes to override just the CMD part with its own arguments
-ENTRYPOINT ["dumb-init", "--", "java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
-# Default to auto mode if no arguments are provided
-CMD ["--mode=auto"]
+CMD ["dumb-init", "--", "java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
