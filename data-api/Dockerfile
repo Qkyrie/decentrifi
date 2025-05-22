@@ -7,6 +7,7 @@ COPY data-ingestion/pom.xml data-ingestion/
 COPY data-api/pom.xml data-api/
 COPY web3/pom.xml web3/
 COPY chainlayer/pom.xml chainlayer/
+COPY token-api/pom.xml token-api/
 COPY db/pom.xml db/
 
 # fetch all *remote* deps for data-api AND the modules it depends on (db, data-api)
