@@ -127,6 +127,25 @@ class JobRepository {
     }
 
     /**
+     * Get the job with the highest endBlock for a specific type and contract
+     */
+    suspend fun getJobWithHighestEndBlockByTypeAndContract(
+        type: JobType,
+        contractId: Int
+    ): JobData? = dbQuery {
+        val completedJobs = Jobs.select {
+            (Jobs.type eq type) and
+                    (Jobs.contractId eq contractId) and
+                    (Jobs.status eq JobStatus.COMPLETED)
+        }.map { it.toJobData() }
+
+        // Find the job with the highest endBlock from metadata
+        completedJobs.maxByOrNull { job ->
+            job.metadata["endBlock"]?.toString()?.toLongOrNull() ?: 0L
+        }
+    }
+
+    /**
      * Update job metadata
      */
     suspend fun updateJobMetadata(

@@ -91,6 +91,16 @@ class JobService(
     }
 
     /**
+     * Get the job with the highest endBlock for a specific type and contract
+     */
+    suspend fun getJobWithHighestEndBlockByTypeAndContract(
+        type: JobType,
+        contractId: Int
+    ): JobData? {
+        return jobRepository.getJobWithHighestEndBlockByTypeAndContract(type, contractId)
+    }
+
+    /**
      * Check if there are running jobs for a contract
      */
     suspend fun hasRunningOrPendingJobsForContract(contractId: Int): Boolean {

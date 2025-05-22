@@ -85,7 +85,7 @@ class JobSchedulerService(
      * Schedule a raw invocations job if needed
      */
     private suspend fun scheduleRawInvocationsRunupJob(contract: Contract) {
-        val latestJob = jobService.getLatestCompletedJobByTypeAndContract(JobType.RAW_INVOCATIONS, contract.id!!)
+        val latestJob = jobService.getJobWithHighestEndBlockByTypeAndContract(JobType.RAW_INVOCATIONS, contract.id!!)
 
         // Get the last processed block from metadata or from the latest job
         val lastProcessedBlock = latestJob?.metadata?.get("endBlock")?.toString()?.toLongOrNull()
@@ -122,7 +122,7 @@ class JobSchedulerService(
             return
         }
 
-        val latestJob = jobService.getLatestCompletedJobByTypeAndContract(JobType.EVENTS, contract.id!!)
+        val latestJob = jobService.getJobWithHighestEndBlockByTypeAndContract(JobType.EVENTS, contract.id!!)
 
         // Get the last processed block from metadata or from the latest job
         val lastProcessedBlock = latestJob?.metadata?.get("endBlock")?.toString()?.toLongOrNull()
@@ -152,7 +152,7 @@ class JobSchedulerService(
      * Schedule a token transfer job if needed
      */
     private suspend fun scheduleTokenTransferRunupJob(contract: Contract) {
-        val latestJob = jobService.getLatestCompletedJobByTypeAndContract(JobType.TOKEN_TRANSFERS, contract.id!!)
+        val latestJob = jobService.getJobWithHighestEndBlockByTypeAndContract(JobType.TOKEN_TRANSFERS, contract.id!!)
 
         // Get the last processed block from metadata or from the latest job
         val lastProcessedBlock = latestJob?.metadata?.get("endBlock")?.toString()?.toLongOrNull()
